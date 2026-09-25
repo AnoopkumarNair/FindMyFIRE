@@ -4,7 +4,7 @@
 import { evaluate } from "./conditions.js";
 import { confidence, bandFor } from "./confidence.js";
 import { resolveInputs } from "./resolve.js";
-import { makeParams, analyse, requiredMonthlySip, withdrawalsFrom, drawdown } from "./project.js";
+import { makeParams, analyse, requiredMonthlySip, withdrawalsFrom, drawdown, requiredAt } from "./project.js";
 
 export { fv, pmt, nper, pvDue } from "./finance.js";
 export { evaluate, getPointer, setPointer } from "./conditions.js";
@@ -99,6 +99,9 @@ export function evaluatePlan(user, pack, { today = new Date() } = {}) {
   const depletedRow = drawRows.find((r) => r.end <= 0);
   const retirementSchedule = drawRows.map((r) => ({ ...r, age: inp.age + tFire + r.k, year: year0 + tFire + r.k }));
 
+  // ---- how the money comes out: an SWP from the corpus needed at the target age ----
+  const swp = swpPlan(inp, p, pack, tFire, year0);
+
   const nudges = pack.nudges
     .filter((n) => { try { return evaluate(n.when, user, derived); } catch { return false; } })
     .map(({ id, severity, section, message }) => ({ id, severity, section, message }));
@@ -120,7 +123,38 @@ export function evaluatePlan(user, pack, { today = new Date() } = {}) {
     scenarios,
     timeline,
     retirementSchedule,
+    swp,
     depletesAtAge: depletedRow ? inp.age + tFire + depletedRow.k : null,
     nudges,
+  };
+}
+
+/**
+ * Systematic withdrawal plan once the corpus needed is in place: yearly amounts (paid monthly),
+ * and the three buckets they come from. Cash and debt earn the rules pack's asset-class
+ * returns; the equity return is whatever makes the whole corpus average the post-FIRE return
+ * (the same method as the original sheet), so the user can judge whether it's realistic.
+ */
+function swpPlan(inp, p, pack, tFire, year0) {
+  const ws = withdrawalsFrom(inp, p, {}, tFire);
+  const corpus = requiredAt(inp, p, {}, tFire);
+  const rows = drawdown(corpus, ws, { rate: p.rPost }).map((r) => ({
+    ...r, age: inp.age + tFire + r.k, year: year0 + tFire + r.k, monthly: Math.max(0, r.withdrawal) / 12,
+  }));
+  const first = rows.find((r) => r.withdrawal > 0) || rows[0];
+  const ret = Object.fromEntries(pack.assetClasses.map((a) => [a.id, a.expectedReturn]));
+  const invested = first ? first.cash + first.debt + first.equity : 0;
+  const equityReturn = first?.equity > 0
+    ? (p.rPost * invested - first.cash * ret.cash - first.debt * ret.debt) / first.equity
+    : null;
+  return {
+    startAge: inp.age + tFire, corpus, taxRate: p.tax, blendedReturn: p.rPost,
+    firstMonthly: first ? Math.max(0, first.withdrawal) / 12 : 0,
+    buckets: first ? {
+      cash: { amount: first.cash, years: 3, return: ret.cash },
+      debt: { amount: first.debt, years: 5, return: ret.debt },
+      equity: { amount: first.equity, return: equityReturn },
+    } : null,
+    rows,
   };
 }

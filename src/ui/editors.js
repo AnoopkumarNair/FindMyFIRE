@@ -114,7 +114,7 @@ function expensesEditor(ctx) {
 
   return h("div", {},
     h("p", { class: "total" }, "Total: ", total, quickNote),
-    h("p", { class: "muted small" }, "Leave a category blank if it doesn't apply. \"Essential\" categories make up Lean FIRE."),
+    h("p", { class: "muted small" }, "Leave a category blank if it doesn't apply."),
     ...groups.map((g) => h("details", { class: "group", open: true },
       h("summary", {}, g.id.replace(/_/g, " ").replace(/^\w/, (s) => s.toUpperCase())),
       ...g.cats.flatMap((c) => {
@@ -201,7 +201,7 @@ function goalsEditor(ctx) {
         field("Cost inflation", "percent", g.inflationRate, (v) => { g.inflationRate = v; ctx.save(); }),
         field("Priority", "select", g.priority, (v) => { g.priority = v; ctx.save(); }, { placeholder: false,
           options: [{ value: "must", label: "Must have" }, { value: "want", label: "Want" }, { value: "nice", label: "Nice to have" }],
-          help: "Lean FIRE keeps only must-haves." }),
+        }),
         kids.length && g.templateId.startsWith("goal.child") ? field("Child", "select", g.childId, (v) => { g.childId = v; ctx.save(); },
           { options: kids.map((k, i) => ({ value: k.id, label: k.label || `Child ${i + 1} (${k.birthYear})` })) }) : null,
         field("How sure?", "source", g.source, (v) => { g.source = v; ctx.save(); }),

@@ -55,7 +55,7 @@
     {
       "name": "monthlySurplus",
       "label": "Uninvested monthly surplus",
-      "description": "takeHome − expenses − EMIs − SIP. Take-home is already net of your own EPF."
+      "description": "takeHome − expenses − EMIs − monthly investing. With quick answers, investing includes EPF, which is already outside take-home, so this can understate the surplus."
     }
   ],
   "assumptions": [
@@ -1352,15 +1352,17 @@
     },
     {
       "quantity": "monthlySip",
-      "detailed": "sum(holdings, monthlyContribution + annualContribution/12) excluding EPF/VPF/NPS employer",
+      "detailed": "sum(holdings, monthlyContribution + annualContribution/12) excluding EPF/VPF",
       "quick": "/quick/monthlySip",
-      "fallback": 0
+      "fallback": 0,
+      "note": "The quick answer includes EPF; detailed holdings split it out."
     },
     {
       "quantity": "epfMonthly",
       "detailed": "sum(holdings where instrument in [epf,vpf], monthlyContribution + employerMonthlyContribution)",
       "quick": "/quick/epfMonthly",
-      "fallback": 0
+      "fallback": 0,
+      "note": "No longer asked in the quick pass (folded into monthlySip); kept for older files."
     }
   ],
   "questionFlow": {
@@ -1368,7 +1370,7 @@
       "id": "quick",
       "title": "Quick estimate",
       "weight": 0,
-      "intro": "Ten questions, about two minutes. You'll get a first FIRE age with a confidence score; refine any section afterwards.",
+      "intro": "Eight questions, about two minutes. You'll get a first FIRE age with a confidence score; refine any section afterwards.",
       "questions": [
         {
           "id": "q.birth",
@@ -1402,38 +1404,12 @@
           "impactHint": "Each extra 5 years adds roughly 5–8% to the corpus you need."
         },
         {
-          "id": "q.household",
-          "prompt": "Who depends on your income?",
-          "input": "multiselect",
-          "bind": "/profile/dependentsQuick",
-          "options": [
-            {
-              "value": "spouse",
-              "label": "Spouse"
-            },
-            {
-              "value": "children",
-              "label": "Children"
-            },
-            {
-              "value": "parents",
-              "label": "Parents"
-            },
-            {
-              "value": "none",
-              "label": "Just me"
-            }
-          ],
-          "help": "Unlocks the right follow-up questions later.",
-          "impact": "medium"
-        },
-        {
           "id": "q.take_home",
           "prompt": "Monthly take-home income (household)?",
           "input": "currency",
           "bind": "/quick/takeHomeMonthly",
           "impact": "medium",
-          "impactHint": "Used for savings rate and surplus; affects FIRE age only through what you invest."
+          "impactHint": "Used to spot money left over each month that isn't invested yet."
         },
         {
           "id": "q.expenses",
@@ -1455,31 +1431,19 @@
         },
         {
           "id": "q.corpus",
-          "prompt": "Roughly how much have you invested so far (MF, stocks, EPF, PPF, FDs, gold)? Exclude your home.",
+          "prompt": "How much have you invested so far?",
           "input": "currency",
           "bind": "/quick/investedCorpus",
-          "impact": "high"
+          "impact": "high",
+          "help": "Mutual funds, stocks, EPF, PPF, FDs, gold. Leave out your home, and NPS Tier-1 if you plan to stop before 60 (it's locked until then)."
         },
         {
           "id": "q.sip",
-          "prompt": "How much do you invest each month (SIPs, PPF, etc.), excluding EPF?",
+          "prompt": "How much do you invest every month in total?",
           "input": "currency",
           "bind": "/quick/monthlySip",
-          "impact": "high"
-        },
-        {
-          "id": "q.epf",
-          "prompt": "Monthly EPF contribution (yours + employer's)?",
-          "input": "currency",
-          "bind": "/quick/epfMonthly",
-          "allowDontKnow": true,
-          "showIf": {
-            "ref": "/profile/employment",
-            "op": "ne",
-            "value": "selfEmployed"
-          },
-          "impact": "medium",
-          "help": "Roughly 24% of basic salary if you don't know."
+          "impact": "high",
+          "help": "SIPs, PPF, RDs, and EPF/VPF (your share plus your employer's, from your payslip). Leave out loan EMIs, insurance premiums, and NPS Tier-1 if you plan to stop before 60."
         }
       ]
     },
@@ -1500,7 +1464,7 @@
             "input": "list.expenses",
             "bind": "/expenses",
             "impact": "high",
-            "impactHint": "Also unlocks Lean FIRE (essentials only) and post-FIRE adjustments like lower commuting."
+            "impactHint": "Separates essentials from lifestyle spending and applies post-FIRE changes like lower commuting."
           }
         ]
       },
@@ -1511,8 +1475,7 @@
         "intro": "One row per account or fund. Mark what you can actually use at your FIRE age.",
         "replacesQuick": [
           "/quick/investedCorpus",
-          "/quick/monthlySip",
-          "/quick/epfMonthly"
+          "/quick/monthlySip"
         ],
         "questions": [
           {

@@ -30,7 +30,7 @@ The contract between them is two JSON Schemas in `schemas/`.
 
 ## Quick answer first, refine later
 
-1. **Quick pass (10 questions).** These fill `/quick/*` and give a first FIRE age with a confidence score.
+1. **Quick pass (8 questions).** These fill `/quick/*` and give a first FIRE age with a confidence score.
 2. **Refine sections** (expenses, holdings, goals, …). Each one lists the quick answers it replaces (`replacesQuick`). Once a section is in `sectionsDone`, the engine uses the detailed data instead. See `resolution` in the rules pack.
 3. **Confidence** is computed from each answer's source, weighted by section:
    - Σ(section weight × mean answer score) ÷ Σ(weights of visible sections), shown as 0–100.
@@ -60,7 +60,8 @@ All amounts are nominal rupees, stepped one year at a time from today (`src/engi
 - **Withdrawals after FIRE:** each expense line is inflated at its own rate (general, health or education) and scaled by its post-FIRE factor. Then add EMIs still running and goals due that year, subtract income that continues after FIRE, and gross the result up for withdrawal tax.
 - **Corpus needed at age A:** the present value of every withdrawal from A until `plan.untilAge`, at the post-FIRE return. By construction it runs out exactly after that year.
 - **Earliest FIRE age:** the first age where the projected corpus reaches the corpus needed, interpolated between years.
-- **Levels:** Lean (essential categories and must-have goals), Standard, Fat (× multiplier), Barista (minus part-time income) and Coast (the Standard target discounted to today).
+- **One target:** your current lifestyle, adjusted per expense line for life after FIRE. The engine can still compute Lean/Fat/Barista/Coast variants (`tiers`), but the app deliberately shows one number.
+- **Living off the corpus:** a yearly-rising SWP paid from three buckets (3 years in cash, 5 in debt, the rest in equity). The app shows the equity return the plan implicitly needs, so an unrealistic post-FIRE return is easy to spot.
 - **Money coming in** (gratuity, policy payouts, a property sale): a lump sum before FIRE is invested; one after FIRE pays that year's spending. The corpus needed is then the largest running present value, so a late windfall can't cover earlier years.
 - **Scenarios** re-run the same model with the rules pack's deltas. The **range** re-runs it with expenses and corpus moved by each answer's uncertainty band.
 

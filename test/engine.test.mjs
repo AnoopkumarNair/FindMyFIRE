@@ -162,3 +162,15 @@ test("a late inflow cannot rescue the years before it arrives", () => {
   const rows = drawdown(need, withdrawalsFrom(huge, p, {}, t), { rate: p.rPost });
   assert.ok(rows.every((r) => r.end >= -1e-3));
 });
+
+test("SWP plan: pays every withdrawal, ends at zero, and buckets average the post-FIRE return", () => {
+  const r = evaluatePlan(quick, pack, { today });
+  const s = r.swp;
+  assert.ok(Math.abs(s.rows.at(-1).end) < 1, "corpus ends at ~0");
+  assert.ok(s.rows.every((x) => x.shortfall === 0));
+  assert.ok(Math.abs(s.firstMonthly * 12 - s.rows[0].withdrawal) < 1e-6);
+  const b = s.buckets, total = b.cash.amount + b.debt.amount + b.equity.amount;
+  const blended = (b.cash.amount * b.cash.return + b.debt.amount * b.debt.return + b.equity.amount * b.equity.return) / total;
+  assert.ok(Math.abs(blended - r.params.rPost) < 1e-9);
+  assert.ok(Math.abs(b.cash.amount - 3 * s.rows[0].withdrawal) < 1e-6);
+});

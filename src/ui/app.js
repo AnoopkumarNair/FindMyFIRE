@@ -33,6 +33,18 @@ function recompute() {
   }
 }
 
+/** Bring older plan files up to date with the current questions. */
+function migrate(u) {
+  if (!u?.quick) return u;
+  // The quick pass used to ask for EPF separately; it's now part of "monthly investing".
+  if (u.quick.epfMonthly) {
+    u.quick.monthlySip = (u.quick.monthlySip || 0) + u.quick.epfMonthly;
+    if (u.provenance) delete u.provenance["/quick/epfMonthly"];
+  }
+  delete u.quick.epfMonthly;
+  return u;
+}
+
 function persist() {
   S.user.updatedAt = new Date().toISOString();
   S.user.app.appVersion = APP_VERSION;
@@ -125,7 +137,6 @@ function birthMonthForAge(age, current) {
 const DONT_KNOW = {
   // Defaults when someone taps "I don't know". Marked as 'default' so confidence drops.
   "/quick/monthlyExpenses": (u) => Math.round(Math.max(0, (u.quick.takeHomeMonthly || 0) * 0.6 - (u.quick.emiMonthly || 0)) / 1000) * 1000,
-  "/quick/epfMonthly": (u) => Math.round(((u.quick.takeHomeMonthly || 0) * 0.12) / 100) * 100,
 };
 
 function quickView(i) {
@@ -235,10 +246,10 @@ function resultsView() {
     kpi(`Corpus needed at ${t.age}`, inrShort(t.required), t.firstYearWithdrawal > 0
       ? `First-year withdrawal ${inrShort(t.firstYearWithdrawal)} (${pct(t.firstYearWithdrawal / t.required, 2)} of the corpus)`
       : "Money coming in covers the first year's spending"),
-    kpi(`Projected at ${t.age}`, inrShort(t.projected), `From ${inrShort(r.inputs.fireCorpus)} today + ${inr(r.inputs.monthlySip + r.inputs.epfMonthly)}/month`),
+    kpi(`Projected at ${t.age}`, inrShort(t.projected), `From ${inrShort(r.inputs.fireCorpus)} today + ${inr(r.inputs.monthlySip + r.inputs.epfMonthly)}/month invested`),
     kpi(t.gap >= 0 ? "Surplus at target" : "Shortfall at target", inrShort(Math.abs(t.gap)), t.gap >= 0 ? "Ahead of plan" : "Gap to close", t.gap >= 0 ? "good" : "warn"),
     kpi("Monthly investing needed", t.requiredMonthlySip == null ? "—" : inr(t.requiredMonthlySip),
-      `To retire at ${t.age}, rising ${pct(r.params.stepUp, 0)} a year. You invest ${inr(r.inputs.monthlySip + r.inputs.epfMonthly)} now incl. EPF.`));
+      `To retire at ${t.age}, rising ${pct(r.params.stepUp, 0)} a year. You invest ${inr(r.inputs.monthlySip + r.inputs.epfMonthly)} now.`));
 
   return h("div", { class: "results" },
     hero, kpis,
@@ -249,9 +260,8 @@ function resultsView() {
         : h("p", { class: "muted" }, `Retiring at ${t.age} on the current path, the money lasts past ${r.inputs.planUntilAge}.`)),
     confidenceCard(r),
     nudgesCard(r),
-    tiersCard(r),
     scenariosCard(r),
-    scheduleCard(r),
+    swpCard(r),
     assumptionsSummary(r),
     snapshotsCard());
 }
@@ -287,24 +297,6 @@ function nudgesCard(r) {
       n.section ? h("a", { href: `#/refine/${n.section}`, class: "link" }, "Fix") : null))));
 }
 
-function tiersCard(r) {
-  const age = r.target.age;
-  return card("FIRE levels",
-    h("p", { class: "muted small" }, `Corpus each lifestyle needs if you stop at ${age}, and the earliest age you'd reach it.`),
-    h("div", { class: "table-wrap" }, h("table", {},
-      h("thead", {}, h("tr", {}, h("th", {}, "Level"), h("th", { class: "num" }, `Needed at ${age}`), h("th", { class: "num" }, "Earliest age"), h("th", {}, "Status"))),
-      h("tbody", {}, ...r.tiers.map((t) => h("tr", {},
-        h("th", { scope: "row" }, t.label, h("small", { class: "help" }, t.description,
-          t.assumedPartTime ? ` Assumes ${inr(t.assumedPartTime.monthly)}/month (today's money) until ${t.assumedPartTime.untilAge}; set your own under "Life after FIRE".` : "")),
-        t.available
-          ? [h("td", { class: "num" }, inrShort(t.requiredAtTarget)),
-             h("td", { class: "num" }, t.basis === "coastToday" ? "—" : t.earliestAge == null ? "—" : age1(t.earliestAge)),
-             h("td", {}, t.basis === "coastToday"
-               ? (t.reached ? h("span", { class: "badge good" }, "✓ Reached") : `${pct(t.progress, 0)} there today`)
-               : t.reached ? h("span", { class: "badge good" }, `✓ By ${age}`) : `${pct(t.onTrack, 0)} by ${age}`)]
-          : h("td", { colspan: 3, class: "muted" }, h("a", { href: "#/refine/expenses" }, "Break down expenses"), " to see this level.")))))));
-}
-
 function scenariosCard(r) {
   return card("What if…",
     h("p", { class: "muted small" }, "The same plan under stress. Plan for the uncomfortable rows, not just the base case."),
@@ -318,16 +310,43 @@ function scenariosCard(r) {
           s.earliestAge == null ? "not reached" : age1(s.earliestAge))))))));
 }
 
-function scheduleCard(r) {
-  const rows = r.retirementSchedule;
-  return h("section", { class: "card" }, h("details", {},
-    h("summary", {}, h("h2", {}, `Year-by-year after retiring at ${r.target.age}`)),
-    h("p", { class: "muted small" }, "Three-bucket view, as in the original sheet: 3 years of withdrawals in cash, the next 5 in debt, the rest in equity, refilled every year. Growth uses your post-FIRE return."),
-    h("div", { class: "table-wrap" }, h("table", { class: "dense" },
-      h("thead", {}, h("tr", {}, ...["Age", "Year", "Start", "Withdrawal", "Cash", "Debt", "Equity", "Growth", "End"].map((x, i) => h("th", { class: i > 1 ? "num" : "" }, x)))),
-      h("tbody", {}, ...rows.map((x) => h("tr", { class: x.end <= 0 ? "depleted" : "" },
-        h("td", {}, Math.floor(x.age)), h("td", {}, x.year),
-        ...[x.begin, x.withdrawal, x.cash, x.debt, x.equity, x.growth, x.end].map((v) => h("td", { class: "num" }, inrShort(v))))))))));
+function swpCard(r) {
+  const w = r.swp, t = r.target;
+  if (!w?.buckets) return null;
+  const b = w.buckets, total = b.cash.amount + b.debt.amount + b.equity.amount;
+  const seg = (cls, amount) => h("span", { class: ["bucket-seg", cls], "data-w": amount / total, title: inrShort(amount) });
+  const eqWarn = b.equity.return != null && b.equity.return > 0.12;
+  const bucket = (cls, name, amount, what, where, rate, note) => h("div", { class: "bucket" },
+    h("div", { class: "bucket-head" }, h("span", { class: ["key-block", cls], "aria-hidden": "true" }), h("strong", {}, name), h("span", { class: "num" }, inrShort(amount))),
+    h("small", {}, what), h("small", { class: "muted" }, where), h("small", {}, rate), note);
+  return card("Living off your corpus",
+    h("p", {}, `From ${t.age} you stop investing and pay yourself a monthly `, h("strong", {}, "SWP (systematic withdrawal plan)"),
+      ` of about `, h("strong", {}, inr(w.firstMonthly)), ` in the first year. It rises with inflation every year. That needs `,
+      h("strong", {}, inrShort(w.corpus)), ` at ${t.age}, split into three buckets:`),
+    h("div", { class: "bucket-bar", role: "img", "aria-label": `Cash ${inrShort(b.cash.amount)}, debt ${inrShort(b.debt.amount)}, equity ${inrShort(b.equity.amount)}` },
+      seg("s1", b.cash.amount), seg("s2", b.debt.amount), seg("s3", b.equity.amount)),
+    h("div", { class: "buckets" },
+      bucket("s1", "1 · Cash", b.cash.amount, "The next 3 years of withdrawals. Your SWP is paid from here.",
+        "Liquid or arbitrage funds, sweep FD.", `Assumed ${pct(b.cash.return)} a year.`),
+      bucket("s2", "2 · Debt", b.debt.amount, "Years 4 to 8. Refills the cash bucket once a year.",
+        "Debt / target-maturity funds, G-Secs, SCSS after 60.", `Assumed ${pct(b.debt.return)} a year.`),
+      bucket("s3", "3 · Equity", b.equity.amount, "Everything else. Grows to beat inflation and refills debt.",
+        "Index and flexi-cap funds.", b.equity.return == null ? "" : `Needs ${pct(b.equity.return)} a year for the whole corpus to average ${pct(w.blendedReturn)}.`,
+        eqWarn ? h("small", { class: "warn-text" }, "⚠ That's a lot to expect from equity. Consider lowering the post-FIRE return in Assumptions.") : null)),
+    h("p", { class: "small" }, h("strong", {}, "Each year: "),
+      "move one year of withdrawals from debt to cash, and top up debt from equity. After a bad year for markets, skip the equity sale and let debt carry you; that's what the 8 years of cash and debt are for."),
+    h("p", { class: "small muted" }, `Withdrawals include ${pct(w.taxRate)} for tax (equity gains above ₹1.25 lakh a year are taxed at 12.5%; debt fund gains at your slab rate). `,
+      r.depletesAtAge != null && r.depletesAtAge < r.inputs.planUntilAge
+        ? `On your current path you'd have ${inrShort(t.projected)} at ${t.age} instead, which runs out around ${Math.floor(r.depletesAtAge)}.`
+        : ""),
+    h("details", {},
+      h("summary", {}, "Year-by-year SWP"),
+      h("div", { class: "table-wrap" }, h("table", { class: "dense" },
+        h("thead", {}, h("tr", {}, ...["Age", "Year", "Monthly SWP", "Corpus at start", "Taken out", "Growth", "Corpus at end"].map((x, i) => h("th", { class: i > 1 ? "num" : "" }, x)))),
+        h("tbody", {}, ...w.rows.map((x) => h("tr", {},
+          h("td", {}, Math.floor(x.age)), h("td", {}, x.year),
+          h("td", { class: "num" }, x.withdrawal < 0 ? "—" : inr(x.monthly)),
+          ...[x.begin, x.withdrawal, x.growth, Math.max(0, x.end)].map((v) => h("td", { class: "num" }, v < 0 ? `+${inrShort(-v)} in` : inrShort(v))))))))));
 }
 
 function assumptionsSummary(r) {
@@ -399,7 +418,7 @@ async function openFile(file) {
   const problem = store.checkUserFile(obj);
   if (problem) return alertBox(problem);
   if (obj.app.rulesPack !== S.pack.packId) return alertBox(`This file uses rules pack '${obj.app.rulesPack}', which this app doesn't have.`);
-  S.user = obj;
+  S.user = migrate(obj);
   persist();
   location.hash = "#/results";
   route();
@@ -491,7 +510,8 @@ async function boot() {
     const res = await fetch("market/india.json");
     if (res.ok) S.market = await res.json();
   } catch { /* optional: published by the deploy workflow */ }
-  S.user = store.loadWorking();
+  S.user = migrate(store.loadWorking());
+  if (S.user) store.saveWorking(S.user);
   recompute();
   window.addEventListener("hashchange", route);
   route();

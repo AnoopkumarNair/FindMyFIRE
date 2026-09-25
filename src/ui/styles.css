@@ -14,6 +14,7 @@
   --on-accent: #ffffff;
   --series-1: #2a78d6;
   --series-2: #eb6834;
+  --series-3: #1baf7a;
   --good: #006300;
   --good-bg: #e3f3e3;
   --warn: #8a5a00;
@@ -39,6 +40,7 @@
     --accent-ink: #86b6ef;
     --series-1: #3987e5;
     --series-2: #d95926;
+    --series-3: #199e70;
     --good: #0ca30c;
     --good-bg: #13301a;
     --warn: #fab219;
@@ -290,3 +292,16 @@ tr.depleted td { color: var(--critical); }
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
 .assumption .wide-note { grid-column: 1 / -1; }
 .market { margin: 0.4rem 0 0; padding: 0.5rem 0.7rem; border-radius: 8px; background: var(--page); border: 1px solid var(--border); }
+
+/* SWP buckets */
+.bucket-bar { display: flex; gap: 2px; height: 14px; border-radius: 7px; overflow: hidden; margin: 0.8rem 0; }
+.bucket-seg { display: block; min-width: 4px; }
+.bucket-seg.s1, .key-block.s1 { background: var(--series-1); }
+.bucket-seg.s2, .key-block.s2 { background: var(--series-2); }
+.bucket-seg.s3, .key-block.s3 { background: var(--series-3); }
+.buckets { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 0.8rem; margin-bottom: 0.8rem; }
+.bucket { display: grid; gap: 0.2rem; padding: 0.8rem; border: 1px solid var(--border); border-radius: 10px; background: var(--raised); font-size: 0.9rem; }
+.bucket-head { display: flex; align-items: center; gap: 0.5rem; }
+.bucket-head .num { margin-left: auto; font-weight: 700; }
+.key-block { width: 12px; height: 12px; border-radius: 3px; flex: none; }
+.card details > summary:not(:has(h2)) { font-weight: 600; margin-top: 0.5rem; }
