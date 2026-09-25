@@ -110,6 +110,26 @@
       "help": "Blended yearly return while you draw down. Lower than before FIRE because more of the corpus sits in debt and cash (the three-bucket approach)."
     },
     {
+      "id": "risk.volatilityBeforeFire",
+      "label": "Yearly ups and downs before FIRE",
+      "value": 0.13,
+      "unit": "percent",
+      "min": 0.02,
+      "max": 0.3,
+      "step": 0.01,
+      "help": "How much the portfolio's return typically swings in a year (standard deviation). Indian equity swings about 18–20%, debt 2–4%; a 65% equity mix is about 13%. Used for the 'chance your money lasts' simulation."
+    },
+    {
+      "id": "risk.volatilityAfterFire",
+      "label": "Yearly ups and downs after FIRE",
+      "value": 0.09,
+      "unit": "percent",
+      "min": 0.02,
+      "max": 0.3,
+      "step": 0.01,
+      "help": "Lower than before FIRE because less of the corpus is in equity."
+    },
+    {
       "id": "income.growth",
       "label": "Annual income growth",
       "value": 0.07,
@@ -474,7 +494,14 @@
         "comment"
       ],
       "help": "Mixed equity/debt. Mark as counting toward FIRE only if your FIRE age is 60+.",
-      "verify": true
+      "verify": true,
+      "unlock": {
+        "age": 60,
+        "lumpSumShare": 0.6,
+        "annuityShare": 0.4,
+        "annuityRate": 0.06,
+        "note": "At 60, at least 40% must buy an annuity (pension); the rest can be taken tax-free. PFRDA has been revising exit rules; check the current limits."
+      }
     },
     {
       "id": "nps_tier2",
@@ -1287,7 +1314,7 @@
     {
       "id": "inflow.property_sale",
       "label": "Property sale",
-      "hint": "Enter today's value and a growth rate. Don't also count this property under investments, and set its maintenance expense to stop at the sale. LTCG is 12.5% on the gain (not the full price), so use a lower tax rate on the whole amount.",
+      "hint": "Easier: add the property under Property and choose 'Sell'. That handles growth, costs and capital-gains tax. Use this only for a sale you don't want to list there.",
       "defaultTaxRate": 0.05,
       "defaultGrowthRate": 0.05,
       "asOf": "FY2025-26 rules",
@@ -1317,6 +1344,14 @@
       "defaultTaxRate": 0
     }
   ],
+  "property": {
+    "defaultGrowthRate": 0.05,
+    "saleCostRate": 0.02,
+    "ltcgRate": 0.125,
+    "growthHint": "Long-run residential prices in Indian cities have grown at roughly inflation to a little above it, with big differences by city and locality and long flat spells. Check your city in the RBI House Price Index or NHB RESIDEX, and your locality's recent sale prices, before using more than 5–6%.",
+    "asOf": "LTCG 12.5% without indexation (Finance Act 2024); property bought before 23 Jul 2024 may choose 20% with indexation",
+    "verify": true
+  },
   "resolution": [
     {
       "quantity": "takeHomeMonthly",
@@ -1520,6 +1555,21 @@
         ]
       },
       {
+        "id": "property",
+        "title": "Property",
+        "weight": 10,
+        "intro": "Homes and land aren't part of your FIRE corpus, but they matter: rent pays some bills, a sale can fund years of retirement, and costs continue while you own them.",
+        "questions": [
+          {
+            "id": "r.properties",
+            "prompt": "Add each property",
+            "input": "list.properties",
+            "bind": "/properties",
+            "impact": "high"
+          }
+        ]
+      },
+      {
         "id": "family",
         "title": "Family details",
         "weight": 5,
@@ -1658,6 +1708,13 @@
             "input": "integer",
             "bind": "/plan/planUntilAge",
             "defaultFrom": "plan.untilAge"
+          },
+          {
+            "id": "r.post_fire_spending",
+            "prompt": "Spending after FIRE compared with today",
+            "input": "percent",
+            "bind": "/plan/postFireSpending",
+            "help": "For example 85% if you'll move to a cheaper city, 110% if you'll travel more. Leave blank for 100%. Applies on top of the per-category changes in Expenses."
           },
           {
             "id": "r.part_time",
@@ -1800,6 +1857,14 @@
       }
     },
     {
+      "id": "crash_at_fire",
+      "label": "Crash just after you retire",
+      "description": "Corpus falls 30% in your first year of retirement. The biggest real-world risk.",
+      "changes": {
+        "crashAtFire": 0.3
+      }
+    },
+    {
       "id": "sip_plus_25",
       "label": "Invest 25% more",
       "changes": {
@@ -1833,7 +1898,7 @@
           }
         ]
       },
-      "message": "NPS Tier-1 is locked until 60, so it isn't counted toward FIRE before then by default."
+      "message": "NPS Tier-1 is locked until 60. It isn't in your FIRE corpus; instead 60% arrives as a lump sum at 60 and the rest as a pension."
     },
     {
       "id": "no_health_cover",

@@ -63,6 +63,10 @@ All amounts are nominal rupees, stepped one year at a time from today (`src/engi
 - **One target:** your current lifestyle, adjusted per expense line for life after FIRE. The engine can still compute Lean/Fat/Barista/Coast variants (`tiers`), but the app deliberately shows one number.
 - **Living off the corpus:** a yearly-rising SWP paid from three buckets (3 years in cash, 5 in debt, the rest in equity). The app shows the equity return the plan implicitly needs, so an unrealistic post-FIRE return is easy to spot.
 - **Money coming in** (gratuity, policy payouts, a property sale): a lump sum before FIRE is invested; one after FIRE pays that year's spending. The corpus needed is then the largest running present value, so a late windfall can't cover earlier years.
+- **Property:** each home or plot has a value and a location-specific growth rate. Rent and costs flow in or out while you own it. A planned sale arrives as a lump sum after 2% selling costs and 12.5% LTCG on the gain. Property you keep is shown in net worth but never spent.
+- **Locked money:** instruments with an `unlock` rule (NPS Tier-1 at 60) stay out of the FIRE corpus, but grow to that age and then arrive as a lump sum plus a pension.
+- **Market ups and downs:** 1,000 simulated market histories (seeded, so a plan always shows the same result) give the chance the money lasts, and the ages with a 3-in-4 and a 9-in-10 chance. The steady-return FIRE age is roughly a coin flip, and the app says so.
+- **Levers:** the extra monthly investment, the lower post-FIRE spending, or the later age that each close the gap on their own.
 - **Scenarios** re-run the same model with the rules pack's deltas. The **range** re-runs it with expenses and corpus moved by each answer's uncertainty band.
 
 ### Relationship to the original Google Sheet

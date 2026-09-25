@@ -168,6 +168,12 @@
           "type": "number",
           "minimum": 0,
           "maximum": 1
+        },
+        "postFireSpending": {
+          "type": "number",
+          "minimum": 0.3,
+          "maximum": 2,
+          "description": "Spending after FIRE as a share of today's (e.g. 0.85 after moving to a cheaper city)."
         }
       }
     },
@@ -623,6 +629,85 @@
             "minimum": 0,
             "maximum": 1,
             "description": "Share lost to tax when received."
+          }
+        }
+      }
+    },
+    "properties": {
+      "description": "Homes, land and other real estate: what they're worth, what they earn and cost, and whether you'll sell.",
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "kind",
+          "label",
+          "value",
+          "plan",
+          "source"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "source": {
+            "enum": [
+              "exact",
+              "estimate",
+              "default"
+            ]
+          },
+          "comment": {
+            "type": "string"
+          },
+          "kind": {
+            "enum": [
+              "home",
+              "secondHome",
+              "land",
+              "commercial"
+            ]
+          },
+          "label": {
+            "type": "string"
+          },
+          "city": {
+            "type": "string"
+          },
+          "value": {
+            "type": "number",
+            "minimum": 0,
+            "description": "What it would sell for today."
+          },
+          "growthRate": {
+            "type": "number",
+            "description": "Expected yearly price growth for this location."
+          },
+          "purchasePrice": {
+            "type": "number",
+            "minimum": 0,
+            "description": "For capital-gains tax on a sale."
+          },
+          "monthlyRent": {
+            "type": "number",
+            "minimum": 0
+          },
+          "annualCosts": {
+            "type": "number",
+            "minimum": 0,
+            "description": "Maintenance, property tax, insurance not already in monthly spending."
+          },
+          "plan": {
+            "enum": [
+              "keep",
+              "sell"
+            ]
+          },
+          "sellOn": {
+            "type": "string",
+            "pattern": "^[0-9]{4}-(0[1-9]|1[0-2])$"
           }
         }
       }

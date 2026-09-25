@@ -108,6 +108,39 @@
         "$ref": "#/$defs/inflowTemplate"
       }
     },
+    "property": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "defaultGrowthRate",
+        "saleCostRate",
+        "ltcgRate"
+      ],
+      "properties": {
+        "defaultGrowthRate": {
+          "type": "number"
+        },
+        "saleCostRate": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 0.2
+        },
+        "ltcgRate": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "growthHint": {
+          "type": "string"
+        },
+        "asOf": {
+          "type": "string"
+        },
+        "verify": {
+          "type": "boolean"
+        }
+      }
+    },
     "resolution": {
       "type": "array",
       "items": {
@@ -507,6 +540,37 @@
         },
         "verify": {
           "type": "boolean"
+        },
+        "unlock": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "age"
+          ],
+          "description": "Money excluded from the FIRE corpus because it is locked becomes available at this age.",
+          "properties": {
+            "age": {
+              "type": "number"
+            },
+            "lumpSumShare": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1
+            },
+            "annuityShare": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1
+            },
+            "annuityRate": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 0.2
+            },
+            "note": {
+              "type": "string"
+            }
+          }
         }
       }
     },
@@ -703,6 +767,7 @@
             "list.holdings",
             "list.goals",
             "list.inflows",
+            "list.properties",
             "list.incomes",
             "list.liabilities",
             "list.children"
@@ -987,6 +1052,12 @@
             },
             "fireAgeDelta": {
               "type": "integer"
+            },
+            "crashAtFire": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1,
+              "description": "Fall in the corpus during the first year of retirement (sequence-of-returns risk)."
             }
           }
         }

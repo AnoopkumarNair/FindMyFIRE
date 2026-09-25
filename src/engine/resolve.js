@@ -90,6 +90,7 @@ export function resolveInputs(user, pack, today = new Date()) {
   // ---- holdings ----
   let fireCorpus, emergencyFund = 0, excludedCorpus = 0, monthlySip, epfMonthly;
   const excluded = [];
+  const locked = []; // excluded now, but unlocks at an age (e.g. NPS at 60)
   if (detailed.holdings) {
     fireCorpus = 0; monthlySip = 0; epfMonthly = 0;
     for (const h of user.holdings) {
@@ -97,7 +98,14 @@ export function resolveInputs(user, pack, today = new Date()) {
       const counts = !h.isEmergencyFund && (h.countInFire ?? inst.countInFireByDefault ?? true);
       if (h.isEmergencyFund) emergencyFund += h.value;
       else if (counts) fireCorpus += h.value;
-      else { excludedCorpus += h.value; excluded.push({ label: h.label || inst.label, value: h.value, instrumentId: h.instrumentId }); }
+      else {
+        excludedCorpus += h.value;
+        excluded.push({ label: h.label || inst.label, value: h.value, instrumentId: h.instrumentId });
+        if (inst.unlock && h.countInFire !== false) locked.push({
+          label: h.label || inst.label, value: h.value, rate: inst.defaultReturn ?? 0.08, unlock: inst.unlock,
+          yearlyContribution: 12 * ((h.monthlyContribution || 0) + (h.employerMonthlyContribution || 0)) + (h.annualContribution || 0),
+        });
+      }
       if (!counts) continue;
       const contrib = (h.monthlyContribution || 0) + (h.annualContribution || 0) / 12;
       if (h.instrumentId === "epf" || h.instrumentId === "vpf")
@@ -119,6 +127,7 @@ export function resolveInputs(user, pack, today = new Date()) {
         label: i.label || i.type, monthly: i.monthly, growth: i.annualGrowth ?? 0, endsAtAge: i.endsAtAge ?? null,
       }))
     : [];
+  const plan = user.plan || {};
 
   const goals = (user.goals || []).map((g) => {
     const tpl = pack.goalTemplates.find((t) => t.id === g.templateId) || {};
@@ -140,7 +149,38 @@ export function resolveInputs(user, pack, today = new Date()) {
     }
   }
 
-  const plan = user.plan || {};
+  // Locked money: grows (with contributions until FIRE) to its unlock age, then arrives as a
+  // lump sum plus, for NPS, a pension from the annuity share.
+  for (const l of locked) {
+    const years = l.unlock.age - age;
+    if (years <= 0) continue;
+    const payingYears = Math.max(0, Math.min(years, (plan.fireTargetAge ?? l.unlock.age) - age));
+    let v = l.value;
+    for (let y = 0; y < years; y++) v = (v + (y < payingYears ? l.yearlyContribution : 0)) * (1 + l.rate);
+    const lump = v * (l.unlock.lumpSumShare ?? 1);
+    inflows.push({ label: `${l.label} (unlocks at ${l.unlock.age})`, atAge: l.unlock.age, net: lump, source: "estimate" });
+    if (l.unlock.annuityShare)
+      incomesAfterFire.push({ label: `${l.label} pension`, monthly: (v * l.unlock.annuityShare * (l.unlock.annuityRate ?? 0.06)) / 12,
+        growth: 0, fromAge: l.unlock.age, endsAtAge: null, nominal: true });
+  }
+
+  // Property: value grows by location; rent and costs continue while owned; a sale arrives as
+  // a lump sum net of selling costs and capital-gains tax.
+  const P = pack.property || { defaultGrowthRate: 0.05, saleCostRate: 0.02, ltcgRate: 0.125 };
+  const properties = (user.properties || []).map((x) => {
+    const g = x.growthRate ?? P.defaultGrowthRate;
+    const sellAge = x.plan === "sell" && x.sellOn ? ageOnMonth(user.profile.birthYearMonth, x.sellOn) : null;
+    const out = { label: x.label, kind: x.kind, city: x.city, value: x.value, growth: g, sellAge,
+      rentMonthly: x.monthlyRent || 0, costsYearly: x.annualCosts || 0 };
+    if (sellAge != null && sellAge >= age) {
+      const price = x.value * (1 + g) ** (sellAge - age);
+      const tax = P.ltcgRate * Math.max(0, price - (x.purchasePrice ?? x.value));
+      out.sale = { atAge: sellAge, price, tax, costs: price * P.saleCostRate, net: price * (1 - P.saleCostRate) - tax };
+      inflows.push({ label: `Sale of ${x.label}`, atAge: sellAge, net: out.sale.net, source: x.source });
+    }
+    return out;
+  });
+
   return {
     age,
     birthYear,
@@ -161,6 +201,11 @@ export function resolveInputs(user, pack, today = new Date()) {
     incomesAfterFire,
     goals,
     inflows,
+    properties,
+    locked,
+    postFireSpending: plan.postFireSpending ?? 1,
+    otherAssetsValue: (user.otherAssets || []).reduce((s, a) => s + a.value, 0),
+    loansOutstanding: (user.liabilities || []).reduce((s, l) => s + l.outstanding, 0),
     partTime: plan.partTimeIncomeMonthly > 0
       ? { monthly: plan.partTimeIncomeMonthly, untilAge: plan.partTimeUntilAge ?? 60, assumed: false }
       : null,

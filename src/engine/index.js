@@ -5,11 +5,13 @@ import { evaluate } from "./conditions.js";
 import { confidence, bandFor } from "./confidence.js";
 import { resolveInputs } from "./resolve.js";
 import { makeParams, analyse, requiredMonthlySip, withdrawalsFrom, drawdown, requiredAt } from "./project.js";
+import { chanceByFireYear, levers } from "./risk.js";
 
 export { fv, pmt, nper, pvDue } from "./finance.js";
 export { evaluate, getPointer, setPointer } from "./conditions.js";
 export { resolveInputs, assumptionValues, ageAt } from "./resolve.js";
 export { makeParams, accumulate, analyse, drawdown, withdrawalsFrom, requiredAt } from "./project.js";
+export { chanceByFireYear, levers } from "./risk.js";
 
 function tierSpec(tier, inp) {
   const A = inp.assumptions;
@@ -102,6 +104,30 @@ export function evaluatePlan(user, pack, { today = new Date() } = {}) {
   // ---- how the money comes out: an SWP from the corpus needed at the target age ----
   const swp = swpPlan(inp, p, pack, tFire, year0);
 
+  // ---- market ups and downs: how often the money lasts, by FIRE age ----
+  const chances = chanceByFireYear(inp, p);
+  const at = (t) => chances[Math.min(Math.max(0, t), chances.length - 1)];
+  const firstWith = (x) => chances.find((c) => c.chance >= x) || null;
+  const chance = {
+    atTarget: at(tFire).chance,
+    confidentAge: firstWith(0.9)?.age ?? null,
+    likelyAge: firstWith(0.75)?.age ?? null,
+    byAge: chances,
+  };
+
+  // ---- where you stand: everything you own and owe, today and at the target age ----
+  const propAt = (years) => inp.properties.reduce((s, x) =>
+    s + (x.sellAge == null || inp.age + years < x.sellAge ? x.value * (1 + x.growth) ** years : 0), 0);
+  const balance = {
+    today: {
+      investments: inp.fireCorpus, emergency: inp.emergencyFund, locked: inp.excludedCorpus,
+      property: propAt(0), other: inp.otherAssetsValue, loans: inp.loansOutstanding,
+    },
+    atTarget: { investments: base.projected, property: propAt(base.tTarget) },
+  };
+  balance.today.netWorth = balance.today.investments + balance.today.emergency + balance.today.locked +
+    balance.today.property + balance.today.other - balance.today.loans;
+
   const nudges = pack.nudges
     .filter((n) => { try { return evaluate(n.when, user, derived); } catch { return false; } })
     .map(({ id, severity, section, message }) => ({ id, severity, section, message }));
@@ -124,6 +150,9 @@ export function evaluatePlan(user, pack, { today = new Date() } = {}) {
     timeline,
     retirementSchedule,
     swp,
+    chance,
+    levers: levers(inp, p, base),
+    balance,
     depletesAtAge: depletedRow ? inp.age + tFire + depletedRow.k : null,
     nudges,
   };
@@ -150,6 +179,8 @@ function swpPlan(inp, p, pack, tFire, year0) {
   return {
     startAge: inp.age + tFire, corpus, taxRate: p.tax, blendedReturn: p.rPost,
     firstMonthly: first ? Math.max(0, first.withdrawal) / 12 : 0,
+    firstAge: first?.age ?? null,
+    bucketTotal: invested + (first ? Math.max(0, first.withdrawal) : 0),
     buckets: first ? {
       cash: { amount: first.cash, years: 3, return: ret.cash },
       debt: { amount: first.debt, years: 5, return: ret.debt },

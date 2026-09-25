@@ -174,3 +174,68 @@ test("SWP plan: pays every withdrawal, ends at zero, and buckets average the pos
   assert.ok(Math.abs(blended - r.params.rPost) < 1e-9);
   assert.ok(Math.abs(b.cash.amount - 3 * s.rows[0].withdrawal) < 1e-6);
 });
+
+// ---- property, locked money, relocation, sequence risk, levers ----
+const sheetLike = () => ({ ...clone(quick), profile: { birthYearMonth: "1981-09" }, plan: { fireTargetAge: 50, planUntilAge: 90 },
+  quick: { takeHomeMonthly: 300000, monthlyExpenses: 150000, emiMonthly: 0, investedCorpus: 16000000, monthlySip: 90000 } });
+
+test("property sale: price grows, selling costs and LTCG on the gain come off", () => {
+  const u = sheetLike();
+  u.properties = [{ id: "p", kind: "secondHome", label: "Flat", value: 10000000, growthRate: 0.05, purchasePrice: 6000000, plan: "sell", sellOn: "2031-09", source: "exact" }];
+  const inp = resolveInputs(u, pack, today);
+  const sale = inp.properties[0].sale;
+  const price = 10000000 * 1.05 ** 5;
+  assert.ok(Math.abs(sale.price - price) < 1);
+  assert.ok(Math.abs(sale.net - (price * (1 - pack.property.saleCostRate) - pack.property.ltcgRate * (price - 6000000))) < 1);
+  assert.ok(evaluatePlan(u, pack, { today }).earliestAge < evaluatePlan(sheetLike(), pack, { today }).earliestAge);
+});
+
+test("property kept: rent lowers the corpus needed, costs raise it", () => {
+  const base = evaluatePlan(sheetLike(), pack, { today }).target.required;
+  const u = sheetLike();
+  u.properties = [{ id: "p", kind: "secondHome", label: "Flat", value: 10000000, monthlyRent: 25000, plan: "keep", source: "exact" }];
+  assert.ok(evaluatePlan(u, pack, { today }).target.required < base);
+  u.properties[0] = { ...u.properties[0], monthlyRent: 0, annualCosts: 60000 };
+  assert.ok(evaluatePlan(u, pack, { today }).target.required > base);
+});
+
+test("locked NPS: excluded now, arrives at 60 as a lump sum plus a pension", () => {
+  const u = clone(detailed);
+  const inp = resolveInputs(u, pack, today);
+  const nps = inp.inflows.find((x) => x.label.includes("unlocks at 60"));
+  assert.ok(nps && nps.atAge === 60 && nps.net > 500000 * 0.6);
+  const pension = inp.incomesAfterFire.find((x) => x.label.includes("pension"));
+  assert.ok(pension && pension.fromAge === 60 && pension.monthly > 0);
+});
+
+test("spending after FIRE scales withdrawals", () => {
+  const a = evaluatePlan(sheetLike(), pack, { today });
+  const u = sheetLike(); u.plan.postFireSpending = 0.8;
+  const b = evaluatePlan(u, pack, { today });
+  assert.ok(Math.abs(b.target.firstYearWithdrawal / a.target.firstYearWithdrawal - 0.8) < 1e-9);
+});
+
+test("a crash just after retiring delays FIRE", () => {
+  const s = Object.fromEntries(evaluatePlan(sheetLike(), pack, { today }).scenarios.map((x) => [x.id, x]));
+  assert.ok(s.crash_at_fire.earliestAge > s.base.earliestAge);
+});
+
+test("market simulation: ~50/50 at the steady-return FIRE age, rising with later ages", () => {
+  const r = evaluatePlan(sheetLike(), pack, { today });
+  const near = r.chance.byAge.reduce((b, c) => (Math.abs(c.age - r.earliestAge) < Math.abs(b.age - r.earliestAge) ? c : b));
+  assert.ok(near.chance > 0.3 && near.chance < 0.7, `chance ${near.chance}`);
+  assert.ok(r.chance.confidentAge > r.earliestAge);
+  const later = r.chance.byAge.filter((c) => c.age > r.earliestAge).map((c) => c.chance);
+  assert.ok(later.at(-1) >= later[0]);
+  assert.deepEqual(evaluatePlan(sheetLike(), pack, { today }).chance.byAge, r.chance.byAge, "same plan, same answer");
+});
+
+test("levers: each one on its own closes the gap", () => {
+  const u = sheetLike();
+  const r = evaluatePlan(u, pack, { today });
+  assert.equal(r.levers.onTrack, false);
+  const more = clone(u); more.quick.monthlySip += r.levers.investMore;
+  assert.ok(Math.abs(evaluatePlan(more, pack, { today }).target.gap) / r.target.required < 0.01);
+  const less = clone(u); less.plan.postFireSpending = r.levers.spendAfterFire.to / r.levers.spendAfterFire.from;
+  assert.ok(Math.abs(evaluatePlan(less, pack, { today }).target.gap) / r.target.required < 0.01);
+});

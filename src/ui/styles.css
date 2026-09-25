@@ -305,3 +305,15 @@ tr.depleted td { color: var(--critical); }
 .bucket-head .num { margin-left: auto; font-weight: 700; }
 .key-block { width: 12px; height: 12px; border-radius: 3px; flex: none; }
 .card details > summary:not(:has(h2)) { font-weight: 600; margin-top: 0.5rem; }
+
+/* chance strip, levers, balance */
+.chance { margin: 0.6rem 0 0.8rem; }
+.chance p { margin: 0 0 0.4rem; }
+.pills { display: flex; flex-wrap: wrap; gap: 0.5rem; }
+.pill { display: inline-flex; align-items: baseline; gap: 0.4rem; padding: 0.35rem 0.8rem; border-radius: 999px; border: 1px solid var(--border); background: var(--surface); font-size: 0.9rem; color: var(--ink-2); }
+.pill strong { font-size: 1.1rem; color: var(--ink); }
+.pill.mid { border-color: var(--accent); }
+.pill.safe { border-color: var(--good); background: var(--good-bg); }
+.levers { margin: 0; padding-left: 1.2rem; display: grid; gap: 0.5rem; }
+table.balance th { font-weight: 500; }
+table.balance .total-row th, table.balance .total-row td { font-weight: 700; border-top: 2px solid var(--axis); }

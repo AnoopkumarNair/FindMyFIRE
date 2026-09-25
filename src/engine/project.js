@@ -28,6 +28,7 @@ export function makeParams(inp, changes = {}) {
     sip: inp.monthlySip * (changes.sipMultiplier ?? 1),
     epf: inp.epfMonthly,
     expenseScale: changes.expenseScale ?? 1,
+    fireCrash: changes.crashAtFire || 0,
   };
 }
 
@@ -42,15 +43,23 @@ function inflowAt(inp, p, T) {
   return sum;
 }
 
+/** Money added (+) or taken (−) at the start of each year before FIRE: contributions, goals, lump sums. */
+export function preFireFlows(inp, p, years, tier = {}) {
+  const flows = [];
+  for (let y = 0; y < years; y++) {
+    let f = 12 * p.sip * (1 + p.stepUp) ** y + 12 * p.epf * (1 + p.incomeGrowth) ** y + inflowAt(inp, p, y);
+    for (const g of inp.goals) if (goalIndex(g, p) === y && goalIncluded(g, tier)) f -= goalCost(g, p);
+    flows.push(f);
+  }
+  return flows;
+}
+
 /** Corpus at the start of each year t = 0..years, investing until then. */
 export function accumulate(inp, p, years, tier = {}) {
   const path = [p.corpus];
   let c = p.corpus;
-  for (let y = 0; y < years; y++) {
-    const contrib = 12 * p.sip * (1 + p.stepUp) ** y + 12 * p.epf * (1 + p.incomeGrowth) ** y;
-    let out = 0;
-    for (const g of inp.goals) if (goalIndex(g, p) === y && goalIncluded(g, tier)) out += goalCost(g, p);
-    c = (c + contrib - out + inflowAt(inp, p, y)) * (1 + p.rPre);
+  for (const f of preFireFlows(inp, p, years, tier)) {
+    c = (c + f) * (1 + p.rPre);
     path.push(c);
   }
   return path;
@@ -68,12 +77,15 @@ export function withdrawalAt(inp, p, tier, T) {
     if (!active(e.endsAtAge) || (tier.essentialsOnly && !e.essential)) continue;
     spend += 12 * e.monthly * e.postFireFactor * (1 + p.infl[e.inflation]) ** T;
   }
-  spend *= (tier.multiplier ?? 1) * p.expenseScale;
+  spend *= (tier.multiplier ?? 1) * p.expenseScale * (inp.postFireSpending ?? 1);
   for (const l of inp.emis) if (active(l.endsAtAge)) spend += 12 * l.monthly;
   for (const g of inp.goals) if (goalIndex(g, p) === T && goalIncluded(g, tier)) spend += goalCost(g, p);
 
   let income = 0;
-  for (const i of inp.incomesAfterFire) if (active(i.endsAtAge)) income += 12 * i.monthly * (1 + i.growth) ** T;
+  for (const i of inp.incomesAfterFire)
+    if (active(i.endsAtAge) && (i.fromAge == null || ageT >= i.fromAge)) income += 12 * i.monthly * (1 + i.growth) ** T;
+  for (const x of inp.properties || [])
+    if (x.sellAge == null || ageT < x.sellAge) income += (12 * x.rentMonthly - x.costsYearly) * (1 + p.infl.general) ** T;
   if (tier.partTime && ageT < tier.partTime.untilAge)
     income += 12 * tier.partTime.monthly * (1 + p.infl.general) ** T;
 
@@ -116,20 +128,22 @@ export function analyse(inp, p, tier = {}) {
   const maxT = Math.max(0, Math.floor(p.planUntilAge - p.age) - 1);
   const path = accumulate(inp, p, maxT, tier);
   const req = path.map((_, t) => requiredAt(inp, p, tier, t));
+  // Scenario: a crash in the first year of retirement hits whatever corpus you retire with.
+  const hit = (x) => x * (1 - (p.fireCrash || 0));
   let earliestT = null;
   for (let t = 0; t <= maxT; t++) {
-    const gap = path[t] - req[t];
+    const gap = hit(path[t]) - req[t];
     if (gap >= 0) {
       if (t === 0) earliestT = 0;
       else {
-        const prev = path[t - 1] - req[t - 1];
+        const prev = hit(path[t - 1]) - req[t - 1];
         earliestT = t - 1 + prev / (prev - gap);
       }
       break;
     }
   }
   const tTarget = Math.min(Math.max(0, p.fireTargetAge - p.age), maxT);
-  const projected = lerp(path, tTarget);
+  const projected = hit(lerp(path, tTarget));
   const required = lerp(req, tTarget);
   return {
     path, req, tTarget, projected, required,

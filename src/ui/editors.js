@@ -19,6 +19,7 @@ export function sectionEditor(section, ctx) {
   if (input === "list.holdings") return holdingsEditor(ctx);
   if (input === "list.goals") return goalsEditor(ctx);
   if (input === "list.inflows") return inflowsEditor(ctx);
+  if (input === "list.properties") return propertiesEditor(ctx);
   if (input === "list.incomes") return incomesEditor(ctx);
   if (input === "list.liabilities") return loansEditor(ctx);
   return scalarEditor(section, ctx);
@@ -250,6 +251,62 @@ function inflowsEditor(ctx) {
           field("Grows until received", "percent", x.growthRate, (v) => { x.growthRate = v; ctx.redraw(); },
             { help: "Leave blank if the amount is fixed." }),
           field("Tax on it", "percent", x.taxRate, (v) => { x.taxRate = v || undefined; save(); }, { placeholder: "0" }),
+          field("How sure?", "source", x.source, (v) => { x.source = v; save(); }),
+          h("div", { class: "field wide" }, note),
+        ];
+      },
+    }));
+}
+
+function propertiesEditor(ctx) {
+  const { user, pack } = ctx;
+  const items = (user.properties ||= []);
+  const P = pack.property || {};
+  const kinds = [["home", "Home you live in"], ["secondHome", "Second home / flat"], ["land", "Land or plot"], ["commercial", "Shop or office"]];
+  const inp = resolveInputs(user, pack);
+  const fireYear = new Date().getFullYear() + Math.round((user.plan.fireTargetAge ?? inp.age) - inp.age);
+  const add = (kind) => {
+    items.push({ id: newId("p"), kind, label: kinds.find((k) => k[0] === kind)[1], value: 0, plan: "keep", source: "estimate" });
+    ctx.redraw();
+  };
+  // What the row adds up to, recomputed as the user types.
+  const summary = (x) => {
+    const r = resolveInputs({ ...user, properties: [x] }, pack).properties[0];
+    const parts = [];
+    if (r.sale) parts.push(`Sale at ${Math.floor(r.sale.atAge)}: ~${inrShort(r.sale.price)}, minus ${inrShort(r.sale.costs)} costs and ${inrShort(r.sale.tax)} tax = ${inrShort(r.sale.net)} into your corpus.`);
+    else if (x.value) parts.push(`Worth ~${inrShort(x.value * (1 + r.growth) ** Math.max(0, (user.plan.fireTargetAge ?? inp.age) - inp.age))} at your FIRE age; not spent by the plan.`);
+    const net = 12 * r.rentMonthly - r.costsYearly;
+    if (net) parts.push(`${net > 0 ? "Rent adds" : "Costs take"} ${inrShort(Math.abs(net))} a year after FIRE${r.sale ? " until the sale" : ""}, rising with inflation.`);
+    return parts.join(" ");
+  };
+  return h("div", {},
+    h("p", { class: "muted small" }, "Property isn't part of your FIRE corpus. What counts: rent it earns, costs it keeps adding, and money from a sale. The home you live in usually just stays (no rent, costs already in your spending), unless you plan to sell or move."),
+    P.growthHint ? h("p", { class: "muted small" }, h("strong", {}, "Price growth by location: "), P.growthHint) : null,
+    listEditor(ctx, {
+      items, empty: "No property yet.",
+      create: h("div", { class: "chips" }, ...kinds.map(([k, label]) => h("button", { type: "button", class: "chip", onClick: () => add(k) }, `+ ${label}`))),
+      render: (x) => {
+        const note = h("small", {}, summary(x));
+        const save = () => { note.textContent = summary(x); ctx.save(); };
+        const selling = x.plan === "sell";
+        return [
+          h("div", { class: "row-head" }, h("strong", {}, kinds.find((k) => k[0] === x.kind)?.[1])),
+          field("Name", "text", x.label, (v) => { x.label = v || "Property"; save(); }),
+          field("City / area", "text", x.city, (v) => { x.city = v; save(); }, { placeholder: "e.g. Whitefield, Bengaluru" }),
+          field("Worth today", "currency", x.value, (v) => { x.value = v || 0; save(); }, { help: "What it would sell for now, not what you paid." }),
+          field("Price growth a year", "percent", x.growthRate, (v) => { x.growthRate = v; save(); },
+            { placeholder: String((P.defaultGrowthRate ?? 0.05) * 100), help: "For this location. Blank = the default." }),
+          x.kind !== "home" ? field("Rent received a month", "currency", x.monthlyRent, (v) => { x.monthlyRent = v; save(); }) : null,
+          field("Yearly costs not in your spending", "currency", x.annualCosts, (v) => { x.annualCosts = v; save(); },
+            { help: "Maintenance, property tax, insurance for this property." }),
+          field("Plan", "select", x.plan, (v) => {
+            x.plan = v || "keep";
+            if (x.plan === "sell" && !x.sellOn) x.sellOn = `${fireYear}-04`;
+            ctx.redraw();
+          }, { placeholder: false, options: [{ value: "keep", label: "Keep" }, { value: "sell", label: "Sell" }] }),
+          selling ? field("Sell in", "month", x.sellOn, (v) => { if (v) { x.sellOn = v; save(); } }) : null,
+          selling ? field("Bought for", "currency", x.purchasePrice, (v) => { x.purchasePrice = v; save(); },
+            { help: "For capital-gains tax (12.5% of the gain). Blank = today's value." }) : null,
           field("How sure?", "source", x.source, (v) => { x.source = v; save(); }),
           h("div", { class: "field wide" }, note),
         ];
