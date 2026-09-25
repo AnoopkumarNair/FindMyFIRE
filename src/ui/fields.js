@@ -53,8 +53,8 @@ export function control(type, value, onChange, opts = {}) {
           : opts.options.map((o) => h("option", { value: o.value, selected: o.value === value }, o.label))));
     case "multiselect": {
       const set = new Set(value || []);
-      return h("span", { class: "chips" }, ...opts.options.map((o) =>
-        h("button", { type: "button", class: ["chip", set.has(o.value) && "on"], "aria-pressed": String(set.has(o.value)),
+      const chips = opts.options.map((o) =>
+        h("button", { type: "button", class: "chip", "data-value": o.value,
           onClick: () => {
             if (set.has(o.value)) set.delete(o.value);
             else {
@@ -62,8 +62,16 @@ export function control(type, value, onChange, opts = {}) {
               else opts.exclusive?.forEach((x) => set.delete(x));
               set.add(o.value);
             }
+            paint();
             onChange([...set]);
-          } }, o.label)));
+          } }, o.label));
+      const paint = () => chips.forEach((c) => {
+        const on = set.has(c.dataset.value);
+        c.classList.toggle("on", on);
+        c.setAttribute("aria-pressed", String(on));
+      });
+      paint();
+      return h("span", { class: "chips", role: "group", "aria-label": "Choose all that apply" }, ...chips);
     }
     case "source":
       return h("select", { ...common, class: "source", title: "How sure are you of this number?",

@@ -110,6 +110,13 @@ function welcomeView() {
 }
 
 // ---------------- quick pass ----------------
+/** Age questions store an approximate birth month; keep the existing one if the age hasn't changed. */
+function birthMonthForAge(age, current) {
+  const now = new Date();
+  if (current && Math.floor(ageAt(current, now)) === age) return current;
+  return `${now.getFullYear() - age}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+}
+
 const DONT_KNOW = {
   // Defaults when someone taps "I don't know". Marked as 'default' so confidence drops.
   "/quick/monthlyExpenses": (u) => Math.round(Math.max(0, (u.quick.takeHomeMonthly || 0) * 0.6 - (u.quick.emiMonthly || 0)) / 1000) * 1000,
@@ -136,8 +143,9 @@ function quickView(i) {
     const v = getPointer(u, q.bind);
     if (q.input === "multiselect") return v?.length ? null : "Pick at least one.";
     if (v == null || v === "") return "Please answer, or use a rough number.";
-    if (q.input === "yearMonth") {
+    if (q.input === "yearMonth" || q.input === "age") {
       const a = ageAt(v, new Date());
+      if (q.input === "age") return a < q.min || a >= q.max + 1 ? `Enter an age from ${q.min} to ${q.max}.` : null;
       return a < 16 || a > 90 ? "That birth date gives an age outside 16–90." : null;
     }
     if (q.min != null && v < q.min) return `At least ${q.min}.`;
@@ -154,7 +162,9 @@ function quickView(i) {
   };
 
   const opts = { autofocus: true, options: q.options, min: q.min, max: q.max, exclusive: ["none"] };
-  const ctl = control(q.input === "integer" ? "integer" : q.input, value, set, opts);
+  const ctl = q.input === "age"
+    ? control("integer", value ? Math.floor(ageAt(value, new Date())) : undefined, (a) => set(a == null ? undefined : birthMonthForAge(a, value)), opts)
+    : control(q.input === "integer" ? "integer" : q.input, value, set, opts);
   const certainty = q.input === "currency"
     ? h("div", { class: "certainty" }, h("span", { class: "muted" }, "How sure are you?"),
         h("span", { class: "seg" }, ...[["exact", "Exact"], ["estimate", "Rough estimate"]].map(([k, label]) =>

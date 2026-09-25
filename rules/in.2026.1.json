@@ -1322,10 +1322,13 @@
       "questions": [
         {
           "id": "q.birth",
-          "prompt": "When were you born?",
-          "input": "yearMonth",
+          "prompt": "How old are you?",
+          "input": "age",
           "bind": "/profile/birthYearMonth",
-          "impact": "high"
+          "impact": "high",
+          "min": 18,
+          "max": 80,
+          "help": "Only your age is needed. It's saved as an approximate birth month so it stays correct when you come back next year, and it never leaves your device."
         },
         {
           "id": "q.fire_age",
