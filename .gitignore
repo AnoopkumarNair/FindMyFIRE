@@ -1,2 +1,8 @@
 node_modules/
 *.local.json
+# Spreadsheets and personal plan files never belong in this public repo
+*.xlsx
+*.xls
+*.ods
+findmyfire-plan-*.json
+_site/

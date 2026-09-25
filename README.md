@@ -2,13 +2,26 @@
 
 A guided FIRE calculator that runs entirely in the browser. Your data lives in a JSON file on your device, never on a server. No accounts, no analytics, no LLM.
 
+**Use it:** https://anoopkumarnair.github.io/FindMyFIRE/ (published from `main` by GitHub Actions)
+
+## Run it locally
+
+```sh
+npm install
+npm test        # schemas, rules pack, engine and golden tests
+npm run serve   # http://localhost:8080
+```
+
+There is no build step. The app is plain ES modules (`index.html`, `src/`), so any static host works.
+
 ## How it fits together
 
 | Piece | File | Who owns it | Contains personal data? |
 |---|---|---|---|
 | Rules pack | `rules/in.2026.1.json` | This repo, updated after each Union Budget | No |
 | User file | Created by the UI, saved on the user's device | The user | Yes |
-| Engine *(next)* | `src/engine/` | This repo | No — pure functions |
+| Engine | `src/engine/` | This repo | No — pure functions |
+| App | `index.html`, `src/ui/` | This repo | No — reads/writes the user file locally |
 
 The contract between them is two JSON Schemas in `schemas/`.
 
@@ -39,6 +52,35 @@ The contract between them is two JSON Schemas in `schemas/`.
 
 Conditions use a small safe format (`all` / `any` / `not` / `{ref, op, value}`) with no `eval`. `ref` is either a JSON Pointer into the user file or a derived value such as `$age`.
 
+## How the engine works
+
+All amounts are nominal rupees, stepped one year at a time from today (`src/engine/project.js`).
+
+- **Before FIRE:** corpus(t+1) = (corpus + SIP + EPF − goals due that year) × (1 + return before FIRE). Contributions go in at the start of the year, like the sheet's `FV(…, type 1)`. The SIP steps up each year, and EPF grows with income.
+- **Withdrawals after FIRE:** each expense line is inflated at its own rate (general, health or education) and scaled by its post-FIRE factor. Then add EMIs still running and goals due that year, subtract income that continues after FIRE, and gross the result up for withdrawal tax.
+- **Corpus needed at age A:** the present value of every withdrawal from A until `plan.untilAge`, at the post-FIRE return. By construction it runs out exactly after that year.
+- **Earliest FIRE age:** the first age where the projected corpus reaches the corpus needed, interpolated between years.
+- **Levels:** Lean (essential categories and must-have goals), Standard, Fat (× multiplier), Barista (minus part-time income) and Coast (the Standard target discounted to today).
+- **Scenarios** re-run the same model with the rules pack's deltas. The **range** re-runs it with expenses and corpus moved by each answer's uncertainty band.
+
+### Relationship to the original Google Sheet
+
+`test/golden-sheet.test.mjs` checks the engine against the sheet's own numbers. `scripts/golden-from-sheet.py` types synthetic inputs into a copy of the workbook, recalculates it with LibreOffice and records the results in `test/fixtures/sheet-golden.json`. The workbook is never committed. The engine reproduces these parts of the sheet exactly:
+
+- `FV`, `PMT` and `NPER`
+- the projected corpus with milestones (E11, M9)
+- the Lean, Fat and Coast targets
+- the three-bucket split
+- the 41-year retirement schedule, row by row
+
+The planner deliberately differs from the sheet in three places:
+
+| Sheet | Planner | Why |
+|---|---|---|
+| Target = spending ÷ 3.25% SWR | Present value of withdrawals until `plan.untilAge` | The horizon, per-category inflation, goals and loans all feed the number directly. The implied first-year withdrawal rate is shown next to it. |
+| One blended inflation (85% CPI + 15% health) | Each expense line at its own rate | Healthcare and education compound faster. A blended rate understates them over 40 years. |
+| "Current path" table (cols N–Y) earns a year's return on money already withdrawn | Withdraw first, then grow (same as the sheet's target schedule, cols A–L) | Keeps the two schedules consistent. |
+
 ## Keeping it honest
 
 - `npm test` validates every rules pack and example against the schemas. It then checks cross-references that schemas can't express:
@@ -55,16 +97,16 @@ Conditions use a small safe format (`all` / `any` / `not` / `{ref, op, value}`) 
 - Static hosting only.
 - A Content-Security-Policy with `connect-src 'self'`, so the page cannot send data anywhere.
 - No analytics or third-party scripts.
-- Working copy in IndexedDB, autosaved. Explicit Save / Open for the JSON file.
+- Working copy in the browser's localStorage, autosaved. Explicit Save / Open for the JSON file.
 - Optional passphrase encryption of the file (WebCrypto AES-GCM).
 
 ## Roadmap
 
 1. ✅ Schemas, India rules pack, examples, validator
-2. Port the engine (year-by-year projection, required corpus, earliest age, scenarios) with golden tests taken from the Google Sheets template
-3. Quick-pass UI + live result
-4. Refine sections, confidence meter, nudges
-5. Save/Open/encrypt, snapshots chart, PWA offline
+2. ✅ Engine (year-by-year projection, required corpus, earliest age, levels, scenarios) with golden tests from the Google Sheet
+3. ✅ Quick-pass UI + live result
+4. ✅ Refine sections, confidence meter, nudges
+5. ✅ Save/Open/encrypt, check-ins · ⬜ check-in chart, PWA offline, tax estimator (replaces the flat withdrawal-tax assumption), asset-allocation drift
 
 ## Disclaimer
 

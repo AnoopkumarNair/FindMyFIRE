@@ -3,7 +3,13 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "description": "Local-first FIRE planner for India: schemas, rules pack and examples",
-  "scripts": { "test": "node scripts/validate.mjs" },
-  "devDependencies": { "ajv": "^8.17.1", "ajv-formats": "^3.0.1" }
+  "description": "Local-first FIRE planner for India: rules pack, engine and browser app",
+  "scripts": {
+    "test": "node scripts/validate.mjs && node --test test/*.test.mjs",
+    "serve": "node scripts/serve.mjs"
+  },
+  "devDependencies": {
+    "ajv": "^8.17.1",
+    "ajv-formats": "^3.0.1"
+  }
 }

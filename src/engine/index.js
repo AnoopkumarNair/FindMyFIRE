@@ -1,0 +1,126 @@
+// Public entry point: evaluatePlan(userFile, rulesPack) → everything the UI shows.
+// Pure: no DOM, no network, no storage. Runs the same in the browser and in Node tests.
+
+import { evaluate } from "./conditions.js";
+import { confidence, bandFor } from "./confidence.js";
+import { resolveInputs } from "./resolve.js";
+import { makeParams, analyse, requiredMonthlySip, withdrawalsFrom, drawdown } from "./project.js";
+
+export { fv, pmt, nper, pvDue } from "./finance.js";
+export { evaluate, getPointer, setPointer } from "./conditions.js";
+export { resolveInputs, assumptionValues, ageAt } from "./resolve.js";
+export { makeParams, accumulate, analyse, drawdown, withdrawalsFrom, requiredAt } from "./project.js";
+
+function tierSpec(tier, inp) {
+  const A = inp.assumptions;
+  const todayMonthly = inp.expenses.reduce((s, e) => s + e.monthly, 0);
+  switch (tier.basis) {
+    case "essentialsOnly":
+      return inp.detailed.expenses ? { essentialsOnly: true, mustGoalsOnly: true } : null;
+    case "allExpenses":
+      return {};
+    case "allExpensesTimes":
+      return { multiplier: A["tier.fatMultiplier"] ?? tier.multiplier ?? 1.5 };
+    case "withPartTimeIncome":
+      // Same default as the original sheet: part-time work covers half of today's spending, until 60.
+      return { partTime: inp.partTime ?? { monthly: todayMonthly * 0.5, untilAge: 60, assumed: true } };
+    default:
+      return null;
+  }
+}
+
+export function evaluatePlan(user, pack, { today = new Date() } = {}) {
+  const inp = resolveInputs(user, pack, today);
+  const p = makeParams(inp);
+  const base = analyse(inp, p);
+
+  // ---- derived values used by nudges and conditions ----
+  const activeMonthly = (e) => e.endsAtAge == null || e.endsAtAge > inp.age;
+  const monthlyExpenses = inp.expenses.filter(activeMonthly).reduce((s, e) => s + e.monthly, 0);
+  const derived = {
+    age: inp.age,
+    yearsToFire: inp.fireTargetAge - inp.age,
+    fireCorpus: inp.fireCorpus,
+    emergencyFund: inp.emergencyFund,
+    monthlyExpenses,
+    monthlyEmi: inp.emiMonthlyNow,
+    monthlySurplus: inp.takeHomeMonthly > 0
+      ? inp.takeHomeMonthly - monthlyExpenses - inp.emiMonthlyNow - inp.monthlySip
+      : undefined,
+    emergencyShortfall: inp.detailed.holdings
+      ? Math.max(0, inp.assumptions["emergency.months"] * (monthlyExpenses + inp.emiMonthlyNow) - inp.emergencyFund)
+      : undefined,
+  };
+  const conf = confidence(user, pack, derived);
+  derived.confidence = conf.score;
+
+  // ---- range from answer uncertainty ----
+  const bE = bandFor(inp.expenses.map((e) => ({ source: e.source, weight: e.monthly })), pack);
+  const bC = inp.detailed.holdings
+    ? bandFor(user.holdings.map((h) => ({ source: h.source, weight: h.value })), pack)
+    : bandFor([{ source: user.provenance?.["/quick/investedCorpus"] || "estimate", weight: 1 }], pack);
+  const pessimistic = analyse(inp, makeParams(inp, { expenseScale: 1 + bE, corpusScale: 1 - bC }));
+  const optimistic = analyse(inp, makeParams(inp, { expenseScale: 1 - bE, corpusScale: 1 + bC }));
+
+  // ---- tiers ----
+  const tiers = [];
+  for (const t of pack.tiers) {
+    if (t.basis === "coastToday") {
+      const coastToday = base.required / (1 + p.rPre) ** base.tTarget;
+      tiers.push({ ...t, available: true, requiredAtTarget: coastToday, corpusToday: inp.fireCorpus,
+        reached: inp.fireCorpus >= coastToday, progress: coastToday ? inp.fireCorpus / coastToday : 1 });
+      continue;
+    }
+    const spec = tierSpec(t, inp);
+    if (!spec) { tiers.push({ ...t, available: false }); continue; }
+    const a = analyse(inp, p, spec);
+    tiers.push({ ...t, available: true, requiredAtTarget: a.required, projectedAtTarget: a.projected,
+      earliestAge: a.earliestAge, reached: a.projected >= a.required, progress: a.required ? inp.fireCorpus / a.required : 1,
+      onTrack: a.required ? a.projected / a.required : 1, assumedPartTime: spec.partTime?.assumed ? spec.partTime : null });
+  }
+
+  // ---- scenarios ----
+  const scenarios = pack.scenarios.map((s) => {
+    const a = analyse(inp, makeParams(inp, s.changes));
+    return { ...s, fireTargetAge: inp.fireTargetAge + (s.changes.fireAgeDelta || 0),
+      projected: a.projected, required: a.required, gap: a.gap, earliestAge: a.earliestAge };
+  });
+
+  // ---- current path: invest until the target age, then draw down ----
+  const tFire = Math.round(base.tTarget);
+  const drawRows = drawdown(base.path[tFire], withdrawalsFrom(inp, p, {}, tFire), { rate: p.rPost });
+  const year0 = today.getFullYear();
+  const timeline = [];
+  for (let t = 0; t <= tFire; t++)
+    timeline.push({ t, age: inp.age + t, year: year0 + t, corpus: base.path[t], required: base.req[t], phase: "invest" });
+  for (const r of drawRows.slice(1))
+    timeline.push({ t: tFire + r.k, age: inp.age + tFire + r.k, year: year0 + tFire + r.k, corpus: r.begin,
+      required: base.req[tFire + r.k] ?? null, phase: "retired" });
+  const depletedRow = drawRows.find((r) => r.end <= 0);
+  const retirementSchedule = drawRows.map((r) => ({ ...r, age: inp.age + tFire + r.k, year: year0 + tFire + r.k }));
+
+  const nudges = pack.nudges
+    .filter((n) => { try { return evaluate(n.when, user, derived); } catch { return false; } })
+    .map(({ id, severity, section, message }) => ({ id, severity, section, message }));
+
+  return {
+    inputs: inp,
+    params: p,
+    derived,
+    target: {
+      age: inp.fireTargetAge, projected: base.projected, required: base.required, gap: base.gap,
+      funded: base.required ? base.projected / base.required : 1,
+      firstYearWithdrawal: withdrawalsFrom(inp, p, {}, tFire)[0] ?? 0,
+      requiredMonthlySip: requiredMonthlySip(inp, p),
+    },
+    earliestAge: base.earliestAge,
+    range: { from: optimistic.earliestAge, to: pessimistic.earliestAge, expenseBand: bE, corpusBand: bC },
+    confidence: conf,
+    tiers,
+    scenarios,
+    timeline,
+    retirementSchedule,
+    depletesAtAge: depletedRow ? inp.age + tFire + depletedRow.k : null,
+    nudges,
+  };
+}

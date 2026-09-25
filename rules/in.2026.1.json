@@ -55,7 +55,7 @@
     {
       "name": "monthlySurplus",
       "label": "Uninvested monthly surplus",
-      "description": "takeHome − expenses − EMIs − SIP − own EPF share."
+      "description": "takeHome − expenses − EMIs − SIP. Take-home is already net of your own EPF."
     }
   ],
   "assumptions": [
@@ -88,6 +88,26 @@
       "max": 0.15,
       "step": 0.005,
       "help": "School and college fees; typically above CPI."
+    },
+    {
+      "id": "return.beforeFire",
+      "label": "Portfolio return before FIRE",
+      "value": 0.095,
+      "unit": "percent",
+      "min": 0.04,
+      "max": 0.15,
+      "step": 0.005,
+      "help": "Blended yearly return while you are still investing. The default is the weighted return of the rules pack's pre-FIRE allocation (65% equity, 25% debt, 7% gold, 3% cash)."
+    },
+    {
+      "id": "return.afterFire",
+      "label": "Portfolio return after FIRE",
+      "value": 0.085,
+      "unit": "percent",
+      "min": 0.03,
+      "max": 0.13,
+      "step": 0.005,
+      "help": "Blended yearly return while you draw down. Lower than before FIRE because more of the corpus sits in debt and cash (the three-bucket approach)."
     },
     {
       "id": "income.growth",
@@ -199,8 +219,8 @@
       "id": "real_estate",
       "label": "Real estate / REIT",
       "expectedReturn": 0.07,
-      "targetBeforeFire": 0.0,
-      "targetAfterFire": 0.0,
+      "targetBeforeFire": 0,
+      "targetAfterFire": 0,
       "help": "Listed REITs/InvITs and investment property (not your own home)."
     },
     {
@@ -836,7 +856,7 @@
       "frequency": "monthly",
       "inflation": "general",
       "essential": true,
-      "postFireFactor": 1.0,
+      "postFireFactor": 1,
       "hint": "Skip if you own your home."
     },
     {
@@ -846,7 +866,7 @@
       "frequency": "monthly",
       "inflation": "general",
       "essential": true,
-      "postFireFactor": 1.0
+      "postFireFactor": 1
     },
     {
       "id": "housing.property_tax",
@@ -855,7 +875,7 @@
       "frequency": "annual",
       "inflation": "general",
       "essential": true,
-      "postFireFactor": 1.0
+      "postFireFactor": 1
     },
     {
       "id": "housing.repairs",
@@ -864,7 +884,7 @@
       "frequency": "annual",
       "inflation": "general",
       "essential": true,
-      "postFireFactor": 1.0,
+      "postFireFactor": 1,
       "hint": "Average per year."
     },
     {
@@ -884,7 +904,7 @@
       "frequency": "monthly",
       "inflation": "general",
       "essential": true,
-      "postFireFactor": 1.0
+      "postFireFactor": 1
     },
     {
       "id": "utilities.telecom",
@@ -893,7 +913,7 @@
       "frequency": "monthly",
       "inflation": "general",
       "essential": true,
-      "postFireFactor": 1.0
+      "postFireFactor": 1
     },
     {
       "id": "utilities.subscriptions",
@@ -902,7 +922,7 @@
       "frequency": "monthly",
       "inflation": "general",
       "essential": false,
-      "postFireFactor": 1.0
+      "postFireFactor": 1
     },
     {
       "id": "food.groceries",
@@ -911,7 +931,7 @@
       "frequency": "monthly",
       "inflation": "general",
       "essential": true,
-      "postFireFactor": 1.0
+      "postFireFactor": 1
     },
     {
       "id": "food.daily_fresh",
@@ -920,7 +940,7 @@
       "frequency": "monthly",
       "inflation": "general",
       "essential": true,
-      "postFireFactor": 1.0
+      "postFireFactor": 1
     },
     {
       "id": "food.eating_out",
@@ -929,7 +949,7 @@
       "frequency": "monthly",
       "inflation": "general",
       "essential": false,
-      "postFireFactor": 1.0
+      "postFireFactor": 1
     },
     {
       "id": "household.domestic_help",
@@ -938,7 +958,7 @@
       "frequency": "monthly",
       "inflation": "general",
       "essential": true,
-      "postFireFactor": 1.0
+      "postFireFactor": 1
     },
     {
       "id": "household.driver",
@@ -975,7 +995,7 @@
       "frequency": "annual",
       "inflation": "general",
       "essential": true,
-      "postFireFactor": 1.0,
+      "postFireFactor": 1,
       "hint": "Car replacement is a Goal, not an expense."
     },
     {
@@ -985,7 +1005,7 @@
       "frequency": "annual",
       "inflation": "education",
       "essential": true,
-      "postFireFactor": 1.0,
+      "postFireFactor": 1,
       "hint": "Stops when the child finishes school.",
       "endsByDefault": "childIndependent",
       "showIf": {
@@ -1000,7 +1020,7 @@
       "frequency": "monthly",
       "inflation": "education",
       "essential": false,
-      "postFireFactor": 1.0,
+      "postFireFactor": 1,
       "endsByDefault": "childIndependent",
       "showIf": {
         "ref": "/profile/children",
@@ -1014,7 +1034,7 @@
       "frequency": "annual",
       "inflation": "education",
       "essential": true,
-      "postFireFactor": 1.0,
+      "postFireFactor": 1,
       "endsByDefault": "childIndependent",
       "showIf": {
         "ref": "/profile/children",
@@ -1028,7 +1048,7 @@
       "frequency": "annual",
       "inflation": "health",
       "essential": true,
-      "postFireFactor": 1.0,
+      "postFireFactor": 1,
       "hint": "Employer cover ends at FIRE — budget for your own family floater."
     },
     {
@@ -1038,7 +1058,7 @@
       "frequency": "monthly",
       "inflation": "health",
       "essential": true,
-      "postFireFactor": 1.0
+      "postFireFactor": 1
     },
     {
       "id": "protection.term_premium",
@@ -1047,7 +1067,7 @@
       "frequency": "annual",
       "inflation": "general",
       "essential": true,
-      "postFireFactor": 1.0,
+      "postFireFactor": 1,
       "hint": "Stops when the policy term ends.",
       "endsByDefault": "policyTerm"
     },
@@ -1058,7 +1078,7 @@
       "frequency": "annual",
       "inflation": "general",
       "essential": false,
-      "postFireFactor": 1.0,
+      "postFireFactor": 1,
       "hint": "Treat as an expense until the policy ends.",
       "endsByDefault": "policyTerm"
     },
@@ -1069,7 +1089,7 @@
       "frequency": "monthly",
       "inflation": "general",
       "essential": true,
-      "postFireFactor": 1.0,
+      "postFireFactor": 1,
       "showIf": {
         "ref": "/profile/parentsSupported",
         "op": "gt",
@@ -1083,7 +1103,7 @@
       "frequency": "annual",
       "inflation": "general",
       "essential": false,
-      "postFireFactor": 1.0,
+      "postFireFactor": 1,
       "hint": "Diwali, Pongal, Onam, Eid, Christmas, weddings you attend…"
     },
     {
@@ -1093,7 +1113,7 @@
       "frequency": "annual",
       "inflation": "general",
       "essential": false,
-      "postFireFactor": 1.0
+      "postFireFactor": 1
     },
     {
       "id": "personal.clothing",
@@ -1111,7 +1131,7 @@
       "frequency": "monthly",
       "inflation": "general",
       "essential": false,
-      "postFireFactor": 1.0
+      "postFireFactor": 1
     },
     {
       "id": "personal.fitness_hobbies",
@@ -1148,7 +1168,7 @@
       "frequency": "annual",
       "inflation": "general",
       "essential": false,
-      "postFireFactor": 1.0
+      "postFireFactor": 1
     },
     {
       "id": "other.misc",
@@ -1157,7 +1177,7 @@
       "frequency": "monthly",
       "inflation": "general",
       "essential": false,
-      "postFireFactor": 1.0,
+      "postFireFactor": 1,
       "hint": "Anything city- or family-specific not listed above."
     }
   ],
@@ -1642,13 +1662,13 @@
   "confidence": {
     "method": "Each answer scores by source: exact 1.0, estimate 0.6, default 0.3, missing 0. Quick-pass answers count as 'estimate' for the sections they stand in for. Score = Σ(section weight × mean answer score) ÷ Σ(weights of visible sections) × 100. Range: rerun the engine with expenses +band and corpus −band (and vice versa) to show an earliest-FIRE-age range.",
     "sourceScores": {
-      "exact": 1.0,
+      "exact": 1,
       "estimate": 0.6,
       "default": 0.3,
-      "missing": 0.0
+      "missing": 0
     },
     "uncertaintyBand": {
-      "exact": 0.0,
+      "exact": 0,
       "estimate": 0.15,
       "default": 0.3
     },

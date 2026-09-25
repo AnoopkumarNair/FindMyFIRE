@@ -1,0 +1,20 @@
+<!doctype html>
+<html lang="en-IN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <!-- The page can only talk to its own origin: your plan cannot be sent anywhere. -->
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'">
+  <meta name="referrer" content="no-referrer">
+  <meta name="description" content="Private, guided FIRE calculator for India. Runs in your browser; your plan is a file you keep.">
+  <meta name="color-scheme" content="light dark">
+  <title>FindMyFIRE</title>
+  <link rel="icon" href="src/ui/icon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="src/ui/styles.css">
+  <script type="module" src="src/ui/app.js"></script>
+</head>
+<body>
+  <div id="app"><p class="loading">Loading…</p></div>
+  <noscript>FindMyFIRE runs entirely in your browser and needs JavaScript.</noscript>
+</body>
+</html>
