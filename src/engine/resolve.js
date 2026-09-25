@@ -57,6 +57,7 @@ export function resolveInputs(user, pack, today = new Date()) {
       return {
         id: e.id,
         label: e.label || cat.label || e.categoryId,
+        categoryId: e.categoryId,
         monthly: monthlyOf(e.amount, e.frequency),
         inflation: cat.inflation || "general",
         essential: cat.essential ?? true,
@@ -129,13 +130,17 @@ export function resolveInputs(user, pack, today = new Date()) {
     : [];
   const plan = user.plan || {};
 
-  const goals = (user.goals || []).map((g) => {
+  // Goals, with repeating ones (a car every 8 years) expanded into one event per occurrence.
+  const goals = [];
+  for (const g of user.goals || []) {
     const tpl = pack.goalTemplates.find((t) => t.id === g.templateId) || {};
-    return {
-      label: g.label, atAge: g.atAge, costToday: g.costToday, priority: g.priority || "must",
-      inflationRate: g.inflationRate ?? tpl.defaultInflationRate ?? A["inflation.general"],
-    };
-  });
+    const one = { label: g.label, atAge: g.atAge, costToday: g.costToday, priority: g.priority || "must",
+      inflationRate: g.inflationRate ?? tpl.defaultInflationRate ?? A["inflation.general"] };
+    if (!g.repeatEveryYears) { goals.push(one); continue; }
+    const last = g.untilAge ?? A["plan.untilAge"];
+    for (let a = g.atAge, n = 1; a <= last; a += g.repeatEveryYears, n++)
+      goals.push({ ...one, atAge: a, label: n > 1 ? `${g.label} (${n})` : g.label });
+  }
 
   // Lump sums received, expanded to one event per payment, in nominal rupees after tax.
   const inflows = [];
@@ -181,6 +186,27 @@ export function resolveInputs(user, pack, today = new Date()) {
     return out;
   });
 
+  // Health cover after FIRE: employer cover stops, so a family floater is needed. Its premium
+  // rises with age bands and medical inflation; only the part beyond any premium already in
+  // the user's spending is added.
+  const HC = pack.healthCover;
+  let health = null;
+  if (HC) {
+    const entered = user.insurance?.premiumAfterFire;
+    const atNow = premiumAt(HC.premiumByAge, age);
+    const existingYearly = detailed.expenses
+      ? expenses.filter((e) => e.categoryId === "health.insurance_premium").reduce((s, e) => s + 12 * e.monthly * e.postFireFactor, 0)
+      : 0;
+    health = { table: HC.premiumByAge, scale: entered == null ? 1 : atNow ? entered / atNow : 0,
+      estimated: entered == null, existingYearly, premiumNow: entered ?? atNow };
+  }
+
+  // Tax on withdrawals: interest on the 3-year cash and 5-year debt buckets per rupee withdrawn.
+  const ret = Object.fromEntries(pack.assetClasses.map((a) => [a.id, a.expectedReturn]));
+  const taxCtx = pack.incomeTax
+    ? { tax: pack.incomeTax, gainShare: A["tax.equityGainShare"] ?? 0.5, interestPerRupee: 3 * (ret.cash ?? 0.05) + 5 * (ret.debt ?? 0.07) }
+    : null;
+
   return {
     age,
     birthYear,
@@ -201,6 +227,8 @@ export function resolveInputs(user, pack, today = new Date()) {
     incomesAfterFire,
     goals,
     inflows,
+    health,
+    taxCtx,
     properties,
     locked,
     postFireSpending: plan.postFireSpending ?? 1,
@@ -210,4 +238,15 @@ export function resolveInputs(user, pack, today = new Date()) {
       ? { monthly: plan.partTimeIncomeMonthly, untilAge: plan.partTimeUntilAge ?? 60, assumed: false }
       : null,
   };
+}
+
+/** Indicative premium at an age, interpolated from the rules pack's table (flat beyond its ends). */
+export function premiumAt(table, a) {
+  if (!table?.length) return 0;
+  if (a <= table[0].age) return table[0].premium;
+  for (let i = 1; i < table.length; i++) {
+    const lo = table[i - 1], hi = table[i];
+    if (a <= hi.age) return lo.premium + ((a - lo.age) / (hi.age - lo.age)) * (hi.premium - lo.premium);
+  }
+  return table.at(-1).premium;
 }

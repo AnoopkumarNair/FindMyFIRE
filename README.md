@@ -30,7 +30,8 @@ The contract between them is two JSON Schemas in `schemas/`.
 
 ## Quick answer first, refine later
 
-1. **Quick pass (8 questions).** These fill `/quick/*` and give a first FIRE age with a confidence score.
+1. **Quick pass (8 questions).** Results show one "most useful next step" (the section that raises accuracy most); finishing a section offers the next one. Everything else stays optional.
+    These fill `/quick/*` and give a first FIRE age with a confidence score.
 2. **Refine sections** (expenses, holdings, goals, …). Each one lists the quick answers it replaces (`replacesQuick`). Once a section is in `sectionsDone`, the engine uses the detailed data instead. See `resolution` in the rules pack.
 3. **Confidence** is computed from each answer's source, weighted by section:
    - Σ(section weight × mean answer score) ÷ Σ(weights of visible sections), shown as 0–100.
@@ -66,6 +67,9 @@ All amounts are nominal rupees, stepped one year at a time from today (`src/engi
 - **Property:** each home or plot has a value and a location-specific growth rate. Rent and costs flow in or out while you own it. A planned sale arrives as a lump sum after 2% selling costs and 12.5% LTCG on the gain. Property you keep is shown in net worth but never spent.
 - **Locked money:** instruments with an `unlock` rule (NPS Tier-1 at 60) stay out of the FIRE corpus, but grow to that age and then arrive as a lump sum plus a pension.
 - **Market ups and downs:** 1,000 simulated market histories (seeded, so a plan always shows the same result) give the chance the money lasts, and the ages with a 3-in-4 and a 9-in-10 chance. The steady-return FIRE age is roughly a coin flip, and the app says so.
+- **Tax on withdrawals** is worked out each retired year from the rules pack's `incomeTax` table (new regime, FY2025-26). Interest and debt-fund gains from the cash and debt buckets are taxed at slab rates, with the ₹12 lakh rebate. Equity gains are taxed at 12.5% above ₹1.25 lakh. Rent (after the 30% standard deduction) and pensions are taxed at slab rates too. Slabs are assumed to rise with inflation.
+- **Health cover after FIRE:** a family-floater premium from the pack's indicative age table, or your own quote. It rises with age and medical inflation, and only the part beyond any premium already in your spending is added.
+- **Repeating goals:** a car every 8 years, renovation every 12, appliances every 5.
 - **Levers:** the extra monthly investment, the lower post-FIRE spending, or the later age that each close the gap on their own.
 - **Scenarios** re-run the same model with the rules pack's deltas. The **range** re-runs it with expenses and corpus moved by each answer's uncertainty band.
 

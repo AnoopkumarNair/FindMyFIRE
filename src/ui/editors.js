@@ -187,7 +187,7 @@ function goalsEditor(ctx) {
     const kid = t.suggestAge?.relativeTo === "child" ? kids[0] : null;
     const atAge = kid ? kid.birthYear + t.suggestAge.age - inp.birthYear : Math.ceil(inp.age) + 5;
     items.push({ id: newId("g"), templateId: t.id, label: t.label, atAge, costToday: 0,
-      inflationRate: t.defaultInflationRate, priority: "must", childId: kid?.id, source: "estimate" });
+      inflationRate: t.defaultInflationRate, priority: "must", childId: kid?.id, repeatEveryYears: t.defaultRepeatYears, source: "estimate" });
     ctx.redraw();
   }, { options: templates.map((t) => ({ value: t.id, label: t.label })), placeholder: "+ Add a goal…" });
 
@@ -200,6 +200,10 @@ function goalsEditor(ctx) {
         field("Your age when it's due", "integer", g.atAge, (v) => { g.atAge = v; ctx.save(); }),
         field("Cost in today's money", "currency", g.costToday, (v) => { g.costToday = v || 0; ctx.save(); }),
         field("Cost inflation", "percent", g.inflationRate, (v) => { g.inflationRate = v; ctx.save(); }),
+        field("Repeats every", "integer", g.repeatEveryYears, (v) => { g.repeatEveryYears = v > 0 ? v : undefined; ctx.redraw(); },
+          { min: 1, max: 40, placeholder: "once", help: "Years. For a car every 8, renovation every 12…" }),
+        g.repeatEveryYears ? field("Until your age", "integer", g.untilAge, (v) => { g.untilAge = v; ctx.save(); },
+          { placeholder: String(user.plan.planUntilAge ?? 90), help: "Last time it can happen." }) : null,
         field("Priority", "select", g.priority, (v) => { g.priority = v; ctx.save(); }, { placeholder: false,
           options: [{ value: "must", label: "Must have" }, { value: "want", label: "Want" }, { value: "nice", label: "Nice to have" }],
         }),

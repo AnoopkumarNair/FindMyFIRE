@@ -317,3 +317,16 @@ tr.depleted td { color: var(--critical); }
 .levers { margin: 0; padding-left: 1.2rem; display: grid; gap: 0.5rem; }
 table.balance th { font-weight: 500; }
 table.balance .total-row th, table.balance .total-row td { font-weight: 700; border-top: 2px solid var(--axis); }
+
+/* next step + action plan */
+.next-step .meter-row { margin-bottom: 0.4rem; }
+.next-step p { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem; margin: 0.4rem 0; }
+.next-step details { margin-top: 0.4rem; }
+.next-step details .sections { margin-top: 0.6rem; }
+.timeline { list-style: none; margin: 0; padding: 0; display: grid; gap: 0.2rem; }
+.timeline li { display: grid; grid-template-columns: 7.5rem 1fr; gap: 0.8rem; padding: 0.6rem 0; border-top: 1px solid var(--grid); }
+.timeline li:first-child { border-top: 0; }
+.timeline .when { font-weight: 700; color: var(--accent-ink); font-size: 0.9rem; }
+.timeline p { margin: 0.2rem 0 0; color: var(--ink-2); }
+.also { margin-top: 0.8rem; }
+@media (max-width: 640px) { .timeline li { grid-template-columns: 1fr; gap: 0.2rem; } }

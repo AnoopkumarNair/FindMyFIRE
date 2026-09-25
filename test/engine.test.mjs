@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import {
   evaluatePlan, evaluate, fv, pvDue, resolveInputs, makeParams, analyse, withdrawalsFrom, drawdown, requiredAt,
+  withdrawalParts, slabTax, yearTax,
 } from "../src/engine/index.js";
 
 const requiredAtFor = (inp, p, t) => requiredAt(inp, p, {}, t);
@@ -208,11 +209,14 @@ test("locked NPS: excluded now, arrives at 60 as a lump sum plus a pension", () 
   assert.ok(pension && pension.fromAge === 60 && pension.monthly > 0);
 });
 
-test("spending after FIRE scales withdrawals", () => {
-  const a = evaluatePlan(sheetLike(), pack, { today });
+test("spending after FIRE scales living costs (not the health premium)", () => {
+  const parts = (u) => { const inp = resolveInputs(u, pack, today); return withdrawalParts(inp, makeParams(inp), {}, 5); };
+  const a = parts(sheetLike());
   const u = sheetLike(); u.plan.postFireSpending = 0.8;
-  const b = evaluatePlan(u, pack, { today });
-  assert.ok(Math.abs(b.target.firstYearWithdrawal / a.target.firstYearWithdrawal - 0.8) < 1e-9);
+  const b = parts(u);
+  assert.ok(Math.abs((b.spend - b.healthPremium) / (a.spend - a.healthPremium) - 0.8) < 1e-9);
+  assert.equal(b.healthPremium, a.healthPremium);
+  assert.ok(b.tax < a.tax, "less to withdraw, less tax");
 });
 
 test("a crash just after retiring delays FIRE", () => {
@@ -238,4 +242,40 @@ test("levers: each one on its own closes the gap", () => {
   assert.ok(Math.abs(evaluatePlan(more, pack, { today }).target.gap) / r.target.required < 0.01);
   const less = clone(u); less.plan.postFireSpending = r.levers.spendAfterFire.to / r.levers.spendAfterFire.from;
   assert.ok(Math.abs(evaluatePlan(less, pack, { today }).target.gap) / r.target.required < 0.01);
+});
+
+// ---- tax, health cover, repeating goals ----
+test("slab tax: new-regime slabs and the 12 lakh rebate", () => {
+  const T = pack.incomeTax;
+  assert.equal(slabTax(1200000, T), 0);
+  // 13 lakh: 4–8 at 5% + 8–12 at 10% + 1 lakh at 15%
+  assert.equal(slabTax(1300000, T), 20000 + 40000 + 15000);
+  assert.equal(slabTax(3000000, T), 20000 + 40000 + 60000 + 80000 + 100000 + 600000 * 0.3);
+});
+
+test("withdrawal tax: equity gains above the exemption at 12.5%, interest at slab, plus cess", () => {
+  const ctx = { tax: pack.incomeTax, gainShare: 0.5, interestPerRupee: 0.5 };
+  // 20 lakh withdrawn: 10 lakh interest (under the rebate), 10 lakh gains → 12.5% of 8.75 lakh
+  assert.ok(Math.abs(yearTax(2000000, 0, ctx) - 0.125 * 875000 * 1.04) < 1e-6);
+  const p = withdrawalParts(resolveInputs(sheetLike(), pack, today), makeParams(resolveInputs(sheetLike(), pack, today)), {}, 5);
+  assert.ok(Math.abs(p.gross - p.need - p.tax) < 1e-6 && p.tax > 0);
+});
+
+test("health cover after FIRE: estimated by default, 0 switches it off, a quote rescales it", () => {
+  const withEst = withdrawalParts(resolveInputs(sheetLike(), pack, today), makeParams(resolveInputs(sheetLike(), pack, today)), {}, 5);
+  assert.ok(withEst.healthPremium > 0);
+  const none = sheetLike(); none.insurance = { premiumAfterFire: 0 };
+  const inpN = resolveInputs(none, pack, today);
+  assert.equal(withdrawalParts(inpN, makeParams(inpN), {}, 5).healthPremium, 0);
+  const quote = sheetLike(); quote.insurance = { premiumAfterFire: 2 * resolveInputs(sheetLike(), pack, today).health.premiumNow };
+  const inpQ = resolveInputs(quote, pack, today);
+  assert.ok(Math.abs(withdrawalParts(inpQ, makeParams(inpQ), {}, 5).healthPremium / withEst.healthPremium - 2) < 1e-9);
+});
+
+test("repeating goals expand until the chosen age", () => {
+  const u = sheetLike();
+  u.goals = [{ id: "g", templateId: "goal.car", label: "Car", atAge: 48, costToday: 1000000, repeatEveryYears: 8, untilAge: 75, source: "estimate" }];
+  const ages = resolveInputs(u, pack, today).goals.map((g) => g.atAge);
+  assert.deepEqual(ages, [48, 56, 64, 72]);
+  assert.ok(evaluatePlan(u, pack, { today }).earliestAge > evaluatePlan(sheetLike(), pack, { today }).earliestAge);
 });

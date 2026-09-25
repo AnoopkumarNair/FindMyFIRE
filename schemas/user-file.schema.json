@@ -564,6 +564,16 @@
           },
           "childId": {
             "type": "string"
+          },
+          "repeatEveryYears": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 40,
+            "description": "Recurs every N years (e.g. a car every 8)."
+          },
+          "untilAge": {
+            "type": "integer",
+            "description": "Last age a repeating goal can fall on. Default: plan-until age."
           }
         }
       }
@@ -730,6 +740,11 @@
         },
         "termCoverEndsAtAge": {
           "type": "integer"
+        },
+        "premiumAfterFire": {
+          "type": "number",
+          "minimum": 0,
+          "description": "Yearly health-insurance premium after FIRE, today's money, at today's age. 0 = none needed. Blank = estimated from the rules pack."
         }
       }
     },

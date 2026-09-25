@@ -141,6 +141,108 @@
         }
       }
     },
+    "healthCover": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "recommendedCover",
+        "premiumByAge"
+      ],
+      "properties": {
+        "recommendedCover": {
+          "type": "number"
+        },
+        "note": {
+          "type": "string"
+        },
+        "asOf": {
+          "type": "string"
+        },
+        "verify": {
+          "type": "boolean"
+        },
+        "premiumByAge": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "age",
+              "premium"
+            ],
+            "properties": {
+              "age": {
+                "type": "number"
+              },
+              "premium": {
+                "type": "number"
+              }
+            }
+          }
+        }
+      }
+    },
+    "incomeTax": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "slabs",
+        "cess",
+        "ltcgEquityRate",
+        "ltcgEquityExemption"
+      ],
+      "properties": {
+        "regime": {
+          "type": "string"
+        },
+        "slabs": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "upTo",
+              "rate"
+            ],
+            "properties": {
+              "upTo": {
+                "type": [
+                  "number",
+                  "null"
+                ]
+              },
+              "rate": {
+                "type": "number"
+              }
+            }
+          }
+        },
+        "rebateUpTo": {
+          "type": "number"
+        },
+        "standardDeduction": {
+          "type": "number"
+        },
+        "cess": {
+          "type": "number"
+        },
+        "ltcgEquityRate": {
+          "type": "number"
+        },
+        "ltcgEquityExemption": {
+          "type": "number"
+        },
+        "note": {
+          "type": "string"
+        },
+        "asOf": {
+          "type": "string"
+        },
+        "verify": {
+          "type": "boolean"
+        }
+      }
+    },
     "resolution": {
       "type": "array",
       "items": {
@@ -697,6 +799,10 @@
         },
         "showIf": {
           "$ref": "#/$defs/condition"
+        },
+        "defaultRepeatYears": {
+          "type": "integer",
+          "minimum": 1
         }
       }
     },

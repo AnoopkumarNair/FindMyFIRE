@@ -7,7 +7,7 @@ import { marketNote } from "./market.js";
 import * as store from "./store.js";
 import { evaluatePlan, evaluate, getPointer, setPointer, ageAt } from "../engine/index.js";
 
-const APP_VERSION = "0.3.0";
+const APP_VERSION = "0.4.0";
 // Replaced with the commit id at deploy time; also appended to every file URL so browsers
 // fetch the new version right after a deploy instead of reusing a cached copy.
 const BUILD = "dev";
@@ -256,15 +256,15 @@ function resultsView() {
 
   return h("div", { class: "results" },
     hero, kpis,
+    confidenceCard(r),
     leversCard(r),
+    actionPlanCard(r),
     card("How your corpus grows and lasts",
       corpusChart(r.timeline, { targetAge: t.age, earliestAge: r.earliestAge }),
       r.depletesAtAge != null && r.depletesAtAge < r.inputs.planUntilAge
         ? h("p", { class: "warn-text" }, `⚠ Retiring at ${t.age} on the current path, the money runs out around age ${Math.floor(r.depletesAtAge)}.`)
         : h("p", { class: "muted" }, `Retiring at ${t.age} on the current path, the money lasts past ${r.inputs.planUntilAge}.`)),
     balanceCard(r),
-    confidenceCard(r),
-    nudgesCard(r),
     scenariosCard(r),
     swpCard(r),
     assumptionsSummary(r),
@@ -333,30 +333,73 @@ const kpi = (label, value, note, tone) => h("div", { class: ["kpi", tone] },
 
 const card = (title, ...body) => h("section", { class: "card" }, h("h2", {}, title), ...body);
 
-function confidenceCard(r) {
-  const c = r.confidence;
-  const sections = [...c.sections].sort((a, b) => b.potential - a.potential);
-  return card("How reliable is this?",
-    h("div", { class: "meter-row" },
-      h("div", { class: "meter", role: "meter", "aria-valuemin": 0, "aria-valuemax": 100, "aria-valuenow": c.score, "aria-label": "Confidence" },
-        h("span", { class: "fill", "data-w": c.score / 100 })),
-      h("strong", {}, `${c.score}/100 · ${c.band.label}`)),
-    h("p", {}, c.band.message),
-    h("p", { class: "muted small" }, "Refine a section to replace quick guesses with detail. The biggest gains are at the top."),
-    h("div", { class: "sections" }, ...sections.map((s) => h("a", { href: `#/refine/${s.id}`, class: ["section-link", s.done && "done"] },
-      h("span", {}, s.title),
-      s.done ? h("span", { class: "badge good" }, "✓ Done") : s.potential > 0 ? h("span", { class: "badge" }, `up to +${s.potential}`) : null))));
+/** The section that would raise confidence most, excluding `skip`. */
+function nextSection(r, skip) {
+  return [...r.confidence.sections].filter((x) => !x.done && x.id !== skip && x.potential > 0).sort((a, b) => b.potential - a.potential)[0] || null;
 }
 
-function nudgesCard(r) {
-  if (!r.nudges.length) return null;
+function confidenceCard(r) {
+  const c = r.confidence;
+  const next = nextSection(r);
+  const rest = [...c.sections].sort((a, b) => b.potential - a.potential);
+  return h("section", { class: "card next-step" },
+    h("div", { class: "meter-row" },
+      h("strong", {}, `Accuracy ${c.score}/100 · ${c.band.label}`),
+      h("div", { class: "meter", role: "meter", "aria-valuemin": 0, "aria-valuemax": 100, "aria-valuenow": c.score, "aria-label": "Accuracy" },
+        h("span", { class: "fill", "data-w": c.score / 100 }))),
+    next
+      ? h("p", {}, "This is based on quick answers. The most useful next step: ",
+          h("a", { href: `#/refine/${next.id}`, class: "btn primary small" }, `${next.title} →`),
+          h("span", { class: "muted" }, ` up to +${next.potential}`))
+      : h("p", {}, "✓ Every section is done. Revisit once a year, or when something big changes."),
+    h("details", {}, h("summary", {}, "All sections (optional)"),
+      h("div", { class: "sections" }, ...rest.map((x) => h("a", { href: `#/refine/${x.id}`, class: ["section-link", x.done && "done"] },
+        h("span", {}, x.title),
+        x.done ? h("span", { class: "badge good" }, "✓ Done") : x.potential > 0 ? h("span", { class: "badge" }, `+${x.potential}`) : null)))));
+}
+
+/** Dated, concrete steps from today to the years after FIRE. Folds in the rules pack's nudges. */
+function actionPlanCard(r) {
+  const u = S.user, i = r.inputs, t = r.target, w = r.swp, A = i.assumptions;
+  const HC = S.pack.healthCover;
+  const fireAge = t.age, prep = Math.max(Math.ceil(i.age), fireAge - 3);
+  const steps = [];
+  const step = (when, title, ...detail) => steps.push(h("li", {}, h("span", { class: "when" }, when), h("div", {}, h("strong", {}, title), detail.length ? h("p", { class: "small" }, ...detail) : null)));
+
+  const now = i.monthlySip + i.epfMonthly;
+  const reachable = t.gap < 0 && t.requiredMonthlySip != null && t.requiredMonthlySip <= 1.5 * now;
+  step("This year", reachable ? `Invest ${inr(t.requiredMonthlySip)} a month` : `Keep investing ${inr(now)} a month`,
+    reachable ? `That's what reaching ${fireAge} takes (you invest ${inr(now)} now). `
+      : t.gap < 0 ? `On its own this gets you to about ${age1(r.earliestAge)} (3 in 4 chance by ${age1(r.chance.likelyAge)}). To get closer to ${fireAge}, combine the options above. `
+      : "You're on track. ",
+    `Raise it ${pct(r.params.stepUp, 0)} every year, e.g. with each raise. Until ${prep}, keep about ${S.pack.assetClasses.map((a) => `${Math.round(a.targetBeforeFire * 100)}% ${a.label.toLowerCase()}`).filter((x) => !x.startsWith("0%")).join(", ")}.`);
+  const efTarget = A["emergency.months"] * (r.derived.monthlyExpenses + r.derived.monthlyEmi);
+  step("This year", `Keep ${inrShort(efTarget)} as an emergency fund`,
+    `${A["emergency.months"]} months of spending and EMIs, in a sweep FD or liquid fund, outside your FIRE investments.`,
+    i.detailed.holdings ? ` You have ${inrShort(i.emergencyFund)}.` : "");
+  if (HC && !(u.insurance?.healthCover >= HC.recommendedCover))
+    step("This year", `Buy your own family health cover of ${inrShort(HC.recommendedCover)} or more`,
+      `Employer cover ends when you stop working, and cover is much harder to get later or with an illness. Roughly ${inr(w?.health?.premiumNow ?? 0)} a year at your age.`);
+  for (const x of i.properties || []) if (x.sale) step(`At ${Math.floor(x.sale.atAge)}`, `Sell ${x.label}`,
+    `Expect about ${inrShort(x.sale.net)} after costs and tax. Put it straight into the cash and debt buckets, not a lump-sum equity bet.`);
+  for (const l of i.locked || []) step(`At ${l.unlock.age}`, `${l.label} unlocks`, l.unlock.note || "");
+  if (w?.buckets && prep < fireAge)
+    step(`From ${prep}`, "Build the buckets over three years",
+      `Move new money and some equity gains into debt and cash so that by ${fireAge} you hold about ${inrShort(w.buckets.cash.amount)} in cash (3 years of spending) and ${inrShort(w.buckets.debt.amount)} in debt (the next 5). This protects you if markets fall just as you stop.`);
+  if (w) step(`At ${fireAge}`, `Start an SWP of ${inr(w.firstMonthly)} a month`,
+    "From the cash bucket (liquid or arbitrage fund). Confirm your health policy is in your own name before leaving your job.");
+  step(`Every year after`, "Refill and re-check",
+    "Move a year of withdrawals from debt to cash and top up debt from equity, but skip selling equity after a bad year. Raise the SWP with inflation, and re-run this plan.");
+
+  const shown = new Set(["no_health_cover", "emergency_short", "low_confidence"]);
   const icon = { critical: "⛔", warn: "⚠", info: "ℹ" };
-  return card("Things to look at",
-    h("ul", { class: "nudges" }, ...r.nudges.map((n) => h("li", { class: n.severity },
-      h("span", { class: "icon", "aria-hidden": "true" }, icon[n.severity]),
-      h("span", { class: "sr" }, `${n.severity}: `),
-      h("span", {}, n.message),
-      n.section ? h("a", { href: `#/refine/${n.section}`, class: "link" }, "Fix") : null))));
+  const extra = r.nudges.filter((n) => !shown.has(n.id));
+  return card("Your plan, step by step",
+    h("ol", { class: "timeline" }, ...steps),
+    extra.length ? h("div", { class: "also" }, h("p", { class: "small" }, h("strong", {}, "Also check")),
+      h("ul", { class: "nudges" }, ...extra.map((n) => h("li", { class: n.severity },
+        h("span", { class: "icon", "aria-hidden": "true" }, icon[n.severity]), h("span", { class: "sr" }, `${n.severity}: `),
+        h("span", {}, n.message), n.section ? h("a", { href: `#/refine/${n.section}`, class: "link" }, "Fix") : null)))) : null);
 }
 
 function scenariosCard(r) {
@@ -400,7 +443,12 @@ function swpCard(r) {
         eqWarn ? h("small", { class: "warn-text" }, "⚠ That's a lot to expect from equity. Consider lowering the post-FIRE return in Assumptions.") : null)),
     h("p", { class: "small" }, h("strong", {}, "Each year: "),
       "move one year of withdrawals from debt to cash, and top up debt from equity. After a bad year for markets, skip the equity sale and let debt carry you; that's what the 8 years of cash and debt are for."),
-    h("p", { class: "small muted" }, `Withdrawals include ${pct(w.taxRate)} for tax (equity gains above ₹1.25 lakh a year are taxed at 12.5%; debt fund gains at your slab rate). `,
+    h("p", { class: "small" }, h("strong", {}, "Included in the SWP: "),
+      `about ${inr(w.firstTax)} tax in the first year (${pct(w.firstTaxRate)} of withdrawals: interest and debt-fund gains at slab rates, equity gains at 12.5% above ₹1.25 lakh), and `,
+      `${inr(w.firstHealthPremium)} for a family health policy once employer cover stops`,
+      w.health?.estimated ? h("span", {}, " (an estimate: ", h("a", { href: "#/refine/protection" }, "enter your quote"), ")") : "",
+      `. The premium rises with age and medical inflation, so it's a much bigger share later on.`),
+    h("p", { class: "small muted" },
       r.depletesAtAge != null && r.depletesAtAge < r.inputs.planUntilAge
         ? `On your current path you'd have ${inrShort(t.projected)} at ${t.age} instead, which runs out around ${Math.floor(r.depletesAtAge)}.`
         : ""),
@@ -417,7 +465,7 @@ function swpCard(r) {
 function assumptionsSummary(r) {
   const p = r.params;
   return card("Assumptions used",
-    h("p", { class: "muted small" }, `Inflation ${pct(p.infl.general)} general, ${pct(p.infl.health)} healthcare, ${pct(p.infl.education)} education. Returns ${pct(p.rPre)} before FIRE, ${pct(p.rPost)} after. SIP step-up ${pct(p.stepUp)} a year. ${pct(p.tax)} tax on withdrawals. Money must last until ${p.planUntilAge}. `,
+    h("p", { class: "muted small" }, `Inflation ${pct(p.infl.general)} general, ${pct(p.infl.health)} healthcare, ${pct(p.infl.education)} education. Returns ${pct(p.rPre)} before FIRE, ${pct(p.rPost)} after. SIP step-up ${pct(p.stepUp)} a year. Tax on withdrawals worked out each year (new regime, slabs rising with inflation). Money must last until ${p.planUntilAge}. `,
       h("a", { href: "#/refine/assumptions" }, "Change")),
     marketNote(S.market, p.infl.general));
 }
@@ -442,11 +490,13 @@ function refineView(id) {
   u.sectionsDone ||= [];
   const done = u.sectionsDone.includes(id);
   const ctx = { user: u, pack: S.pack, market: S.market, save, redraw };
-  const toggle = () => {
+  const toggle = (goNext) => {
     u.sectionsDone = done ? u.sectionsDone.filter((x) => x !== id) : [...u.sectionsDone, id];
     persist();
-    location.hash = "#/results";
+    const next = goNext && S.result ? nextSection(S.result, id) : null;
+    location.hash = next ? `#/refine/${next.id}` : "#/results";
   };
+  const upNext = !done && S.result ? nextSection(S.result, id) : null;
   const replaces = section.replacesQuick?.length
     ? h("p", { class: "muted small" }, "Until you mark this section complete, your quick answers are used instead.")
     : null;
@@ -457,7 +507,10 @@ function refineView(id) {
     replaces,
     sectionEditor(section, ctx),
     h("div", { class: "refine-foot" },
-      h("button", { type: "button", class: ["btn", !done && "primary"], onClick: toggle }, done ? "Mark as not complete" : "Mark complete and see result"),
+      done
+        ? h("button", { type: "button", class: "btn", onClick: () => toggle(false) }, "Mark as not complete")
+        : [upNext ? h("button", { type: "button", class: "btn primary", onClick: () => toggle(true) }, `Done · next: ${upNext.title} →`) : null,
+           h("button", { type: "button", class: ["btn", !upNext && "primary"], onClick: () => toggle(false) }, "Done · see result")],
       h("a", { href: "#/results", class: "btn ghost" }, "Back without marking")),
     live);
 }

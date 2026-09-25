@@ -160,14 +160,14 @@
       "help": "The corpus must last until this age. 90–95 is prudent."
     },
     {
-      "id": "tax.withdrawalEffective",
-      "label": "Effective tax on withdrawals",
-      "value": 0.05,
+      "id": "tax.equityGainShare",
+      "label": "Share of equity withdrawals that is gain",
+      "value": 0.5,
       "unit": "percent",
       "min": 0,
-      "max": 0.3,
-      "step": 0.005,
-      "help": "Blended tax on money drawn from the corpus. Used until the tax estimator is built."
+      "max": 1,
+      "step": 0.05,
+      "help": "Only the gain part of an equity sale is taxed. For money invested over 10+ years, about half of what you sell is gain."
     },
     {
       "id": "emergency.months",
@@ -1261,14 +1261,24 @@
       "id": "goal.home_renovation",
       "label": "Home renovation",
       "inflation": "general",
-      "defaultInflationRate": 0.06
+      "defaultInflationRate": 0.06,
+      "defaultRepeatYears": 12
+    },
+    {
+      "id": "goal.appliances",
+      "label": "Appliances, electronics, furniture",
+      "inflation": "general",
+      "defaultInflationRate": 0.06,
+      "defaultRepeatYears": 5,
+      "hint": "Fridge, AC, laptop, phones: a rough total every few years."
     },
     {
       "id": "goal.car",
       "label": "Car purchase / replacement",
       "inflation": "general",
       "defaultInflationRate": 0.06,
-      "hint": "Add one goal per planned purchase."
+      "hint": "Set 'Repeats every' for replacements, e.g. every 8 years.",
+      "defaultRepeatYears": 8
     },
     {
       "id": "goal.parents_care",
@@ -1350,6 +1360,99 @@
     "ltcgRate": 0.125,
     "growthHint": "Long-run residential prices in Indian cities have grown at roughly inflation to a little above it, with big differences by city and locality and long flat spells. Check your city in the RBI House Price Index or NHB RESIDEX, and your locality's recent sale prices, before using more than 5–6%.",
     "asOf": "LTCG 12.5% without indexation (Finance Act 2024); property bought before 23 Jul 2024 may choose 20% with indexation",
+    "verify": true
+  },
+  "healthCover": {
+    "recommendedCover": 1500000,
+    "premiumByAge": [
+      {
+        "age": 30,
+        "premium": 18000
+      },
+      {
+        "age": 35,
+        "premium": 21000
+      },
+      {
+        "age": 40,
+        "premium": 25000
+      },
+      {
+        "age": 45,
+        "premium": 31000
+      },
+      {
+        "age": 50,
+        "premium": 40000
+      },
+      {
+        "age": 55,
+        "premium": 52000
+      },
+      {
+        "age": 60,
+        "premium": 68000
+      },
+      {
+        "age": 65,
+        "premium": 90000
+      },
+      {
+        "age": 70,
+        "premium": 115000
+      },
+      {
+        "age": 75,
+        "premium": 140000
+      },
+      {
+        "age": 80,
+        "premium": 165000
+      }
+    ],
+    "note": "Indicative yearly premium for a ₹15 lakh family floater (two adults) by the elder's age, in today's money. Real quotes vary by insurer, city and health; get one and enter it.",
+    "asOf": "Indicative, 2026",
+    "verify": true
+  },
+  "incomeTax": {
+    "regime": "New regime (Sec 115BAC), FY2025-26",
+    "slabs": [
+      {
+        "upTo": 400000,
+        "rate": 0
+      },
+      {
+        "upTo": 800000,
+        "rate": 0.05
+      },
+      {
+        "upTo": 1200000,
+        "rate": 0.1
+      },
+      {
+        "upTo": 1600000,
+        "rate": 0.15
+      },
+      {
+        "upTo": 2000000,
+        "rate": 0.2
+      },
+      {
+        "upTo": 2400000,
+        "rate": 0.25
+      },
+      {
+        "upTo": null,
+        "rate": 0.3
+      }
+    ],
+    "rebateUpTo": 1200000,
+    "standardDeduction": 75000,
+    "cess": 0.04,
+    "ltcgEquityRate": 0.125,
+    "ltcgEquityExemption": 125000,
+    "note": "Slab income after FIRE: interest and debt-fund gains, rent (after 30% standard deduction), pension. Equity gains are taxed separately at 12.5% above ₹1.25 lakh. The Sec 87A rebate doesn't apply to equity gains. Surcharge above ₹50 lakh income is ignored. Slabs are assumed to rise with inflation.",
+    "asOf": "Union Budget 2025",
     "verify": true
   },
   "resolution": [
@@ -1525,7 +1628,7 @@
       {
         "id": "goals",
         "title": "Life goals",
-        "weight": 15,
+        "weight": 10,
         "intro": "Big one-off costs paid from your corpus: education, weddings, car, home.",
         "questions": [
           {
@@ -1668,8 +1771,8 @@
       },
       {
         "id": "protection",
-        "title": "Insurance & emergency fund",
-        "weight": 5,
+        "title": "Insurance & health cover",
+        "weight": 10,
         "questions": [
           {
             "id": "r.health_cover",
@@ -1682,6 +1785,14 @@
             "prompt": "Employer health cover",
             "input": "currency",
             "bind": "/insurance/employerHealthCover"
+          },
+          {
+            "id": "r.premium_after_fire",
+            "prompt": "Health insurance premium you'll pay after you stop working (a year, today's money)",
+            "input": "currency",
+            "bind": "/insurance/premiumAfterFire",
+            "help": "Employer cover ends when you stop working. Enter your current quote for a family floater of at least ₹15 lakh. Leave blank to use an estimate; enter 0 only if this is already in your monthly spending.",
+            "impact": "medium"
           },
           {
             "id": "r.term_cover",

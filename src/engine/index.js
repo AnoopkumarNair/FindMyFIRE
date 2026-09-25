@@ -4,13 +4,14 @@
 import { evaluate } from "./conditions.js";
 import { confidence, bandFor } from "./confidence.js";
 import { resolveInputs } from "./resolve.js";
-import { makeParams, analyse, requiredMonthlySip, withdrawalsFrom, drawdown, requiredAt } from "./project.js";
+import { makeParams, analyse, requiredMonthlySip, withdrawalsFrom, withdrawalParts, drawdown, requiredAt } from "./project.js";
 import { chanceByFireYear, levers } from "./risk.js";
 
 export { fv, pmt, nper, pvDue } from "./finance.js";
 export { evaluate, getPointer, setPointer } from "./conditions.js";
 export { resolveInputs, assumptionValues, ageAt } from "./resolve.js";
-export { makeParams, accumulate, analyse, drawdown, withdrawalsFrom, requiredAt } from "./project.js";
+export { makeParams, accumulate, analyse, drawdown, withdrawalsFrom, withdrawalParts, requiredAt } from "./project.js";
+export { slabTax, yearTax } from "./tax.js";
 export { chanceByFireYear, levers } from "./risk.js";
 
 function tierSpec(tier, inp) {
@@ -167,9 +168,11 @@ export function evaluatePlan(user, pack, { today = new Date() } = {}) {
 function swpPlan(inp, p, pack, tFire, year0) {
   const ws = withdrawalsFrom(inp, p, {}, tFire);
   const corpus = requiredAt(inp, p, {}, tFire);
-  const rows = drawdown(corpus, ws, { rate: p.rPost }).map((r) => ({
-    ...r, age: inp.age + tFire + r.k, year: year0 + tFire + r.k, monthly: Math.max(0, r.withdrawal) / 12,
-  }));
+  const rows = drawdown(corpus, ws, { rate: p.rPost }).map((r) => {
+    const parts = withdrawalParts(inp, p, {}, tFire + r.k);
+    return { ...r, age: inp.age + tFire + r.k, year: year0 + tFire + r.k, monthly: Math.max(0, r.withdrawal) / 12,
+      tax: parts.tax, gross: parts.gross, healthPremium: parts.healthPremium, spend: parts.spend, income: parts.income };
+  });
   const first = rows.find((r) => r.withdrawal > 0) || rows[0];
   const ret = Object.fromEntries(pack.assetClasses.map((a) => [a.id, a.expectedReturn]));
   const invested = first ? first.cash + first.debt + first.equity : 0;
@@ -177,7 +180,10 @@ function swpPlan(inp, p, pack, tFire, year0) {
     ? (p.rPost * invested - first.cash * ret.cash - first.debt * ret.debt) / first.equity
     : null;
   return {
-    startAge: inp.age + tFire, corpus, taxRate: p.tax, blendedReturn: p.rPost,
+    startAge: inp.age + tFire, corpus, blendedReturn: p.rPost,
+    firstTax: first?.tax ?? 0, firstTaxRate: first?.gross > 0 ? first.tax / first.gross : 0,
+    firstHealthPremium: first?.healthPremium ?? 0,
+    health: inp.health ? { estimated: inp.health.estimated, premiumNow: inp.health.premiumNow } : null,
     firstMonthly: first ? Math.max(0, first.withdrawal) / 12 : 0,
     firstAge: first?.age ?? null,
     bucketTotal: invested + (first ? Math.max(0, first.withdrawal) : 0),

@@ -7,6 +7,8 @@
 //               of every withdrawal until `plan.untilAge` (money lasts through that year).
 
 import { pvDue } from "./finance.js";
+import { grossUp } from "./tax.js";
+import { premiumAt } from "./resolve.js";
 
 export function makeParams(inp, changes = {}) {
   const A = inp.assumptions;
@@ -21,7 +23,6 @@ export function makeParams(inp, changes = {}) {
     },
     rPre: A["return.beforeFire"] + (changes.returnBeforeFireDelta || 0),
     rPost: A["return.afterFire"] + (changes.returnAfterFireDelta || 0),
-    tax: A["tax.withdrawalEffective"],
     stepUp: A["sip.stepUp"],
     incomeGrowth: A["income.growth"],
     corpus: inp.fireCorpus * (1 - (changes.corpusShock || 0)) * (changes.corpusScale ?? 1),
@@ -65,11 +66,8 @@ export function accumulate(inp, p, years, tier = {}) {
   return path;
 }
 
-/**
- * Amount to withdraw in year T (years from today), retired: spending net of income, grossed up
- * for tax, less any lump sum received that year. Negative means money goes back into the corpus.
- */
-export function withdrawalAt(inp, p, tier, T) {
+/** Everything behind one retired year's withdrawal (year T from today, nominal rupees). */
+export function withdrawalParts(inp, p, tier, T) {
   const ageT = p.age + T;
   const active = (end) => end == null || ageT < end;
   let spend = 0;
@@ -78,18 +76,45 @@ export function withdrawalAt(inp, p, tier, T) {
     spend += 12 * e.monthly * e.postFireFactor * (1 + p.infl[e.inflation]) ** T;
   }
   spend *= (tier.multiplier ?? 1) * p.expenseScale * (inp.postFireSpending ?? 1);
+  let healthPremium = 0;
+  if (inp.health) {
+    const grow = (1 + p.infl.health) ** T;
+    healthPremium = Math.max(0, premiumAt(inp.health.table, ageT) * inp.health.scale * grow - inp.health.existingYearly * grow);
+    spend += healthPremium;
+  }
   for (const l of inp.emis) if (active(l.endsAtAge)) spend += 12 * l.monthly;
   for (const g of inp.goals) if (goalIndex(g, p) === T && goalIncluded(g, tier)) spend += goalCost(g, p);
 
-  let income = 0;
+  let income = 0, slabIncome = 0;
   for (const i of inp.incomesAfterFire)
-    if (active(i.endsAtAge) && (i.fromAge == null || ageT >= i.fromAge)) income += 12 * i.monthly * (1 + i.growth) ** T;
+    if (active(i.endsAtAge) && (i.fromAge == null || ageT >= i.fromAge)) {
+      const x = 12 * i.monthly * (1 + i.growth) ** T;
+      income += x; slabIncome += x;
+    }
   for (const x of inp.properties || [])
-    if (x.sellAge == null || ageT < x.sellAge) income += (12 * x.rentMonthly - x.costsYearly) * (1 + p.infl.general) ** T;
-  if (tier.partTime && ageT < tier.partTime.untilAge)
-    income += 12 * tier.partTime.monthly * (1 + p.infl.general) ** T;
+    if (x.sellAge == null || ageT < x.sellAge) {
+      const grow = (1 + p.infl.general) ** T, rent = 12 * x.rentMonthly * grow;
+      income += rent - x.costsYearly * grow;
+      slabIncome += 0.7 * rent; // 30% standard deduction on rent
+    }
+  if (tier.partTime && ageT < tier.partTime.untilAge) {
+    const x = 12 * tier.partTime.monthly * (1 + p.infl.general) ** T;
+    income += x; slabIncome += x;
+  }
 
-  return Math.max(0, spend - income) / (1 - p.tax) - inflowAt(inp, p, T);
+  const need = Math.max(0, spend - income);
+  const deflate = (1 + p.infl.general) ** T; // slabs assumed to rise with inflation
+  const gross = inp.taxCtx ? grossUp(need / deflate, slabIncome / deflate, inp.taxCtx) * deflate : need;
+  const inflow = inflowAt(inp, p, T);
+  return { spend, healthPremium, income, need, tax: gross - need, gross, inflow, withdrawal: gross - inflow };
+}
+
+/**
+ * Amount to take from the corpus in year T: spending net of income, plus the year's tax, less
+ * any lump sum received that year. Negative means money goes back into the corpus.
+ */
+export function withdrawalAt(inp, p, tier, T) {
+  return withdrawalParts(inp, p, tier, T).withdrawal;
 }
 
 export function withdrawalsFrom(inp, p, tier, t) {
