@@ -102,6 +102,12 @@
         "$ref": "#/$defs/goalTemplate"
       }
     },
+    "inflowTemplates": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/inflowTemplate"
+      }
+    },
     "resolution": {
       "type": "array",
       "items": {
@@ -696,6 +702,7 @@
             "list.expenses",
             "list.holdings",
             "list.goals",
+            "list.inflows",
             "list.incomes",
             "list.liabilities",
             "list.children"
@@ -1015,6 +1022,40 @@
         "section": {
           "type": "string",
           "pattern": "^[a-z][a-zA-Z0-9_.]*$"
+        }
+      }
+    },
+    "inflowTemplate": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "label"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[a-z][a-zA-Z0-9_.]*$"
+        },
+        "label": {
+          "type": "string"
+        },
+        "hint": {
+          "type": "string"
+        },
+        "defaultTaxRate": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "defaultGrowthRate": {
+          "type": "number"
+        },
+        "asOf": {
+          "type": "string"
+        },
+        "verify": {
+          "type": "boolean"
         }
       }
     }

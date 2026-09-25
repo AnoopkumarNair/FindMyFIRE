@@ -128,6 +128,18 @@ export function resolveInputs(user, pack, today = new Date()) {
     };
   });
 
+  // Lump sums received, expanded to one event per payment, in nominal rupees after tax.
+  const inflows = [];
+  for (const x of user.inflows || []) {
+    const start = ageOnMonth(user.profile.birthYearMonth, x.on);
+    for (let k = 0; k < (x.years || 1); k++) {
+      const atAge = start + k;
+      if (atAge < age) continue;
+      const gross = x.growthRate != null ? x.amount * (1 + x.growthRate) ** (atAge - age) : x.amount;
+      inflows.push({ label: x.label, atAge, net: gross * (1 - (x.taxRate || 0)), source: x.source });
+    }
+  }
+
   const plan = user.plan || {};
   return {
     age,
@@ -148,6 +160,7 @@ export function resolveInputs(user, pack, today = new Date()) {
     epfMonthly,
     incomesAfterFire,
     goals,
+    inflows,
     partTime: plan.partTimeIncomeMonthly > 0
       ? { monthly: plan.partTimeIncomeMonthly, untilAge: plan.partTimeUntilAge ?? 60, assumed: false }
       : null,

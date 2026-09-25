@@ -2,8 +2,10 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import {
-  evaluatePlan, evaluate, fv, pvDue, resolveInputs, makeParams, analyse, withdrawalsFrom, drawdown,
+  evaluatePlan, evaluate, fv, pvDue, resolveInputs, makeParams, analyse, withdrawalsFrom, drawdown, requiredAt,
 } from "../src/engine/index.js";
+
+const requiredAtFor = (inp, p, t) => requiredAt(inp, p, {}, t);
 
 const load = (p) => JSON.parse(readFileSync(new URL(p, import.meta.url)));
 const pack = load("../rules/in.2026.1.json");
@@ -115,4 +117,48 @@ test("a goal before FIRE reduces the projected corpus", () => {
   const before = evaluatePlan(u, pack, { today }).target.projected;
   u.goals = [{ id: "g", templateId: "goal.car", label: "Car", atAge: 35, costToday: 1000000, source: "estimate" }];
   assert.ok(evaluatePlan(u, pack, { today }).target.projected < before);
+});
+
+test("inflows: before FIRE they compound, after FIRE they cut the corpus needed", () => {
+  const base = evaluatePlan(quick, pack, { today });
+  const u = clone(quick);
+  // Born 1996-07 → age 30.2 on the test date; target 45.
+  u.inflows = [{ id: "a", templateId: "inflow.gratuity", label: "Early", amount: 1000000, on: "2031-07", source: "exact" }];
+  const early = evaluatePlan(u, pack, { today });
+  // Credited at the start of the plan year it falls in (as the sheet does), then invested to the target.
+  const age = early.inputs.age;
+  const years = 45 - age - Math.floor(35 - age);
+  const expected = 1000000 * (1 + early.params.rPre) ** years;
+  assert.ok(Math.abs(early.target.projected - base.target.projected - expected) / expected < 0.01);
+  assert.equal(early.target.required, base.target.required);
+
+  u.inflows = [{ id: "b", templateId: "inflow.gratuity", label: "Late", amount: 1000000, on: "2046-07", source: "exact" }];
+  const late = evaluatePlan(u, pack, { today });
+  assert.equal(late.target.projected, base.target.projected);
+  assert.ok(late.target.required < base.target.required);
+  assert.ok(late.earliestAge < base.earliestAge);
+});
+
+test("inflows: repeating payouts, growth and tax", () => {
+  const u = clone(quick);
+  u.inflows = [{ id: "a", templateId: "inflow.insurance_payout", label: "LIC", amount: 100000, on: "2030-01", years: 3, source: "exact" },
+    { id: "b", templateId: "inflow.property_sale", label: "Flat", amount: 10000000, on: "2036-07", growthRate: 0.05, taxRate: 0.1, source: "estimate" }];
+  const ev = resolveInputs(u, pack, today).inflows;
+  assert.equal(ev.length, 4);
+  assert.deepEqual(ev.slice(0, 3).map((e) => e.net), [100000, 100000, 100000]);
+  const flat = ev[3];
+  assert.ok(Math.abs(flat.net - 10000000 * 1.05 ** (flat.atAge - resolveInputs(u, pack, today).age) * 0.9) < 1);
+});
+
+test("a late inflow cannot rescue the years before it arrives", () => {
+  const inp = resolveInputs(quick, pack, today);
+  const p = makeParams(inp);
+  const t = 15;
+  const plain = withdrawalsFrom(inp, p, {}, t);
+  const huge = { ...inp, inflows: [{ atAge: p.age + t + 20, net: 1e12 }] };
+  const need = requiredAtFor(huge, p, t);
+  // Must still fund the first 20 years on its own.
+  assert.ok(Math.abs(need - pvDue(plain.slice(0, 20), p.rPost)) < 1);
+  const rows = drawdown(need, withdrawalsFrom(huge, p, {}, t), { rate: p.rPost });
+  assert.ok(rows.every((r) => r.end >= -1e-3));
 });

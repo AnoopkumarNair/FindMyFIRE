@@ -55,6 +55,7 @@ for (const f of rulesFiles) {
     instrument: r.instruments.map((i) => i.id),
     category: r.expenseCatalog.map((c) => c.id),
     goal: r.goalTemplates.map((g) => g.id),
+    inflow: (r.inflowTemplates || []).map((t) => t.id),
     derived: r.derived.map((d) => d.name),
     section: r.questionFlow.refine.map((s) => s.id),
   };
@@ -124,11 +125,12 @@ for (const f of readdirSync(join(root, "examples")).filter((x) => x.endsWith(".j
   const { ids } = pack;
   const n0 = failures;
 
-  for (const k of ["incomes", "expenses", "liabilities", "holdings", "otherAssets", "goals"])
+  for (const k of ["incomes", "expenses", "liabilities", "holdings", "otherAssets", "goals", "inflows"])
     dupes((u[k] || []).map((x) => x.id)).forEach((d) => fail(file, `duplicate id '${d}' in ${k}`));
   (u.expenses || []).forEach((e) => ids.category.includes(e.categoryId) || fail(file, `expense ${e.id}: unknown category ${e.categoryId}`));
   (u.holdings || []).forEach((h) => ids.instrument.includes(h.instrumentId) || fail(file, `holding ${h.id}: unknown instrument ${h.instrumentId}`));
   (u.goals || []).forEach((g) => ids.goal.includes(g.templateId) || fail(file, `goal ${g.id}: unknown template ${g.templateId}`));
+  (u.inflows || []).forEach((x) => ids.inflow.includes(x.templateId) || fail(file, `inflow ${x.id}: unknown template ${x.templateId}`));
   const childIds = (u.profile.children || []).map((c) => c.id);
   (u.goals || []).forEach((g) => g.childId && !childIds.includes(g.childId) && fail(file, `goal ${g.id}: unknown child ${g.childId}`));
   (u.sectionsDone || []).forEach((s) => ids.section.includes(s) || fail(file, `sectionsDone: unknown section ${s}`));

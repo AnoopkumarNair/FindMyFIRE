@@ -35,6 +35,13 @@ const goalIndex = (g, p) => Math.floor(g.atAge - p.age);
 const goalCost = (g, p) => g.costToday * (1 + g.inflationRate) ** Math.max(0, g.atAge - p.age);
 const goalIncluded = (g, tier) => !tier.mustGoalsOnly || g.priority === "must";
 
+/** Net money received (gratuity, maturities, a sale…) in year T. */
+function inflowAt(inp, p, T) {
+  let sum = 0;
+  for (const x of inp.inflows || []) if (Math.floor(x.atAge - p.age) === T) sum += x.net;
+  return sum;
+}
+
 /** Corpus at the start of each year t = 0..years, investing until then. */
 export function accumulate(inp, p, years, tier = {}) {
   const path = [p.corpus];
@@ -43,13 +50,16 @@ export function accumulate(inp, p, years, tier = {}) {
     const contrib = 12 * p.sip * (1 + p.stepUp) ** y + 12 * p.epf * (1 + p.incomeGrowth) ** y;
     let out = 0;
     for (const g of inp.goals) if (goalIndex(g, p) === y && goalIncluded(g, tier)) out += goalCost(g, p);
-    c = (c + contrib - out) * (1 + p.rPre);
+    c = (c + contrib - out + inflowAt(inp, p, y)) * (1 + p.rPre);
     path.push(c);
   }
   return path;
 }
 
-/** Gross amount to withdraw in year T (years from today), retired. */
+/**
+ * Amount to withdraw in year T (years from today), retired: spending net of income, grossed up
+ * for tax, less any lump sum received that year. Negative means money goes back into the corpus.
+ */
 export function withdrawalAt(inp, p, tier, T) {
   const ageT = p.age + T;
   const active = (end) => end == null || ageT < end;
@@ -67,7 +77,7 @@ export function withdrawalAt(inp, p, tier, T) {
   if (tier.partTime && ageT < tier.partTime.untilAge)
     income += 12 * tier.partTime.monthly * (1 + p.infl.general) ** T;
 
-  return Math.max(0, spend - income) / (1 - p.tax);
+  return Math.max(0, spend - income) / (1 - p.tax) - inflowAt(inp, p, T);
 }
 
 export function withdrawalsFrom(inp, p, tier, t) {
@@ -77,8 +87,20 @@ export function withdrawalsFrom(inp, p, tier, t) {
   return out;
 }
 
+/**
+ * Smallest corpus at the start of year t that pays every withdrawal until plan-until age.
+ * Without inflows this is the present value of the withdrawals. With a late inflow the early
+ * years must still be covered on their own, so it is the largest running present value.
+ */
 export function requiredAt(inp, p, tier, t) {
-  return pvDue(withdrawalsFrom(inp, p, tier, t), p.rPost);
+  const ws = withdrawalsFrom(inp, p, tier, t);
+  if (ws.every((w) => w >= 0)) return pvDue(ws, p.rPost);
+  let run = 0, need = 0;
+  for (let k = 0; k < ws.length; k++) {
+    run += ws[k] / (1 + p.rPost) ** k;
+    need = Math.max(need, run);
+  }
+  return need;
 }
 
 const lerp = (arr, x) => {
@@ -135,9 +157,10 @@ export function drawdown(start, withdrawals, { rate, bucketRates, cashYears = 3,
   let d = start;
   for (let k = 0; k < withdrawals.length; k++) {
     const w = withdrawals[k];
-    const alive = d > 0;
-    const cash = alive ? Math.min(d - w, w * cashYears) : 0;
-    const debt = alive ? Math.min(d - w - cash, w * debtYears) : 0;
+    const alive = d > 0 || w < 0;
+    const need = Math.max(0, w);
+    const cash = alive ? Math.min(d - w, need * cashYears) : 0;
+    const debt = alive ? Math.min(d - w - cash, need * debtYears) : 0;
     const equity = alive ? Math.max(0, d - w - cash - debt) : 0;
     const growth = !alive ? 0 : bucketRates
       ? cash * bucketRates.cash + debt * bucketRates.debt + equity * bucketRates.equity

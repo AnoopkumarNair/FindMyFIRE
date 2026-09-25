@@ -30,7 +30,7 @@ The contract between them is two JSON Schemas in `schemas/`.
 
 ## Quick answer first, refine later
 
-1. **Quick pass (9 questions).** These fill `/quick/*` and give a first FIRE age with a confidence score.
+1. **Quick pass (10 questions).** These fill `/quick/*` and give a first FIRE age with a confidence score.
 2. **Refine sections** (expenses, holdings, goals, …). Each one lists the quick answers it replaces (`replacesQuick`). Once a section is in `sectionsDone`, the engine uses the detailed data instead. See `resolution` in the rules pack.
 3. **Confidence** is computed from each answer's source, weighted by section:
    - Σ(section weight × mean answer score) ÷ Σ(weights of visible sections), shown as 0–100.
@@ -61,6 +61,7 @@ All amounts are nominal rupees, stepped one year at a time from today (`src/engi
 - **Corpus needed at age A:** the present value of every withdrawal from A until `plan.untilAge`, at the post-FIRE return. By construction it runs out exactly after that year.
 - **Earliest FIRE age:** the first age where the projected corpus reaches the corpus needed, interpolated between years.
 - **Levels:** Lean (essential categories and must-have goals), Standard, Fat (× multiplier), Barista (minus part-time income) and Coast (the Standard target discounted to today).
+- **Money coming in** (gratuity, policy payouts, a property sale): a lump sum before FIRE is invested; one after FIRE pays that year's spending. The corpus needed is then the largest running present value, so a late windfall can't cover earlier years.
 - **Scenarios** re-run the same model with the rules pack's deltas. The **range** re-runs it with expenses and corpus moved by each answer's uncertainty band.
 
 ### Relationship to the original Google Sheet
@@ -80,6 +81,13 @@ The planner deliberately differs from the sheet in three places:
 | Target = spending ÷ 3.25% SWR | Present value of withdrawals until `plan.untilAge` | The horizon, per-category inflation, goals and loans all feed the number directly. The implied first-year withdrawal rate is shown next to it. |
 | One blended inflation (85% CPI + 15% health) | Each expense line at its own rate | Healthcare and education compound faster. A blended rate understates them over 40 years. |
 | "Current path" table (cols N–Y) earns a year's return on money already withdrawn | Withdraw first, then grow (same as the sheet's target schedule, cols A–L) | Keeps the two schedules consistent. |
+
+## Live inflation data
+
+The deploy workflow runs `scripts/fetch-market-data.mjs` at every deploy and weekly. It pulls India's CPI inflation history (World Bank) and the IMF World Economic Outlook projections, then publishes them as `market/india.json` next to the app. The Assumptions screen compares your inflation figure with both.
+
+- The browser only ever loads this file from the app's own site. It never calls outside APIs, so the "send nothing anywhere" policy still holds.
+- The data is a reference, never applied automatically. Projections cover about five years; a plan runs 40+. Healthcare and education inflation have no reliable free public feed yet, so they stay as assumptions.
 
 ## Keeping it honest
 

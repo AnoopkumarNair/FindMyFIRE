@@ -1267,6 +1267,56 @@
       "defaultInflationRate": 0.06
     }
   ],
+  "inflowTemplates": [
+    {
+      "id": "inflow.gratuity",
+      "label": "Gratuity",
+      "hint": "Paid when you leave after 5+ years: 15 days' last basic + DA for each year of service. Tax-free up to ₹25 lakh for private-sector employees.",
+      "defaultTaxRate": 0,
+      "asOf": "FY2025-26 limit",
+      "verify": true
+    },
+    {
+      "id": "inflow.insurance_payout",
+      "label": "Insurance maturity / survival benefit",
+      "hint": "Endowment, money-back or guaranteed-income plans. Usually tax-free under Sec 10(10D) if premiums stay within the limits; check your policy.",
+      "defaultTaxRate": 0,
+      "asOf": "FY2025-26 rules",
+      "verify": true
+    },
+    {
+      "id": "inflow.property_sale",
+      "label": "Property sale",
+      "hint": "Enter today's value and a growth rate. Don't also count this property under investments, and set its maintenance expense to stop at the sale. LTCG is 12.5% on the gain (not the full price), so use a lower tax rate on the whole amount.",
+      "defaultTaxRate": 0.05,
+      "defaultGrowthRate": 0.05,
+      "asOf": "FY2025-26 rules",
+      "verify": true
+    },
+    {
+      "id": "inflow.pf_leave_encashment",
+      "label": "Leave encashment / other exit benefit",
+      "hint": "Paid when you leave your job.",
+      "defaultTaxRate": 0
+    },
+    {
+      "id": "inflow.bonus_esop",
+      "label": "Bonus, ESOP or RSU vesting",
+      "hint": "Enter the amount after tax, or set the tax rate.",
+      "defaultTaxRate": 0.3
+    },
+    {
+      "id": "inflow.inheritance_gift",
+      "label": "Inheritance or gift",
+      "hint": "No inheritance tax in India; gifts from relatives are tax-free.",
+      "defaultTaxRate": 0
+    },
+    {
+      "id": "inflow.other",
+      "label": "Other",
+      "defaultTaxRate": 0
+    }
+  ],
   "resolution": [
     {
       "quantity": "takeHomeMonthly",
@@ -1318,7 +1368,7 @@
       "id": "quick",
       "title": "Quick estimate",
       "weight": 0,
-      "intro": "Nine questions, about two minutes. You'll get a first FIRE age with a confidence score; refine any section afterwards.",
+      "intro": "Ten questions, about two minutes. You'll get a first FIRE age with a confidence score; refine any section afterwards.",
       "questions": [
         {
           "id": "q.birth",
@@ -1338,6 +1388,18 @@
           "min": 25,
           "max": 80,
           "impact": "high"
+        },
+        {
+          "id": "q.plan_until",
+          "prompt": "Until what age should your money last?",
+          "input": "integer",
+          "bind": "/plan/planUntilAge",
+          "min": 60,
+          "max": 110,
+          "defaultFrom": "plan.untilAge",
+          "help": "Plan beyond the average. Life expectancy at birth in India is around 70–72, but people who reach their 40s in good health often live into their 80s, and many past 90. 90–95 is a prudent choice.",
+          "impact": "medium",
+          "impactHint": "Each extra 5 years adds roughly 5–8% to the corpus you need."
         },
         {
           "id": "q.household",
@@ -1475,6 +1537,22 @@
             "bind": "/goals",
             "impact": "high",
             "impactHint": "A ₹25 lakh education goal 12 years out needs about ₹80 lakh at 10% inflation."
+          }
+        ]
+      },
+      {
+        "id": "inflows",
+        "title": "Money coming in",
+        "weight": 10,
+        "intro": "Lump sums you expect: gratuity, insurance maturities, a property sale, an inheritance. Add a date and amount for each; payouts spread over several years can repeat yearly.",
+        "questions": [
+          {
+            "id": "r.inflows",
+            "prompt": "Add money you expect to receive",
+            "input": "list.inflows",
+            "bind": "/inflows",
+            "impact": "high",
+            "impactHint": "Money received before FIRE is invested; money received later reduces what you need to have saved."
           }
         ]
       },

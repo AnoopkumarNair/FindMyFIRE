@@ -56,7 +56,8 @@
     "holdings",
     "goals",
     "family",
-    "loans"
+    "loans",
+    "inflows"
   ],
   "incomes": [
     {
@@ -351,6 +352,25 @@
       "priority": "want",
       "childId": "c1",
       "source": "estimate"
+    }
+  ],
+  "inflows": [
+    {
+      "id": "m1",
+      "templateId": "inflow.gratuity",
+      "label": "Gratuity on leaving",
+      "amount": 1500000,
+      "on": "2041-03",
+      "source": "estimate"
+    },
+    {
+      "id": "m2",
+      "templateId": "inflow.insurance_payout",
+      "label": "Money-back policy",
+      "amount": 100000,
+      "on": "2030-06",
+      "years": 3,
+      "source": "exact"
     }
   ],
   "insurance": {

@@ -562,6 +562,71 @@
         }
       }
     },
+    "inflows": {
+      "description": "One-off or repeating lump sums you expect to receive: gratuity, policy maturities, a property sale, an inheritance.",
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "templateId",
+          "label",
+          "amount",
+          "on",
+          "source"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "source": {
+            "enum": [
+              "exact",
+              "estimate",
+              "default"
+            ]
+          },
+          "comment": {
+            "type": "string"
+          },
+          "templateId": {
+            "type": "string",
+            "pattern": "^[a-z][a-zA-Z0-9_.]*$"
+          },
+          "label": {
+            "type": "string"
+          },
+          "amount": {
+            "type": "number",
+            "minimum": 0,
+            "description": "Amount received each time. With growthRate set, today's value instead."
+          },
+          "on": {
+            "type": "string",
+            "pattern": "^[0-9]{4}-(0[1-9]|1[0-2])$",
+            "description": "Month of the (first) payment."
+          },
+          "years": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 50,
+            "description": "Paid once a year for this many years. Default 1."
+          },
+          "growthRate": {
+            "type": "number",
+            "description": "If set, `amount` is today's value growing at this rate until received (e.g. a property)."
+          },
+          "taxRate": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1,
+            "description": "Share lost to tax when received."
+          }
+        }
+      }
+    },
     "insurance": {
       "type": "object",
       "additionalProperties": false,

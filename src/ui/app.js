@@ -3,6 +3,7 @@ import { control } from "./fields.js";
 import { inr, inrShort, pct, age1, monthAtAge } from "./format.js";
 import { corpusChart } from "./chart.js";
 import { sectionEditor } from "./editors.js";
+import { marketNote } from "./market.js";
 import * as store from "./store.js";
 import { evaluatePlan, evaluate, getPointer, setPointer, ageAt } from "../engine/index.js";
 
@@ -93,16 +94,17 @@ function route() {
 }
 
 // ---------------- welcome ----------------
+const quickCount = () => S.pack.questionFlow.quick.questions.length;
 function welcomeView() {
   const working = S.user?.profile?.birthYearMonth ? S.user : null;
   return h("section", { class: "welcome" },
     h("h1", { tabindex: -1 }, "When can you stop working?"),
-    h("p", { class: "lede" }, "A guided FIRE (Financial Independence, Retire Early) calculator for India. Nine quick questions give you a first answer. Add detail whenever you like: each section you complete makes the answer more reliable."),
+    h("p", { class: "lede" }, `A guided FIRE (Financial Independence, Retire Early) calculator for India. ${quickCount()} quick questions give you a first answer. Add detail whenever you like: each section you complete makes the answer more reliable.`),
     h("div", { class: "cta" },
       working
         ? [h("a", { href: "#/results", class: "btn primary" }, "Continue your plan"),
            h("a", { href: "#/quick/0", class: "btn" }, "Review quick answers")]
-        : h("button", { type: "button", class: "btn primary", onClick: () => { S.user = store.newUserFile(S.pack, APP_VERSION); location.hash = "#/quick/0"; } }, "Start: 9 questions")),
+        : h("button", { type: "button", class: "btn primary", onClick: () => { S.user = store.newUserFile(S.pack, APP_VERSION); location.hash = "#/quick/0"; } }, `Start: ${quickCount()} questions`)),
     h("ul", { class: "points" },
       h("li", {}, h("strong", {}, "Private by design. "), "Everything runs in your browser. Your plan is a JSON file you keep; open it here next time."),
       h("li", {}, h("strong", {}, "Built for India. "), "EPF, PPF, NPS lock-ins, separate healthcare and education inflation, rupees in lakhs and crores."),
@@ -142,7 +144,7 @@ function quickView(i) {
   const valid = () => {
     const v = getPointer(u, q.bind);
     if (q.input === "multiselect") return v?.length ? null : "Pick at least one.";
-    if (v == null || v === "") return "Please answer, or use a rough number.";
+    if (v == null || v === "") return q.defaultFrom ? null : "Please answer, or use a rough number.";
     if (q.input === "yearMonth" || q.input === "age") {
       const a = ageAt(v, new Date());
       if (q.input === "age") return a < q.min || a >= q.max + 1 ? `Enter an age from ${q.min} to ${q.max}.` : null;
@@ -152,16 +154,26 @@ function quickView(i) {
     if (q.max != null && v > q.max) return `At most ${q.max}.`;
     if (q.bind === "/plan/fireTargetAge" && u.profile.birthYearMonth && v <= ageAt(u.profile.birthYearMonth, new Date()))
       return "Pick an age later than your current age.";
+    if (q.bind === "/plan/planUntilAge" && u.plan.fireTargetAge && v <= u.plan.fireTargetAge)
+      return `Pick an age after your FIRE age (${u.plan.fireTargetAge}).`;
     return null;
   };
   const next = () => {
     const e = valid();
     if (e) { err.textContent = e; return; }
+    if (q.defaultFrom && getPointer(u, q.bind) == null) {
+      // Skipped: keep the rules-pack default and mark it as such (lowers confidence a little).
+      setPointer(u, q.bind, defaultOf(q));
+      prov[q.bind] = "default";
+      persist();
+    }
     if (i + 1 < qs.length) location.hash = `#/quick/${i + 1}`;
     else location.hash = "#/results";
   };
 
-  const opts = { autofocus: true, options: q.options, min: q.min, max: q.max, exclusive: ["none"] };
+  const defaultOf = (x) => S.pack.assumptions.find((a) => a.id === x.defaultFrom)?.value;
+  const opts = { autofocus: true, options: q.options, min: q.min, max: q.max, exclusive: ["none"],
+    placeholder: q.defaultFrom ? String(defaultOf(q)) : undefined };
   const ctl = q.input === "age"
     ? control("integer", value ? Math.floor(ageAt(value, new Date())) : undefined, (a) => set(a == null ? undefined : birthMonthForAge(a, value)), opts)
     : control(q.input === "integer" ? "integer" : q.input, value, set, opts);
@@ -181,6 +193,7 @@ function quickView(i) {
     q.help ? h("p", { class: "help" }, q.help) : null,
     h("div", { class: "answer" }, ctl),
     certainty,
+    q.defaultFrom ? h("p", { class: "muted small" }, `Leave blank to use ${defaultOf(q)}.`) : null,
     q.impactHint ? h("p", { class: "impact" }, q.impactHint) : null,
     err,
     h("div", { class: "wizard-nav" },
@@ -216,7 +229,9 @@ function resultsView() {
       ahead ? `✓ On track for your target of ${t.age}` : `Your target is ${t.age}: ${pct(t.funded, 0)} funded by then`));
 
   const kpis = h("div", { class: "kpis" },
-    kpi(`Corpus needed at ${t.age}`, inrShort(t.required), `First-year withdrawal ${inrShort(t.firstYearWithdrawal)} (${pct(t.firstYearWithdrawal / t.required, 2)} of the corpus)`),
+    kpi(`Corpus needed at ${t.age}`, inrShort(t.required), t.firstYearWithdrawal > 0
+      ? `First-year withdrawal ${inrShort(t.firstYearWithdrawal)} (${pct(t.firstYearWithdrawal / t.required, 2)} of the corpus)`
+      : "Money coming in covers the first year's spending"),
     kpi(`Projected at ${t.age}`, inrShort(t.projected), `From ${inrShort(r.inputs.fireCorpus)} today + ${inr(r.inputs.monthlySip + r.inputs.epfMonthly)}/month`),
     kpi(t.gap >= 0 ? "Surplus at target" : "Shortfall at target", inrShort(Math.abs(t.gap)), t.gap >= 0 ? "Ahead of plan" : "Gap to close", t.gap >= 0 ? "good" : "warn"),
     kpi("Monthly investing needed", t.requiredMonthlySip == null ? "—" : inr(t.requiredMonthlySip),
@@ -316,7 +331,8 @@ function assumptionsSummary(r) {
   const p = r.params;
   return card("Assumptions used",
     h("p", { class: "muted small" }, `Inflation ${pct(p.infl.general)} general, ${pct(p.infl.health)} healthcare, ${pct(p.infl.education)} education. Returns ${pct(p.rPre)} before FIRE, ${pct(p.rPost)} after. SIP step-up ${pct(p.stepUp)} a year. ${pct(p.tax)} tax on withdrawals. Money must last until ${p.planUntilAge}. `,
-      h("a", { href: "#/refine/assumptions" }, "Change")));
+      h("a", { href: "#/refine/assumptions" }, "Change")),
+    marketNote(S.market, p.infl.general));
 }
 
 function snapshotsCard() {
@@ -338,7 +354,7 @@ function refineView(id) {
   const u = S.user;
   u.sectionsDone ||= [];
   const done = u.sectionsDone.includes(id);
-  const ctx = { user: u, pack: S.pack, save, redraw };
+  const ctx = { user: u, pack: S.pack, market: S.market, save, redraw };
   const toggle = () => {
     u.sectionsDone = done ? u.sectionsDone.filter((x) => x !== id) : [...u.sectionsDone, id];
     persist();
@@ -468,6 +484,10 @@ async function boot() {
     mount(app, h("p", { class: "error" }, "Couldn't load the rules pack. If you opened index.html directly from disk, run `npm run serve` instead."));
     return;
   }
+  try {
+    const res = await fetch("market/india.json");
+    if (res.ok) S.market = await res.json();
+  } catch { /* optional: published by the deploy workflow */ }
   S.user = store.loadWorking();
   recompute();
   window.addEventListener("hashchange", route);

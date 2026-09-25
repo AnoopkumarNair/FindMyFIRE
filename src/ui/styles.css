@@ -255,7 +255,7 @@ tr.depleted td { color: var(--critical); }
 .exp-label { display: grid; }
 .exp-row input.short { width: 9rem; }
 .rows { display: grid; gap: 0.8rem; }
-.row { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 0.8rem 1rem; align-items: end; }
+.row { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 0.8rem 1rem; align-items: start; }
 .row.card { margin: 0; }
 .row-head { grid-column: 1 / -1; }
 .row > .link.danger { justify-self: start; }
@@ -288,3 +288,5 @@ tr.depleted td { color: var(--critical); }
   .kpi-value { font-size: 1.35rem; }
 }
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+.assumption .wide-note { grid-column: 1 / -1; }
+.market { margin: 0.4rem 0 0; padding: 0.5rem 0.7rem; border-radius: 8px; background: var(--page); border: 1px solid var(--border); }

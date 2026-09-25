@@ -1,7 +1,8 @@
 // Refine-section editors, driven by the rules pack's catalogues.
 import { h } from "./dom.js";
 import { field, control } from "./fields.js";
-import { inr, pct } from "./format.js";
+import { inr, inrShort, pct } from "./format.js";
+import { marketNote } from "./market.js";
 import { evaluate, getPointer, setPointer, resolveInputs } from "../engine/index.js";
 
 const newId = (p) => `${p}${Date.now().toString(36)}${Math.random().toString(36).slice(2, 5)}`;
@@ -17,6 +18,7 @@ export function sectionEditor(section, ctx) {
   if (section.id === "assumptions") return assumptionsEditor(ctx);
   if (input === "list.holdings") return holdingsEditor(ctx);
   if (input === "list.goals") return goalsEditor(ctx);
+  if (input === "list.inflows") return inflowsEditor(ctx);
   if (input === "list.incomes") return incomesEditor(ctx);
   if (input === "list.liabilities") return loansEditor(ctx);
   return scalarEditor(section, ctx);
@@ -207,6 +209,54 @@ function goalsEditor(ctx) {
     }));
 }
 
+function inflowsEditor(ctx) {
+  const { user, pack } = ctx;
+  const items = (user.inflows ||= []);
+  const templates = pack.inflowTemplates || [];
+  const byId = Object.fromEntries(templates.map((t) => [t.id, t]));
+  const inp = resolveInputs(user, pack);
+  const fireYear = new Date().getFullYear() + Math.round((user.plan.fireTargetAge ?? inp.age) - inp.age);
+  const picker = control("select", "", (v) => {
+    const t = byId[v];
+    if (!t) return;
+    items.push({ id: newId("m"), templateId: t.id, label: t.label, amount: 0,
+      on: `${t.id === "inflow.gratuity" ? fireYear : new Date().getFullYear() + 1}-04`,
+      taxRate: t.defaultTaxRate || undefined, growthRate: t.defaultGrowthRate, source: "estimate" });
+    ctx.redraw();
+  }, { options: templates.map((t) => ({ value: t.id, label: t.label })), placeholder: "+ Add money coming in…" });
+
+  // What each row adds up to, in the year(s) received, after tax.
+  const summary = (x) => {
+    const ev = resolveInputs({ ...user, inflows: [x] }, pack).inflows;
+    const total = ev.reduce((s, e) => s + e.net, 0);
+    return total ? `≈ ${inrShort(total)} after tax${(x.years || 1) > 1 ? ` over ${x.years} years` : ""}` : "Not counted: the date has passed or the amount is 0.";
+  };
+
+  return h("div", {},
+    h("p", { class: "muted small" }, "Money received before your FIRE age is invested and grows. Money received after it pays part of your spending that year, so you need a smaller corpus. Amounts are what you'll actually receive, unless you set a growth rate (for example, a property's value today growing until you sell)."),
+    listEditor(ctx, {
+      items, create: picker, empty: "Nothing yet. Gratuity, insurance payouts and property sales go here.",
+      render: (x) => {
+        const t = byId[x.templateId] || {};
+        const note = h("small", { class: "muted" }, summary(x));
+        const save = () => { note.textContent = summary(x); ctx.save(); };
+        return [
+          h("div", { class: "row-head" }, h("strong", {}, t.label || "Money coming in"), t.hint ? h("small", { class: "help" }, t.hint) : null),
+          field("Name", "text", x.label, (v) => { x.label = v || t.label || "Inflow"; save(); }),
+          field(x.growthRate != null ? "Value today" : "Amount", "currency", x.amount, (v) => { x.amount = v || 0; save(); }),
+          field("When (first payment)", "month", x.on, (v) => { if (v) { x.on = v; save(); } }),
+          field("Paid yearly for", "integer", x.years, (v) => { x.years = v && v > 1 ? v : undefined; save(); },
+            { min: 1, max: 50, placeholder: "1", help: "Years. Use this for payouts like 25% of the sum assured each year." }),
+          field("Grows until received", "percent", x.growthRate, (v) => { x.growthRate = v; ctx.redraw(); },
+            { help: "Leave blank if the amount is fixed." }),
+          field("Tax on it", "percent", x.taxRate, (v) => { x.taxRate = v || undefined; save(); }, { placeholder: "0" }),
+          field("How sure?", "source", x.source, (v) => { x.source = v; save(); }),
+          h("div", { class: "field wide" }, note),
+        ];
+      },
+    }));
+}
+
 function incomesEditor(ctx) {
   const { user } = ctx;
   const items = (user.incomes ||= []);
@@ -257,6 +307,7 @@ function assumptionsEditor(ctx) {
   user.assumptionOverrides ||= {};
   const planKey = { "plan.untilAge": "planUntilAge", "sip.stepUp": "sipStepUp" };
   const rows = pack.assumptions.map((a) => {
+    const extra = a.id === "inflation.general" ? marketNote(ctx.market, user.assumptionOverrides[a.id] ?? a.value) : null;
     const get = () => (planKey[a.id] ? user.plan[planKey[a.id]] : user.assumptionOverrides[a.id]);
     const set = (v) => {
       if (v != null && (v < a.min || v > a.max)) v = Math.min(a.max, Math.max(a.min, v));
@@ -273,7 +324,8 @@ function assumptionsEditor(ctx) {
         h("small", { class: "muted" }, `Default ${show(a.value)} · allowed ${show(a.min)}–${show(a.max)}`)),
       h("div", { class: "assumption-ctl" },
         control(type, get() ?? a.value, set, { min: a.min, max: a.max, step: a.step }),
-        changed ? h("button", { type: "button", class: "link", onClick: () => set(undefined) }, "Reset") : null));
+        changed ? h("button", { type: "button", class: "link", onClick: () => set(undefined) }, "Reset") : null),
+      extra ? h("div", { class: "wide-note" }, extra) : null);
   });
   return h("div", { class: "assumptions" }, ...rows);
 }
