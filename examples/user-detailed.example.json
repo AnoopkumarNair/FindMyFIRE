@@ -1,0 +1,389 @@
+{
+  "$schema": "../schemas/user-file.schema.json",
+  "schemaVersion": 1,
+  "app": {
+    "rulesPack": "in",
+    "rulesPackVersion": "2026.1",
+    "appVersion": "0.1.0"
+  },
+  "createdAt": "2026-09-01T10:00:00+05:30",
+  "updatedAt": "2026-09-25T21:15:00+05:30",
+  "provenance": {
+    "/profile/birthYearMonth": "exact",
+    "/plan/fireTargetAge": "exact",
+    "/quick/takeHomeMonthly": "exact",
+    "/quick/monthlyExpenses": "estimate",
+    "/quick/investedCorpus": "estimate",
+    "/quick/monthlySip": "exact",
+    "/quick/epfMonthly": "estimate"
+  },
+  "profile": {
+    "displayName": "Example household",
+    "birthYearMonth": "1991-03",
+    "dependentsQuick": [
+      "spouse",
+      "children"
+    ],
+    "hasSpouse": true,
+    "spouseEarns": false,
+    "children": [
+      {
+        "id": "c1",
+        "label": "Child",
+        "birthYear": 2017,
+        "independentAtAge": 22
+      }
+    ],
+    "parentsSupported": 0,
+    "employment": "salaried"
+  },
+  "plan": {
+    "fireTargetAge": 50,
+    "planUntilAge": 90,
+    "partTimeIncomeMonthly": 0,
+    "sipStepUp": 0.1
+  },
+  "quick": {
+    "takeHomeMonthly": 180000,
+    "monthlyExpenses": 75000,
+    "emiMonthly": 25000,
+    "investedCorpus": 5300000,
+    "monthlySip": 45000,
+    "epfMonthly": 14000
+  },
+  "sectionsDone": [
+    "expenses",
+    "holdings",
+    "goals",
+    "family",
+    "loans"
+  ],
+  "incomes": [
+    {
+      "id": "i1",
+      "type": "salary",
+      "label": "Salary (take-home)",
+      "monthly": 180000,
+      "annualGrowth": 0.07,
+      "continuesAfterFire": false,
+      "source": "exact"
+    }
+  ],
+  "expenses": [
+    {
+      "id": "e1",
+      "categoryId": "housing.maintenance",
+      "amount": 4000,
+      "frequency": "monthly",
+      "source": "exact"
+    },
+    {
+      "id": "e2",
+      "categoryId": "housing.repairs",
+      "amount": 30000,
+      "frequency": "annual",
+      "source": "estimate"
+    },
+    {
+      "id": "e3",
+      "categoryId": "utilities.electricity",
+      "amount": 3000,
+      "frequency": "monthly",
+      "source": "exact"
+    },
+    {
+      "id": "e4",
+      "categoryId": "utilities.water_gas",
+      "amount": 1500,
+      "frequency": "monthly",
+      "source": "estimate"
+    },
+    {
+      "id": "e5",
+      "categoryId": "utilities.telecom",
+      "amount": 1500,
+      "frequency": "monthly",
+      "source": "exact"
+    },
+    {
+      "id": "e6",
+      "categoryId": "utilities.subscriptions",
+      "amount": 500,
+      "frequency": "monthly",
+      "source": "exact"
+    },
+    {
+      "id": "e7",
+      "categoryId": "food.groceries",
+      "amount": 15000,
+      "frequency": "monthly",
+      "source": "estimate"
+    },
+    {
+      "id": "e8",
+      "categoryId": "food.daily_fresh",
+      "amount": 5000,
+      "frequency": "monthly",
+      "source": "estimate"
+    },
+    {
+      "id": "e9",
+      "categoryId": "food.eating_out",
+      "amount": 6000,
+      "frequency": "monthly",
+      "source": "estimate"
+    },
+    {
+      "id": "e10",
+      "categoryId": "household.domestic_help",
+      "amount": 6000,
+      "frequency": "monthly",
+      "source": "exact"
+    },
+    {
+      "id": "e11",
+      "categoryId": "transport.fuel",
+      "amount": 4000,
+      "frequency": "monthly",
+      "source": "estimate"
+    },
+    {
+      "id": "e12",
+      "categoryId": "transport.cabs_public",
+      "amount": 2000,
+      "frequency": "monthly",
+      "source": "estimate"
+    },
+    {
+      "id": "e13",
+      "categoryId": "transport.vehicle_upkeep",
+      "amount": 24000,
+      "frequency": "annual",
+      "source": "estimate"
+    },
+    {
+      "id": "e14",
+      "categoryId": "children.school_fees",
+      "amount": 120000,
+      "frequency": "annual",
+      "source": "exact",
+      "endsAtAge": 44
+    },
+    {
+      "id": "e15",
+      "categoryId": "personal.clothing",
+      "amount": 36000,
+      "frequency": "annual",
+      "source": "estimate"
+    },
+    {
+      "id": "e16",
+      "categoryId": "personal.care",
+      "amount": 1500,
+      "frequency": "monthly",
+      "source": "estimate"
+    },
+    {
+      "id": "e17",
+      "categoryId": "family.festivals_gifts",
+      "amount": 30000,
+      "frequency": "annual",
+      "source": "estimate"
+    },
+    {
+      "id": "e18",
+      "categoryId": "leisure.travel_domestic",
+      "amount": 60000,
+      "frequency": "annual",
+      "source": "estimate"
+    },
+    {
+      "id": "e19",
+      "categoryId": "health.insurance_premium",
+      "amount": 36000,
+      "frequency": "annual",
+      "source": "exact"
+    },
+    {
+      "id": "e20",
+      "categoryId": "health.out_of_pocket",
+      "amount": 2000,
+      "frequency": "monthly",
+      "source": "estimate"
+    },
+    {
+      "id": "e21",
+      "categoryId": "protection.term_premium",
+      "amount": 18000,
+      "frequency": "annual",
+      "source": "exact",
+      "endsAtAge": 60
+    },
+    {
+      "id": "e22",
+      "categoryId": "other.misc",
+      "amount": 2000,
+      "frequency": "monthly",
+      "source": "estimate",
+      "comment": "Pet care and building-society functions"
+    }
+  ],
+  "liabilities": [
+    {
+      "id": "l1",
+      "type": "home",
+      "label": "Home loan",
+      "outstanding": 4000000,
+      "emi": 25000,
+      "interestRate": 0.085,
+      "endsOn": "2038-06",
+      "source": "exact"
+    }
+  ],
+  "holdings": [
+    {
+      "id": "h1",
+      "instrumentId": "mf_equity_active",
+      "label": "Flexi-cap fund",
+      "value": 1800000,
+      "asOf": "2026-09-20",
+      "monthlyContribution": 25000,
+      "source": "exact"
+    },
+    {
+      "id": "h2",
+      "instrumentId": "mf_equity_index",
+      "label": "Nifty 50 index fund",
+      "value": 1200000,
+      "asOf": "2026-09-20",
+      "monthlyContribution": 15000,
+      "source": "exact"
+    },
+    {
+      "id": "h3",
+      "instrumentId": "epf",
+      "value": 1400000,
+      "asOf": "2026-08-31",
+      "monthlyContribution": 7000,
+      "employerMonthlyContribution": 7000,
+      "source": "exact"
+    },
+    {
+      "id": "h4",
+      "instrumentId": "ppf",
+      "value": 600000,
+      "asOf": "2026-03-31",
+      "annualContribution": 60000,
+      "openedOn": "2016-04",
+      "source": "exact"
+    },
+    {
+      "id": "h5",
+      "instrumentId": "nps_tier1",
+      "value": 500000,
+      "asOf": "2026-09-20",
+      "source": "exact",
+      "comment": "Not counted: FIRE age is before 60"
+    },
+    {
+      "id": "h6",
+      "instrumentId": "gold_etf",
+      "value": 200000,
+      "asOf": "2026-09-20",
+      "source": "exact"
+    },
+    {
+      "id": "h7",
+      "instrumentId": "savings_cash",
+      "label": "Liquid fund",
+      "value": 100000,
+      "asOf": "2026-09-20",
+      "source": "exact"
+    },
+    {
+      "id": "h8",
+      "instrumentId": "fd",
+      "label": "Emergency FD",
+      "value": 500000,
+      "asOf": "2026-09-20",
+      "maturesOn": "2027-06",
+      "isEmergencyFund": true,
+      "source": "exact"
+    }
+  ],
+  "otherAssets": [
+    {
+      "id": "o1",
+      "type": "selfOccupiedHome",
+      "value": 8000000,
+      "source": "estimate"
+    }
+  ],
+  "goals": [
+    {
+      "id": "g1",
+      "templateId": "goal.child_ug",
+      "label": "Child's college",
+      "atAge": 44,
+      "costToday": 2500000,
+      "inflationRate": 0.1,
+      "priority": "must",
+      "childId": "c1",
+      "source": "estimate"
+    },
+    {
+      "id": "g2",
+      "templateId": "goal.car",
+      "label": "Replace car",
+      "atAge": 42,
+      "costToday": 1200000,
+      "inflationRate": 0.06,
+      "priority": "want",
+      "source": "estimate"
+    },
+    {
+      "id": "g3",
+      "templateId": "goal.child_wedding",
+      "label": "Child's wedding",
+      "atAge": 55,
+      "costToday": 2000000,
+      "inflationRate": 0.07,
+      "priority": "want",
+      "childId": "c1",
+      "source": "estimate"
+    }
+  ],
+  "insurance": {
+    "healthCover": 1000000,
+    "employerHealthCover": 500000,
+    "termCover": 20000000,
+    "termCoverEndsAtAge": 60
+  },
+  "allocation": {
+    "beforeFire": {
+      "equity": 0.65,
+      "debt": 0.25,
+      "gold": 0.07,
+      "real_estate": 0.0,
+      "cash": 0.03
+    },
+    "afterFire": {
+      "equity": 0.45,
+      "debt": 0.45,
+      "gold": 0.07,
+      "real_estate": 0.0,
+      "cash": 0.03
+    }
+  },
+  "assumptionOverrides": {},
+  "snapshots": [
+    {
+      "date": "2026-09-25",
+      "fireCorpus": 5300000,
+      "netWorth": 10300000,
+      "earliestFireAge": null,
+      "confidence": 0,
+      "note": "First check-in; values filled by the app once the engine exists."
+    }
+  ]
+}

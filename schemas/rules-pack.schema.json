@@ -1,0 +1,1021 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://fire-in.local/schemas/rules-pack.schema.json",
+  "title": "FIRE rules pack",
+  "description": "Country-specific knowledge: questions, catalogues, defaults, tax rules. Shipped with the app; identical for every user. No personal data.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "$schema",
+    "schemaVersion",
+    "packId",
+    "packVersion",
+    "locale",
+    "currency",
+    "effectiveFrom",
+    "derived",
+    "assumptions",
+    "assetClasses",
+    "taxTreatments",
+    "instruments",
+    "expenseCatalog",
+    "goalTemplates",
+    "resolution",
+    "questionFlow",
+    "confidence",
+    "tiers",
+    "scenarios",
+    "nudges"
+  ],
+  "properties": {
+    "$schema": {
+      "type": "string"
+    },
+    "schemaVersion": {
+      "const": 1
+    },
+    "packId": {
+      "type": "string",
+      "pattern": "^[a-z][a-zA-Z0-9_.]*$"
+    },
+    "packVersion": {
+      "type": "string",
+      "pattern": "^[0-9]{4}\\.[0-9]+$"
+    },
+    "locale": {
+      "type": "string"
+    },
+    "currency": {
+      "type": "string",
+      "minLength": 3,
+      "maxLength": 3
+    },
+    "effectiveFrom": {
+      "type": "string",
+      "format": "date"
+    },
+    "notes": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "derived": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/derived"
+      }
+    },
+    "assumptions": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/assumption"
+      }
+    },
+    "assetClasses": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/assetClass"
+      }
+    },
+    "taxTreatments": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/taxTreatment"
+      }
+    },
+    "instruments": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/instrument"
+      }
+    },
+    "expenseCatalog": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/expenseCategory"
+      }
+    },
+    "goalTemplates": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/goalTemplate"
+      }
+    },
+    "resolution": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/resolution"
+      }
+    },
+    "questionFlow": {
+      "$ref": "#/$defs/questionFlow"
+    },
+    "confidence": {
+      "$ref": "#/$defs/confidence"
+    },
+    "tiers": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/tier"
+      }
+    },
+    "scenarios": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/scenario"
+      }
+    },
+    "nudges": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/nudge"
+      }
+    }
+  },
+  "$defs": {
+    "id": {
+      "type": "string",
+      "pattern": "^[a-z][a-zA-Z0-9_.]*$"
+    },
+    "ref": {
+      "description": "A JSON Pointer into the user file (starts with '/') or a derived value ('$name').",
+      "type": "string",
+      "pattern": "^(/[A-Za-z0-9_./-]*|\\$[a-zA-Z][a-zA-Z0-9]*)$"
+    },
+    "condition": {
+      "description": "Safe, declarative condition. No eval.",
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "all"
+          ],
+          "properties": {
+            "all": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/condition"
+              },
+              "minItems": 1
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "any"
+          ],
+          "properties": {
+            "any": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/condition"
+              },
+              "minItems": 1
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "not"
+          ],
+          "properties": {
+            "not": {
+              "$ref": "#/$defs/condition"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "ref",
+            "op"
+          ],
+          "properties": {
+            "ref": {
+              "$ref": "#/$defs/ref"
+            },
+            "op": {
+              "enum": [
+                "eq",
+                "ne",
+                "gt",
+                "gte",
+                "lt",
+                "lte",
+                "in",
+                "exists",
+                "missing",
+                "empty",
+                "nonEmpty",
+                "hasInstrument",
+                "hasCategory"
+              ]
+            },
+            "value": {}
+          }
+        }
+      ]
+    },
+    "derived": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "name",
+        "label",
+        "description"
+      ],
+      "properties": {
+        "name": {
+          "type": "string",
+          "pattern": "^[a-zA-Z][a-zA-Z0-9]*$"
+        },
+        "label": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        }
+      }
+    },
+    "assumption": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "label",
+        "value",
+        "unit",
+        "min",
+        "max",
+        "help"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[a-z][a-zA-Z0-9_.]*$"
+        },
+        "label": {
+          "type": "string"
+        },
+        "value": {
+          "type": "number"
+        },
+        "unit": {
+          "enum": [
+            "percent",
+            "years",
+            "months",
+            "age",
+            "multiplier",
+            "ratio"
+          ]
+        },
+        "min": {
+          "type": "number"
+        },
+        "max": {
+          "type": "number"
+        },
+        "step": {
+          "type": "number"
+        },
+        "help": {
+          "type": "string"
+        },
+        "asOf": {
+          "type": "string"
+        },
+        "verify": {
+          "type": "boolean"
+        }
+      }
+    },
+    "assetClass": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "label",
+        "expectedReturn",
+        "targetBeforeFire",
+        "targetAfterFire"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[a-z][a-zA-Z0-9_.]*$"
+        },
+        "label": {
+          "type": "string"
+        },
+        "expectedReturn": {
+          "type": "number"
+        },
+        "targetBeforeFire": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "targetAfterFire": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "help": {
+          "type": "string"
+        }
+      }
+    },
+    "taxTreatment": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "label",
+        "summary",
+        "asOf"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[a-z][a-zA-Z0-9_.]*$"
+        },
+        "label": {
+          "type": "string"
+        },
+        "summary": {
+          "type": "string"
+        },
+        "ltcgRate": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "stcgRate": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "ltcgHoldingMonths": {
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "annualExemption": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "slabTaxed": {
+          "type": "boolean"
+        },
+        "taxFree": {
+          "type": "boolean"
+        },
+        "asOf": {
+          "type": "string"
+        },
+        "verify": {
+          "type": "boolean"
+        }
+      }
+    },
+    "instrument": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "label",
+        "assetClass",
+        "taxTreatment",
+        "access",
+        "fields"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[a-z][a-zA-Z0-9_.]*$"
+        },
+        "label": {
+          "type": "string"
+        },
+        "aliases": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "assetClass": {
+          "type": "string",
+          "pattern": "^[a-z][a-zA-Z0-9_.]*$"
+        },
+        "taxTreatment": {
+          "type": "string",
+          "pattern": "^[a-z][a-zA-Z0-9_.]*$"
+        },
+        "defaultReturn": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "description": "Overrides asset-class return when set (e.g. administered rates)."
+        },
+        "access": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "type"
+          ],
+          "properties": {
+            "type": {
+              "enum": [
+                "anytime",
+                "lockInYears",
+                "age",
+                "maturity",
+                "onLeavingJob",
+                "mixed"
+              ]
+            },
+            "years": {
+              "type": "number"
+            },
+            "age": {
+              "type": "number"
+            },
+            "note": {
+              "type": "string"
+            }
+          }
+        },
+        "countInFireByDefault": {
+          "type": "boolean"
+        },
+        "limits": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "annualMax": {
+              "type": "number"
+            },
+            "annualMin": {
+              "type": "number"
+            },
+            "note": {
+              "type": "string"
+            }
+          }
+        },
+        "fields": {
+          "type": "array",
+          "items": {
+            "enum": [
+              "value",
+              "monthlyContribution",
+              "employerMonthlyContribution",
+              "annualContribution",
+              "openedOn",
+              "maturesOn",
+              "asOf",
+              "units",
+              "comment"
+            ]
+          }
+        },
+        "help": {
+          "type": "string"
+        },
+        "asOf": {
+          "type": "string"
+        },
+        "verify": {
+          "type": "boolean"
+        }
+      }
+    },
+    "expenseCategory": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "group",
+        "label",
+        "frequency",
+        "inflation",
+        "essential",
+        "postFireFactor"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[a-z][a-zA-Z0-9_.]*$"
+        },
+        "group": {
+          "enum": [
+            "housing",
+            "utilities",
+            "food",
+            "household",
+            "transport",
+            "children",
+            "health",
+            "protection",
+            "family",
+            "personal",
+            "leisure",
+            "other"
+          ]
+        },
+        "label": {
+          "type": "string"
+        },
+        "hint": {
+          "type": "string"
+        },
+        "frequency": {
+          "enum": [
+            "monthly",
+            "annual"
+          ]
+        },
+        "inflation": {
+          "enum": [
+            "general",
+            "health",
+            "education"
+          ]
+        },
+        "essential": {
+          "type": "boolean",
+          "description": "Counts toward Lean FIRE."
+        },
+        "postFireFactor": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 3,
+          "description": "Multiplier applied after FIRE (e.g. 0.5 for commuting)."
+        },
+        "endsByDefault": {
+          "enum": [
+            "never",
+            "childIndependent",
+            "policyTerm",
+            "loanEnd"
+          ]
+        },
+        "showIf": {
+          "$ref": "#/$defs/condition"
+        }
+      }
+    },
+    "goalTemplate": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "label",
+        "inflation",
+        "defaultInflationRate"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[a-z][a-zA-Z0-9_.]*$"
+        },
+        "label": {
+          "type": "string"
+        },
+        "inflation": {
+          "enum": [
+            "general",
+            "health",
+            "education",
+            "custom"
+          ]
+        },
+        "defaultInflationRate": {
+          "type": "number"
+        },
+        "hint": {
+          "type": "string"
+        },
+        "suggestAge": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "relativeTo": {
+              "enum": [
+                "self",
+                "child"
+              ]
+            },
+            "age": {
+              "type": "number"
+            }
+          }
+        },
+        "showIf": {
+          "$ref": "#/$defs/condition"
+        }
+      }
+    },
+    "resolution": {
+      "description": "How the engine picks a value: detailed section if complete, otherwise the quick answer, otherwise the default.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "quantity",
+        "detailed",
+        "quick",
+        "fallback"
+      ],
+      "properties": {
+        "quantity": {
+          "type": "string"
+        },
+        "detailed": {
+          "type": "string"
+        },
+        "quick": {
+          "$ref": "#/$defs/ref"
+        },
+        "fallback": {
+          "type": [
+            "number",
+            "string",
+            "null"
+          ]
+        },
+        "note": {
+          "type": "string"
+        }
+      }
+    },
+    "question": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "prompt",
+        "input",
+        "bind"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[a-z][a-zA-Z0-9_.]*$"
+        },
+        "prompt": {
+          "type": "string"
+        },
+        "help": {
+          "type": "string"
+        },
+        "input": {
+          "enum": [
+            "integer",
+            "currency",
+            "percent",
+            "yearMonth",
+            "select",
+            "multiselect",
+            "boolean",
+            "text",
+            "list.expenses",
+            "list.holdings",
+            "list.goals",
+            "list.incomes",
+            "list.liabilities",
+            "list.children"
+          ]
+        },
+        "bind": {
+          "$ref": "#/$defs/ref"
+        },
+        "options": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "value",
+              "label"
+            ],
+            "properties": {
+              "value": {},
+              "label": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "min": {
+          "type": "number"
+        },
+        "max": {
+          "type": "number"
+        },
+        "defaultFrom": {
+          "type": "string",
+          "description": "Assumption id, or 'none'."
+        },
+        "allowDontKnow": {
+          "type": "boolean"
+        },
+        "showIf": {
+          "$ref": "#/$defs/condition"
+        },
+        "impact": {
+          "enum": [
+            "high",
+            "medium",
+            "low"
+          ]
+        },
+        "impactHint": {
+          "type": "string"
+        }
+      }
+    },
+    "section": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "title",
+        "weight",
+        "questions"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[a-z][a-zA-Z0-9_.]*$"
+        },
+        "title": {
+          "type": "string"
+        },
+        "intro": {
+          "type": "string"
+        },
+        "weight": {
+          "type": "number",
+          "minimum": 0
+        },
+        "replacesQuick": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/ref"
+          }
+        },
+        "showIf": {
+          "$ref": "#/$defs/condition"
+        },
+        "questions": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/question"
+          },
+          "minItems": 1
+        }
+      }
+    },
+    "questionFlow": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "quick",
+        "refine"
+      ],
+      "properties": {
+        "quick": {
+          "$ref": "#/$defs/section"
+        },
+        "refine": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/section"
+          },
+          "minItems": 1
+        }
+      }
+    },
+    "confidence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "sourceScores",
+        "uncertaintyBand",
+        "bands",
+        "method"
+      ],
+      "properties": {
+        "method": {
+          "type": "string"
+        },
+        "sourceScores": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "exact",
+            "estimate",
+            "default",
+            "missing"
+          ],
+          "properties": {
+            "exact": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1
+            },
+            "estimate": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1
+            },
+            "default": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1
+            },
+            "missing": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1
+            }
+          }
+        },
+        "uncertaintyBand": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "exact",
+            "estimate",
+            "default"
+          ],
+          "properties": {
+            "exact": {
+              "type": "number",
+              "minimum": 0
+            },
+            "estimate": {
+              "type": "number",
+              "minimum": 0
+            },
+            "default": {
+              "type": "number",
+              "minimum": 0
+            }
+          }
+        },
+        "bands": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "min",
+              "label"
+            ],
+            "properties": {
+              "min": {
+                "type": "number"
+              },
+              "label": {
+                "type": "string"
+              },
+              "message": {
+                "type": "string"
+              }
+            }
+          }
+        }
+      }
+    },
+    "tier": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "label",
+        "basis",
+        "description"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[a-z][a-zA-Z0-9_.]*$"
+        },
+        "label": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        },
+        "basis": {
+          "enum": [
+            "essentialsOnly",
+            "allExpenses",
+            "allExpensesTimes",
+            "coastToday",
+            "withPartTimeIncome"
+          ]
+        },
+        "multiplier": {
+          "type": "number"
+        }
+      }
+    },
+    "scenario": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "label",
+        "changes"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[a-z][a-zA-Z0-9_.]*$"
+        },
+        "label": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        },
+        "changes": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "generalInflationDelta": {
+              "type": "number"
+            },
+            "healthInflationDelta": {
+              "type": "number"
+            },
+            "returnBeforeFireDelta": {
+              "type": "number"
+            },
+            "returnAfterFireDelta": {
+              "type": "number"
+            },
+            "sipMultiplier": {
+              "type": "number"
+            },
+            "corpusShock": {
+              "type": "number"
+            },
+            "fireAgeDelta": {
+              "type": "integer"
+            }
+          }
+        }
+      }
+    },
+    "nudge": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "severity",
+        "when",
+        "message"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[a-z][a-zA-Z0-9_.]*$"
+        },
+        "severity": {
+          "enum": [
+            "info",
+            "warn",
+            "critical"
+          ]
+        },
+        "when": {
+          "$ref": "#/$defs/condition"
+        },
+        "message": {
+          "type": "string"
+        },
+        "section": {
+          "type": "string",
+          "pattern": "^[a-z][a-zA-Z0-9_.]*$"
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,659 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://fire-in.local/schemas/user-file.schema.json",
+  "title": "FIRE user file",
+  "description": "One person's/household's answers. Lives only on the user's device. All amounts in today's rupees unless stated.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "$schema",
+    "schemaVersion",
+    "app",
+    "createdAt",
+    "updatedAt",
+    "profile",
+    "plan",
+    "quick"
+  ],
+  "properties": {
+    "$schema": {
+      "type": "string"
+    },
+    "schemaVersion": {
+      "const": 1
+    },
+    "app": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "rulesPack",
+        "rulesPackVersion"
+      ],
+      "properties": {
+        "rulesPack": {
+          "type": "string",
+          "pattern": "^[a-z][a-zA-Z0-9_.]*$"
+        },
+        "rulesPackVersion": {
+          "type": "string"
+        },
+        "appVersion": {
+          "type": "string"
+        }
+      }
+    },
+    "createdAt": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "updatedAt": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "provenance": {
+      "description": "Source of scalar answers, keyed by JSON Pointer. Array items carry their own 'source'.",
+      "type": "object",
+      "propertyNames": {
+        "pattern": "^/"
+      },
+      "additionalProperties": {
+        "enum": [
+          "exact",
+          "estimate",
+          "default"
+        ]
+      }
+    },
+    "profile": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "birthYearMonth"
+      ],
+      "properties": {
+        "displayName": {
+          "type": "string"
+        },
+        "birthYearMonth": {
+          "type": "string",
+          "pattern": "^[0-9]{4}-(0[1-9]|1[0-2])$"
+        },
+        "hasSpouse": {
+          "type": "boolean"
+        },
+        "spouseEarns": {
+          "type": "boolean"
+        },
+        "children": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "id",
+              "birthYear"
+            ],
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "label": {
+                "type": "string"
+              },
+              "birthYear": {
+                "type": "integer",
+                "minimum": 1950,
+                "maximum": 2100
+              },
+              "independentAtAge": {
+                "type": "integer",
+                "minimum": 15,
+                "maximum": 35
+              }
+            }
+          }
+        },
+        "parentsSupported": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4
+        },
+        "employment": {
+          "enum": [
+            "salaried",
+            "selfEmployed",
+            "business",
+            "notWorking"
+          ]
+        },
+        "dependentsQuick": {
+          "type": "array",
+          "items": {
+            "enum": [
+              "spouse",
+              "children",
+              "parents",
+              "none"
+            ]
+          },
+          "uniqueItems": true
+        }
+      }
+    },
+    "plan": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "fireTargetAge"
+      ],
+      "properties": {
+        "fireTargetAge": {
+          "type": "integer",
+          "minimum": 25,
+          "maximum": 80
+        },
+        "planUntilAge": {
+          "type": "integer",
+          "minimum": 60,
+          "maximum": 110
+        },
+        "partTimeIncomeMonthly": {
+          "type": "number",
+          "minimum": 0
+        },
+        "partTimeUntilAge": {
+          "type": "integer"
+        },
+        "sipStepUp": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        }
+      }
+    },
+    "quick": {
+      "description": "Quick-pass answers. Superseded by detailed sections once those are complete.",
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "takeHomeMonthly": {
+          "type": "number",
+          "minimum": 0
+        },
+        "monthlyExpenses": {
+          "type": "number",
+          "minimum": 0
+        },
+        "healthcareMonthly": {
+          "type": "number",
+          "minimum": 0
+        },
+        "emiMonthly": {
+          "type": "number",
+          "minimum": 0
+        },
+        "investedCorpus": {
+          "type": "number",
+          "minimum": 0
+        },
+        "monthlySip": {
+          "type": "number",
+          "minimum": 0
+        },
+        "epfMonthly": {
+          "type": "number",
+          "minimum": 0
+        }
+      }
+    },
+    "sectionsDone": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "pattern": "^[a-z][a-zA-Z0-9_.]*$"
+      },
+      "uniqueItems": true,
+      "description": "Refine sections the user has marked complete."
+    },
+    "incomes": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "type",
+          "monthly",
+          "source"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "source": {
+            "enum": [
+              "exact",
+              "estimate",
+              "default"
+            ]
+          },
+          "comment": {
+            "type": "string"
+          },
+          "type": {
+            "enum": [
+              "salary",
+              "business",
+              "rental",
+              "interest",
+              "pension",
+              "other"
+            ]
+          },
+          "label": {
+            "type": "string"
+          },
+          "monthly": {
+            "type": "number",
+            "minimum": 0
+          },
+          "annualGrowth": {
+            "type": "number"
+          },
+          "endsAtAge": {
+            "type": "integer"
+          },
+          "continuesAfterFire": {
+            "type": "boolean"
+          }
+        }
+      }
+    },
+    "expenses": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "categoryId",
+          "amount",
+          "frequency",
+          "source"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "source": {
+            "enum": [
+              "exact",
+              "estimate",
+              "default"
+            ]
+          },
+          "comment": {
+            "type": "string"
+          },
+          "categoryId": {
+            "type": "string",
+            "pattern": "^[a-z][a-zA-Z0-9_.]*$"
+          },
+          "label": {
+            "type": "string"
+          },
+          "amount": {
+            "type": "number",
+            "minimum": 0
+          },
+          "frequency": {
+            "enum": [
+              "monthly",
+              "annual"
+            ]
+          },
+          "postFireFactor": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 3
+          },
+          "endsAtAge": {
+            "type": "integer",
+            "description": "User's own age when this stops."
+          }
+        }
+      }
+    },
+    "liabilities": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "type",
+          "outstanding",
+          "emi",
+          "endsOn",
+          "source"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "source": {
+            "enum": [
+              "exact",
+              "estimate",
+              "default"
+            ]
+          },
+          "comment": {
+            "type": "string"
+          },
+          "type": {
+            "enum": [
+              "home",
+              "car",
+              "personal",
+              "education",
+              "gold",
+              "creditCard",
+              "other"
+            ]
+          },
+          "label": {
+            "type": "string"
+          },
+          "outstanding": {
+            "type": "number",
+            "minimum": 0
+          },
+          "emi": {
+            "type": "number",
+            "minimum": 0
+          },
+          "interestRate": {
+            "type": "number"
+          },
+          "endsOn": {
+            "type": "string",
+            "pattern": "^[0-9]{4}-(0[1-9]|1[0-2])$"
+          }
+        }
+      }
+    },
+    "holdings": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "instrumentId",
+          "value",
+          "asOf",
+          "source"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "source": {
+            "enum": [
+              "exact",
+              "estimate",
+              "default"
+            ]
+          },
+          "comment": {
+            "type": "string"
+          },
+          "instrumentId": {
+            "type": "string",
+            "pattern": "^[a-z][a-zA-Z0-9_.]*$"
+          },
+          "label": {
+            "type": "string"
+          },
+          "value": {
+            "type": "number",
+            "minimum": 0
+          },
+          "asOf": {
+            "type": "string",
+            "format": "date"
+          },
+          "monthlyContribution": {
+            "type": "number",
+            "minimum": 0
+          },
+          "employerMonthlyContribution": {
+            "type": "number",
+            "minimum": 0
+          },
+          "annualContribution": {
+            "type": "number",
+            "minimum": 0
+          },
+          "openedOn": {
+            "type": "string",
+            "pattern": "^[0-9]{4}-(0[1-9]|1[0-2])$"
+          },
+          "maturesOn": {
+            "type": "string",
+            "pattern": "^[0-9]{4}-(0[1-9]|1[0-2])$"
+          },
+          "countInFire": {
+            "type": "boolean",
+            "description": "Overrides the instrument default."
+          },
+          "isEmergencyFund": {
+            "type": "boolean"
+          }
+        }
+      }
+    },
+    "otherAssets": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "type",
+          "value",
+          "source"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "source": {
+            "enum": [
+              "exact",
+              "estimate",
+              "default"
+            ]
+          },
+          "comment": {
+            "type": "string"
+          },
+          "type": {
+            "enum": [
+              "selfOccupiedHome",
+              "vehicle",
+              "jewellery",
+              "land",
+              "other"
+            ]
+          },
+          "label": {
+            "type": "string"
+          },
+          "value": {
+            "type": "number",
+            "minimum": 0
+          }
+        }
+      }
+    },
+    "goals": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "templateId",
+          "label",
+          "atAge",
+          "costToday",
+          "source"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "source": {
+            "enum": [
+              "exact",
+              "estimate",
+              "default"
+            ]
+          },
+          "comment": {
+            "type": "string"
+          },
+          "templateId": {
+            "type": "string",
+            "pattern": "^[a-z][a-zA-Z0-9_.]*$"
+          },
+          "label": {
+            "type": "string"
+          },
+          "atAge": {
+            "type": "integer",
+            "description": "User's own age when money is needed."
+          },
+          "costToday": {
+            "type": "number",
+            "minimum": 0
+          },
+          "inflationRate": {
+            "type": "number"
+          },
+          "priority": {
+            "enum": [
+              "must",
+              "want",
+              "nice"
+            ]
+          },
+          "childId": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "insurance": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "healthCover": {
+          "type": "number",
+          "minimum": 0
+        },
+        "employerHealthCover": {
+          "type": "number",
+          "minimum": 0
+        },
+        "termCover": {
+          "type": "number",
+          "minimum": 0
+        },
+        "termCoverEndsAtAge": {
+          "type": "integer"
+        }
+      }
+    },
+    "allocation": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "beforeFire": {
+          "$ref": "#/$defs/weights"
+        },
+        "afterFire": {
+          "$ref": "#/$defs/weights"
+        }
+      }
+    },
+    "assumptionOverrides": {
+      "type": "object",
+      "propertyNames": {
+        "pattern": "^[a-z][a-zA-Z0-9_.]*$"
+      },
+      "additionalProperties": {
+        "type": "number"
+      }
+    },
+    "snapshots": {
+      "description": "Replaces Historical_Logs: one row per check-in.",
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "date",
+          "fireCorpus",
+          "netWorth"
+        ],
+        "properties": {
+          "date": {
+            "type": "string",
+            "format": "date"
+          },
+          "fireCorpus": {
+            "type": "number",
+            "minimum": 0
+          },
+          "netWorth": {
+            "type": "number"
+          },
+          "earliestFireAge": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "confidence": {
+            "type": "number"
+          },
+          "note": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  },
+  "$defs": {
+    "weights": {
+      "type": "object",
+      "propertyNames": {
+        "pattern": "^[a-z][a-zA-Z0-9_.]*$"
+      },
+      "additionalProperties": {
+        "type": "number",
+        "minimum": 0,
+        "maximum": 1
+      }
+    }
+  }
+}

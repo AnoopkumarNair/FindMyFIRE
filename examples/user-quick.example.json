@@ -1,0 +1,31 @@
+{
+  "$schema": "../schemas/user-file.schema.json",
+  "schemaVersion": 1,
+  "app": {
+    "rulesPack": "in",
+    "rulesPackVersion": "2026.1"
+  },
+  "createdAt": "2026-09-25T09:00:00+05:30",
+  "updatedAt": "2026-09-25T09:02:00+05:30",
+  "provenance": {
+    "/quick/monthlyExpenses": "estimate",
+    "/quick/investedCorpus": "estimate"
+  },
+  "profile": {
+    "birthYearMonth": "1996-07",
+    "dependentsQuick": [
+      "none"
+    ]
+  },
+  "plan": {
+    "fireTargetAge": 45
+  },
+  "quick": {
+    "takeHomeMonthly": 95000,
+    "monthlyExpenses": 40000,
+    "emiMonthly": 0,
+    "investedCorpus": 900000,
+    "monthlySip": 30000,
+    "epfMonthly": 9000
+  }
+}

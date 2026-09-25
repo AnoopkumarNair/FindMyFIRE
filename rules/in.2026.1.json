@@ -1,0 +1,1885 @@
+{
+  "$schema": "../schemas/rules-pack.schema.json",
+  "schemaVersion": 1,
+  "packId": "in",
+  "packVersion": "2026.1",
+  "locale": "en-IN",
+  "currency": "INR",
+  "effectiveFrom": "2026-04-01",
+  "notes": [
+    "Every item with verify=true must be re-checked after each Union Budget and PFRDA/EPFO notification.",
+    "Returns and inflation are planning assumptions, not forecasts.",
+    "This pack contains no personal data and is safe to publish."
+  ],
+  "derived": [
+    {
+      "name": "age",
+      "label": "Current age",
+      "description": "From profile.birthYearMonth and today's date."
+    },
+    {
+      "name": "yearsToFire",
+      "label": "Years to FIRE",
+      "description": "plan.fireTargetAge − age."
+    },
+    {
+      "name": "fireCorpus",
+      "label": "FIRE corpus",
+      "description": "Sum of holdings counted toward FIRE, excluding emergency fund."
+    },
+    {
+      "name": "emergencyFund",
+      "label": "Emergency fund",
+      "description": "Sum of holdings flagged isEmergencyFund."
+    },
+    {
+      "name": "monthlyExpenses",
+      "label": "Monthly expenses",
+      "description": "Resolved living + healthcare expenses, today's ₹."
+    },
+    {
+      "name": "monthlyEmi",
+      "label": "Monthly EMIs",
+      "description": "Resolved EMI total."
+    },
+    {
+      "name": "confidence",
+      "label": "Answer confidence",
+      "description": "0–100 score from the confidence model."
+    },
+    {
+      "name": "emergencyShortfall",
+      "label": "Emergency fund shortfall",
+      "description": "emergency.months × (monthlyExpenses + monthlyEmi) − emergencyFund; 0 if funded."
+    },
+    {
+      "name": "monthlySurplus",
+      "label": "Uninvested monthly surplus",
+      "description": "takeHome − expenses − EMIs − SIP − own EPF share."
+    }
+  ],
+  "assumptions": [
+    {
+      "id": "inflation.general",
+      "label": "General inflation",
+      "value": 0.06,
+      "unit": "percent",
+      "min": 0.02,
+      "max": 0.12,
+      "step": 0.005,
+      "help": "Long-run CPI assumption for household costs."
+    },
+    {
+      "id": "inflation.health",
+      "label": "Healthcare inflation",
+      "value": 0.1,
+      "unit": "percent",
+      "min": 0.04,
+      "max": 0.18,
+      "step": 0.005,
+      "help": "Medical costs in India have historically risen faster than CPI."
+    },
+    {
+      "id": "inflation.education",
+      "label": "Education inflation",
+      "value": 0.1,
+      "unit": "percent",
+      "min": 0.04,
+      "max": 0.15,
+      "step": 0.005,
+      "help": "School and college fees; typically above CPI."
+    },
+    {
+      "id": "income.growth",
+      "label": "Annual income growth",
+      "value": 0.07,
+      "unit": "percent",
+      "min": 0,
+      "max": 0.2,
+      "step": 0.005,
+      "help": "Drives EPF and other salary-linked contributions."
+    },
+    {
+      "id": "sip.stepUp",
+      "label": "Annual SIP step-up",
+      "value": 0.1,
+      "unit": "percent",
+      "min": 0,
+      "max": 0.3,
+      "step": 0.01,
+      "help": "Yearly increase in SIP until FIRE."
+    },
+    {
+      "id": "plan.untilAge",
+      "label": "Plan until age",
+      "value": 90,
+      "unit": "age",
+      "min": 75,
+      "max": 105,
+      "step": 1,
+      "help": "The corpus must last until this age. 90–95 is prudent."
+    },
+    {
+      "id": "tax.withdrawalEffective",
+      "label": "Effective tax on withdrawals",
+      "value": 0.05,
+      "unit": "percent",
+      "min": 0,
+      "max": 0.3,
+      "step": 0.005,
+      "help": "Blended tax on money drawn from the corpus. Used until the tax estimator is built."
+    },
+    {
+      "id": "emergency.months",
+      "label": "Emergency fund (months of expenses + EMIs)",
+      "value": 6,
+      "unit": "months",
+      "min": 3,
+      "max": 24,
+      "step": 1,
+      "help": "Kept outside the FIRE corpus."
+    },
+    {
+      "id": "tier.fatMultiplier",
+      "label": "Fat FIRE multiplier",
+      "value": 1.5,
+      "unit": "multiplier",
+      "min": 1.1,
+      "max": 3,
+      "step": 0.1,
+      "help": "Fat FIRE = all expenses × this."
+    },
+    {
+      "id": "rebalance.bandAbsolute",
+      "label": "Rebalance band (absolute)",
+      "value": 0.05,
+      "unit": "percent",
+      "min": 0.01,
+      "max": 0.2,
+      "step": 0.01,
+      "help": "Rebalance when a class drifts more than this many percentage points…"
+    },
+    {
+      "id": "rebalance.bandRelative",
+      "label": "Rebalance band (relative)",
+      "value": 0.25,
+      "unit": "ratio",
+      "min": 0.05,
+      "max": 1,
+      "step": 0.05,
+      "help": "…or more than this share of its own target (catches small classes)."
+    }
+  ],
+  "assetClasses": [
+    {
+      "id": "equity",
+      "label": "Equity",
+      "expectedReturn": 0.11,
+      "targetBeforeFire": 0.65,
+      "targetAfterFire": 0.45,
+      "help": "Indian and international equity: index funds, active funds, stocks."
+    },
+    {
+      "id": "debt",
+      "label": "Debt",
+      "expectedReturn": 0.07,
+      "targetBeforeFire": 0.25,
+      "targetAfterFire": 0.45,
+      "help": "EPF, PPF, NPS debt, FDs, bonds, debt funds."
+    },
+    {
+      "id": "gold",
+      "label": "Gold",
+      "expectedReturn": 0.075,
+      "targetBeforeFire": 0.07,
+      "targetAfterFire": 0.07,
+      "help": "Gold ETFs/FoFs, SGBs. Physical jewellery is not counted."
+    },
+    {
+      "id": "real_estate",
+      "label": "Real estate / REIT",
+      "expectedReturn": 0.07,
+      "targetBeforeFire": 0.0,
+      "targetAfterFire": 0.0,
+      "help": "Listed REITs/InvITs and investment property (not your own home)."
+    },
+    {
+      "id": "cash",
+      "label": "Cash",
+      "expectedReturn": 0.05,
+      "targetBeforeFire": 0.03,
+      "targetAfterFire": 0.03,
+      "help": "Liquid funds and savings kept for investing, not the emergency fund."
+    }
+  ],
+  "taxTreatments": [
+    {
+      "id": "equity_listed",
+      "label": "Listed equity & equity-oriented funds",
+      "summary": "LTCG 12.5% above ₹1.25 lakh/yr exemption if held >12 months; STCG 20%.",
+      "ltcgRate": 0.125,
+      "stcgRate": 0.2,
+      "ltcgHoldingMonths": 12,
+      "annualExemption": 125000,
+      "slabTaxed": false,
+      "taxFree": false,
+      "asOf": "FY2025-26 rules (post Union Budget July 2024)",
+      "verify": true
+    },
+    {
+      "id": "debt_fund_new",
+      "label": "Debt funds bought on/after 1 Apr 2023",
+      "summary": "Gains taxed at slab rate regardless of holding period.",
+      "ltcgRate": null,
+      "stcgRate": null,
+      "ltcgHoldingMonths": null,
+      "annualExemption": null,
+      "slabTaxed": true,
+      "taxFree": false,
+      "asOf": "FY2025-26 rules (post Union Budget July 2024)",
+      "verify": true
+    },
+    {
+      "id": "interest_slab",
+      "label": "Interest income (FD, RD, bonds, savings)",
+      "summary": "Interest taxed at slab rate as it accrues.",
+      "slabTaxed": true,
+      "taxFree": false,
+      "asOf": "FY2025-26 rules (post Union Budget July 2024)"
+    },
+    {
+      "id": "gold_etf",
+      "label": "Gold ETF / Gold FoF",
+      "summary": "LTCG 12.5% without indexation after 12 months (ETF) or 24 months (FoF); shorter holding at slab rate.",
+      "ltcgRate": 0.125,
+      "ltcgHoldingMonths": 12,
+      "slabTaxed": false,
+      "taxFree": false,
+      "asOf": "FY2025-26 rules (post Union Budget July 2024)",
+      "verify": true
+    },
+    {
+      "id": "sgb",
+      "label": "Sovereign Gold Bond",
+      "summary": "Redemption at maturity tax-free; secondary-market sale taxed as LTCG 12.5% after 12 months. 2.5% interest taxed at slab.",
+      "ltcgRate": 0.125,
+      "ltcgHoldingMonths": 12,
+      "slabTaxed": false,
+      "taxFree": false,
+      "asOf": "FY2025-26 rules (post Union Budget July 2024)",
+      "verify": true
+    },
+    {
+      "id": "eee",
+      "label": "Exempt-Exempt-Exempt",
+      "summary": "Contribution, growth and withdrawal all tax-free (PPF, SSY).",
+      "taxFree": true,
+      "slabTaxed": false,
+      "asOf": "FY2025-26 rules (post Union Budget July 2024)"
+    },
+    {
+      "id": "epf",
+      "label": "EPF / VPF",
+      "summary": "Withdrawal tax-free after 5 years' continuous service. Interest on employee contributions above ₹2.5 lakh/yr is taxable.",
+      "taxFree": true,
+      "slabTaxed": false,
+      "asOf": "FY2025-26 rules (post Union Budget July 2024)",
+      "verify": true
+    },
+    {
+      "id": "nps",
+      "label": "NPS Tier-1",
+      "summary": "Lump sum at 60 tax-free; mandatory annuity portion; annuity income taxed at slab. Exit and annuity rules have been changing — confirm current PFRDA rules.",
+      "taxFree": false,
+      "slabTaxed": true,
+      "asOf": "FY2025-26 rules (post Union Budget July 2024)",
+      "verify": true
+    },
+    {
+      "id": "reit",
+      "label": "REIT / InvIT units",
+      "summary": "Units: LTCG 12.5% after 12 months. Distributions: interest/dividend parts at slab, capital repayment part reduces cost.",
+      "ltcgRate": 0.125,
+      "ltcgHoldingMonths": 12,
+      "slabTaxed": false,
+      "taxFree": false,
+      "asOf": "FY2025-26 rules (post Union Budget July 2024)",
+      "verify": true
+    },
+    {
+      "id": "property",
+      "label": "Investment property",
+      "summary": "LTCG 12.5% without indexation after 24 months; rent taxed at slab after 30% standard deduction.",
+      "ltcgRate": 0.125,
+      "ltcgHoldingMonths": 24,
+      "slabTaxed": false,
+      "taxFree": false,
+      "asOf": "FY2025-26 rules (post Union Budget July 2024)",
+      "verify": true
+    },
+    {
+      "id": "foreign_equity",
+      "label": "International funds / foreign stocks",
+      "summary": "Treatment depends on the fund structure and holding period; FoFs investing abroad are generally not equity-oriented.",
+      "slabTaxed": true,
+      "taxFree": false,
+      "asOf": "FY2025-26 rules (post Union Budget July 2024)",
+      "verify": true
+    },
+    {
+      "id": "insurance_traditional",
+      "label": "Traditional life insurance (endowment/money-back)",
+      "summary": "Maturity tax-free only within premium limits set in recent budgets; otherwise taxed. Check your policy.",
+      "taxFree": false,
+      "slabTaxed": true,
+      "asOf": "FY2025-26 rules (post Union Budget July 2024)",
+      "verify": true
+    }
+  ],
+  "instruments": [
+    {
+      "id": "epf",
+      "label": "EPF",
+      "aliases": [
+        "PF",
+        "Provident Fund"
+      ],
+      "assetClass": "debt",
+      "taxTreatment": "epf",
+      "defaultReturn": 0.0825,
+      "access": {
+        "type": "onLeavingJob",
+        "note": "Full withdrawal allowed after 2 months of unemployment; otherwise at 58."
+      },
+      "countInFireByDefault": true,
+      "fields": [
+        "value",
+        "monthlyContribution",
+        "employerMonthlyContribution",
+        "asOf",
+        "comment"
+      ],
+      "help": "Find the balance in the EPFO passbook / UMANG app.",
+      "asOf": "Rate declared for FY2024-25",
+      "verify": true
+    },
+    {
+      "id": "vpf",
+      "label": "VPF (Voluntary PF)",
+      "assetClass": "debt",
+      "taxTreatment": "epf",
+      "defaultReturn": 0.0825,
+      "access": {
+        "type": "onLeavingJob"
+      },
+      "countInFireByDefault": true,
+      "fields": [
+        "value",
+        "monthlyContribution",
+        "asOf",
+        "comment"
+      ],
+      "asOf": "Same rate as EPF",
+      "verify": true
+    },
+    {
+      "id": "ppf",
+      "label": "PPF",
+      "assetClass": "debt",
+      "taxTreatment": "eee",
+      "defaultReturn": 0.071,
+      "access": {
+        "type": "lockInYears",
+        "years": 15,
+        "note": "15-year lock-in from account opening; partial withdrawals from year 7; extendable in 5-year blocks."
+      },
+      "countInFireByDefault": true,
+      "limits": {
+        "annualMax": 150000,
+        "annualMin": 500
+      },
+      "fields": [
+        "value",
+        "annualContribution",
+        "openedOn",
+        "asOf",
+        "comment"
+      ],
+      "asOf": "Rate set quarterly by Govt",
+      "verify": true
+    },
+    {
+      "id": "ssy",
+      "label": "Sukanya Samriddhi Yojana",
+      "assetClass": "debt",
+      "taxTreatment": "eee",
+      "defaultReturn": 0.082,
+      "access": {
+        "type": "maturity",
+        "note": "Earmarked for daughter's education/marriage; partial withdrawal at 18."
+      },
+      "countInFireByDefault": false,
+      "limits": {
+        "annualMax": 150000,
+        "annualMin": 250
+      },
+      "fields": [
+        "value",
+        "annualContribution",
+        "openedOn",
+        "asOf",
+        "comment"
+      ],
+      "help": "Usually better modelled as funding a goal than as FIRE corpus.",
+      "asOf": "Rate set quarterly by Govt",
+      "verify": true
+    },
+    {
+      "id": "nps_tier1",
+      "label": "NPS Tier-1",
+      "assetClass": "debt",
+      "taxTreatment": "nps",
+      "defaultReturn": 0.09,
+      "access": {
+        "type": "age",
+        "age": 60,
+        "note": "Locked till 60 (limited partial withdrawals); part of the corpus must buy an annuity."
+      },
+      "countInFireByDefault": false,
+      "fields": [
+        "value",
+        "monthlyContribution",
+        "employerMonthlyContribution",
+        "asOf",
+        "comment"
+      ],
+      "help": "Mixed equity/debt. Mark as counting toward FIRE only if your FIRE age is 60+.",
+      "verify": true
+    },
+    {
+      "id": "nps_tier2",
+      "label": "NPS Tier-2",
+      "assetClass": "debt",
+      "taxTreatment": "debt_fund_new",
+      "access": {
+        "type": "anytime"
+      },
+      "countInFireByDefault": true,
+      "fields": [
+        "value",
+        "monthlyContribution",
+        "asOf",
+        "comment"
+      ]
+    },
+    {
+      "id": "mf_equity_index",
+      "label": "Equity index fund / ETF",
+      "aliases": [
+        "Nifty 50",
+        "Nifty Next 50",
+        "Sensex"
+      ],
+      "assetClass": "equity",
+      "taxTreatment": "equity_listed",
+      "access": {
+        "type": "anytime"
+      },
+      "countInFireByDefault": true,
+      "fields": [
+        "value",
+        "monthlyContribution",
+        "asOf",
+        "comment"
+      ]
+    },
+    {
+      "id": "mf_equity_active",
+      "label": "Active equity fund",
+      "aliases": [
+        "Flexi-cap",
+        "Large & mid",
+        "Mid-cap",
+        "Small-cap",
+        "ELSS"
+      ],
+      "assetClass": "equity",
+      "taxTreatment": "equity_listed",
+      "access": {
+        "type": "anytime",
+        "note": "ELSS has a 3-year lock-in per instalment."
+      },
+      "countInFireByDefault": true,
+      "fields": [
+        "value",
+        "monthlyContribution",
+        "asOf",
+        "comment"
+      ]
+    },
+    {
+      "id": "mf_hybrid_equity",
+      "label": "Equity-oriented hybrid fund",
+      "aliases": [
+        "Balanced advantage",
+        "Aggressive hybrid",
+        "Equity savings"
+      ],
+      "assetClass": "equity",
+      "taxTreatment": "equity_listed",
+      "access": {
+        "type": "anytime"
+      },
+      "countInFireByDefault": true,
+      "fields": [
+        "value",
+        "monthlyContribution",
+        "asOf",
+        "comment"
+      ],
+      "help": "Classed as equity for simplicity; split manually if you want precision."
+    },
+    {
+      "id": "stocks_direct",
+      "label": "Direct Indian stocks",
+      "assetClass": "equity",
+      "taxTreatment": "equity_listed",
+      "access": {
+        "type": "anytime"
+      },
+      "countInFireByDefault": true,
+      "fields": [
+        "value",
+        "asOf",
+        "comment"
+      ]
+    },
+    {
+      "id": "international_equity",
+      "label": "International funds / US stocks",
+      "aliases": [
+        "US FoF",
+        "LRS"
+      ],
+      "assetClass": "equity",
+      "taxTreatment": "foreign_equity",
+      "access": {
+        "type": "anytime"
+      },
+      "countInFireByDefault": true,
+      "fields": [
+        "value",
+        "monthlyContribution",
+        "asOf",
+        "comment"
+      ]
+    },
+    {
+      "id": "esop_rsu",
+      "label": "ESOPs / RSUs (vested)",
+      "assetClass": "equity",
+      "taxTreatment": "equity_listed",
+      "access": {
+        "type": "anytime",
+        "note": "Count vested, sellable units only."
+      },
+      "countInFireByDefault": true,
+      "fields": [
+        "value",
+        "asOf",
+        "comment",
+        "units"
+      ]
+    },
+    {
+      "id": "mf_debt",
+      "label": "Debt fund",
+      "aliases": [
+        "Liquid",
+        "Short duration",
+        "Gilt",
+        "Target maturity"
+      ],
+      "assetClass": "debt",
+      "taxTreatment": "debt_fund_new",
+      "access": {
+        "type": "anytime"
+      },
+      "countInFireByDefault": true,
+      "fields": [
+        "value",
+        "monthlyContribution",
+        "asOf",
+        "comment"
+      ]
+    },
+    {
+      "id": "fd",
+      "label": "Fixed deposit",
+      "assetClass": "debt",
+      "taxTreatment": "interest_slab",
+      "access": {
+        "type": "maturity",
+        "note": "Premature withdrawal usually allowed with a penalty."
+      },
+      "countInFireByDefault": true,
+      "fields": [
+        "value",
+        "maturesOn",
+        "asOf",
+        "comment"
+      ]
+    },
+    {
+      "id": "rd",
+      "label": "Recurring deposit",
+      "assetClass": "debt",
+      "taxTreatment": "interest_slab",
+      "access": {
+        "type": "maturity"
+      },
+      "countInFireByDefault": true,
+      "fields": [
+        "value",
+        "monthlyContribution",
+        "maturesOn",
+        "asOf",
+        "comment"
+      ]
+    },
+    {
+      "id": "bonds_gsec",
+      "label": "Bonds / G-Secs / T-Bills",
+      "aliases": [
+        "RBI Retail Direct",
+        "Bharat Bond"
+      ],
+      "assetClass": "debt",
+      "taxTreatment": "interest_slab",
+      "access": {
+        "type": "anytime",
+        "note": "Liquidity varies by bond."
+      },
+      "countInFireByDefault": true,
+      "fields": [
+        "value",
+        "maturesOn",
+        "asOf",
+        "comment"
+      ]
+    },
+    {
+      "id": "scss",
+      "label": "Senior Citizens' Savings Scheme",
+      "assetClass": "debt",
+      "taxTreatment": "interest_slab",
+      "defaultReturn": 0.082,
+      "access": {
+        "type": "lockInYears",
+        "years": 5,
+        "note": "Eligible from 60 (55 on retirement, conditions apply)."
+      },
+      "countInFireByDefault": true,
+      "fields": [
+        "value",
+        "maturesOn",
+        "asOf",
+        "comment"
+      ],
+      "verify": true
+    },
+    {
+      "id": "gold_etf",
+      "label": "Gold ETF / Gold FoF",
+      "assetClass": "gold",
+      "taxTreatment": "gold_etf",
+      "access": {
+        "type": "anytime"
+      },
+      "countInFireByDefault": true,
+      "fields": [
+        "value",
+        "monthlyContribution",
+        "asOf",
+        "comment"
+      ]
+    },
+    {
+      "id": "sgb",
+      "label": "Sovereign Gold Bond",
+      "assetClass": "gold",
+      "taxTreatment": "sgb",
+      "access": {
+        "type": "maturity",
+        "note": "8-year tenure; early redemption windows from year 5; tradable on exchanges."
+      },
+      "countInFireByDefault": true,
+      "fields": [
+        "value",
+        "units",
+        "maturesOn",
+        "asOf",
+        "comment"
+      ],
+      "help": "No new tranches issued since early 2024 as far as known; existing bonds still count.",
+      "verify": true
+    },
+    {
+      "id": "reit_invit",
+      "label": "REIT / InvIT",
+      "assetClass": "real_estate",
+      "taxTreatment": "reit",
+      "access": {
+        "type": "anytime"
+      },
+      "countInFireByDefault": true,
+      "fields": [
+        "value",
+        "asOf",
+        "comment"
+      ]
+    },
+    {
+      "id": "property_investment",
+      "label": "Investment property (not your home)",
+      "assetClass": "real_estate",
+      "taxTreatment": "property",
+      "access": {
+        "type": "anytime",
+        "note": "Illiquid: selling takes months."
+      },
+      "countInFireByDefault": false,
+      "fields": [
+        "value",
+        "asOf",
+        "comment"
+      ],
+      "help": "Count it only if you will actually sell it or rely on its rent (add rent under Incomes)."
+    },
+    {
+      "id": "savings_cash",
+      "label": "Savings account / liquid cash",
+      "assetClass": "cash",
+      "taxTreatment": "interest_slab",
+      "access": {
+        "type": "anytime"
+      },
+      "countInFireByDefault": true,
+      "fields": [
+        "value",
+        "asOf",
+        "comment"
+      ]
+    },
+    {
+      "id": "insurance_traditional",
+      "label": "Endowment / money-back policy",
+      "aliases": [
+        "LIC"
+      ],
+      "assetClass": "debt",
+      "taxTreatment": "insurance_traditional",
+      "defaultReturn": 0.05,
+      "access": {
+        "type": "maturity",
+        "note": "Use surrender value today, not sum assured."
+      },
+      "countInFireByDefault": false,
+      "fields": [
+        "value",
+        "annualContribution",
+        "maturesOn",
+        "asOf",
+        "comment"
+      ],
+      "help": "Enter the current surrender value. Premiums go under Expenses → Protection."
+    },
+    {
+      "id": "ulip",
+      "label": "ULIP",
+      "assetClass": "equity",
+      "taxTreatment": "insurance_traditional",
+      "access": {
+        "type": "lockInYears",
+        "years": 5
+      },
+      "countInFireByDefault": true,
+      "fields": [
+        "value",
+        "annualContribution",
+        "asOf",
+        "comment"
+      ],
+      "verify": true
+    },
+    {
+      "id": "other",
+      "label": "Other (describe in comment)",
+      "assetClass": "debt",
+      "taxTreatment": "interest_slab",
+      "access": {
+        "type": "mixed"
+      },
+      "countInFireByDefault": false,
+      "fields": [
+        "value",
+        "asOf",
+        "comment"
+      ]
+    }
+  ],
+  "expenseCatalog": [
+    {
+      "id": "housing.rent",
+      "group": "housing",
+      "label": "Rent",
+      "frequency": "monthly",
+      "inflation": "general",
+      "essential": true,
+      "postFireFactor": 1.0,
+      "hint": "Skip if you own your home."
+    },
+    {
+      "id": "housing.maintenance",
+      "group": "housing",
+      "label": "Society maintenance",
+      "frequency": "monthly",
+      "inflation": "general",
+      "essential": true,
+      "postFireFactor": 1.0
+    },
+    {
+      "id": "housing.property_tax",
+      "group": "housing",
+      "label": "Property tax",
+      "frequency": "annual",
+      "inflation": "general",
+      "essential": true,
+      "postFireFactor": 1.0
+    },
+    {
+      "id": "housing.repairs",
+      "group": "housing",
+      "label": "Repairs, painting, appliances",
+      "frequency": "annual",
+      "inflation": "general",
+      "essential": true,
+      "postFireFactor": 1.0,
+      "hint": "Average per year."
+    },
+    {
+      "id": "utilities.electricity",
+      "group": "utilities",
+      "label": "Electricity",
+      "frequency": "monthly",
+      "inflation": "general",
+      "essential": true,
+      "postFireFactor": 1.1,
+      "hint": "Usually rises when home all day."
+    },
+    {
+      "id": "utilities.water_gas",
+      "group": "utilities",
+      "label": "Water, piped gas / LPG",
+      "frequency": "monthly",
+      "inflation": "general",
+      "essential": true,
+      "postFireFactor": 1.0
+    },
+    {
+      "id": "utilities.telecom",
+      "group": "utilities",
+      "label": "Mobile & internet",
+      "frequency": "monthly",
+      "inflation": "general",
+      "essential": true,
+      "postFireFactor": 1.0
+    },
+    {
+      "id": "utilities.subscriptions",
+      "group": "utilities",
+      "label": "DTH / OTT / apps",
+      "frequency": "monthly",
+      "inflation": "general",
+      "essential": false,
+      "postFireFactor": 1.0
+    },
+    {
+      "id": "food.groceries",
+      "group": "food",
+      "label": "Groceries & provisions",
+      "frequency": "monthly",
+      "inflation": "general",
+      "essential": true,
+      "postFireFactor": 1.0
+    },
+    {
+      "id": "food.daily_fresh",
+      "group": "food",
+      "label": "Milk, vegetables, fruit",
+      "frequency": "monthly",
+      "inflation": "general",
+      "essential": true,
+      "postFireFactor": 1.0
+    },
+    {
+      "id": "food.eating_out",
+      "group": "food",
+      "label": "Eating out & delivery",
+      "frequency": "monthly",
+      "inflation": "general",
+      "essential": false,
+      "postFireFactor": 1.0
+    },
+    {
+      "id": "household.domestic_help",
+      "group": "household",
+      "label": "Maid, cook, cleaner",
+      "frequency": "monthly",
+      "inflation": "general",
+      "essential": true,
+      "postFireFactor": 1.0
+    },
+    {
+      "id": "household.driver",
+      "group": "household",
+      "label": "Driver",
+      "frequency": "monthly",
+      "inflation": "general",
+      "essential": false,
+      "postFireFactor": 0.5
+    },
+    {
+      "id": "transport.fuel",
+      "group": "transport",
+      "label": "Fuel",
+      "frequency": "monthly",
+      "inflation": "general",
+      "essential": true,
+      "postFireFactor": 0.6,
+      "hint": "Less commuting after FIRE."
+    },
+    {
+      "id": "transport.cabs_public",
+      "group": "transport",
+      "label": "Cabs, metro, bus, auto",
+      "frequency": "monthly",
+      "inflation": "general",
+      "essential": true,
+      "postFireFactor": 0.6
+    },
+    {
+      "id": "transport.vehicle_upkeep",
+      "group": "transport",
+      "label": "Vehicle insurance, service, parking",
+      "frequency": "annual",
+      "inflation": "general",
+      "essential": true,
+      "postFireFactor": 1.0,
+      "hint": "Car replacement is a Goal, not an expense."
+    },
+    {
+      "id": "children.school_fees",
+      "group": "children",
+      "label": "School fees",
+      "frequency": "annual",
+      "inflation": "education",
+      "essential": true,
+      "postFireFactor": 1.0,
+      "hint": "Stops when the child finishes school.",
+      "endsByDefault": "childIndependent",
+      "showIf": {
+        "ref": "/profile/children",
+        "op": "nonEmpty"
+      }
+    },
+    {
+      "id": "children.tuition_activities",
+      "group": "children",
+      "label": "Tuition, classes, activities",
+      "frequency": "monthly",
+      "inflation": "education",
+      "essential": false,
+      "postFireFactor": 1.0,
+      "endsByDefault": "childIndependent",
+      "showIf": {
+        "ref": "/profile/children",
+        "op": "nonEmpty"
+      }
+    },
+    {
+      "id": "children.books_uniform_transport",
+      "group": "children",
+      "label": "Books, uniforms, school transport",
+      "frequency": "annual",
+      "inflation": "education",
+      "essential": true,
+      "postFireFactor": 1.0,
+      "endsByDefault": "childIndependent",
+      "showIf": {
+        "ref": "/profile/children",
+        "op": "nonEmpty"
+      }
+    },
+    {
+      "id": "health.insurance_premium",
+      "group": "health",
+      "label": "Health insurance premium",
+      "frequency": "annual",
+      "inflation": "health",
+      "essential": true,
+      "postFireFactor": 1.0,
+      "hint": "Employer cover ends at FIRE — budget for your own family floater."
+    },
+    {
+      "id": "health.out_of_pocket",
+      "group": "health",
+      "label": "Doctor, tests, medicines",
+      "frequency": "monthly",
+      "inflation": "health",
+      "essential": true,
+      "postFireFactor": 1.0
+    },
+    {
+      "id": "protection.term_premium",
+      "group": "protection",
+      "label": "Term insurance premium",
+      "frequency": "annual",
+      "inflation": "general",
+      "essential": true,
+      "postFireFactor": 1.0,
+      "hint": "Stops when the policy term ends.",
+      "endsByDefault": "policyTerm"
+    },
+    {
+      "id": "protection.other_premiums",
+      "group": "protection",
+      "label": "Endowment / ULIP premiums",
+      "frequency": "annual",
+      "inflation": "general",
+      "essential": false,
+      "postFireFactor": 1.0,
+      "hint": "Treat as an expense until the policy ends.",
+      "endsByDefault": "policyTerm"
+    },
+    {
+      "id": "family.parents_support",
+      "group": "family",
+      "label": "Support for parents",
+      "frequency": "monthly",
+      "inflation": "general",
+      "essential": true,
+      "postFireFactor": 1.0,
+      "showIf": {
+        "ref": "/profile/parentsSupported",
+        "op": "gt",
+        "value": 0
+      }
+    },
+    {
+      "id": "family.festivals_gifts",
+      "group": "family",
+      "label": "Festivals, functions, gifts",
+      "frequency": "annual",
+      "inflation": "general",
+      "essential": false,
+      "postFireFactor": 1.0,
+      "hint": "Diwali, Pongal, Onam, Eid, Christmas, weddings you attend…"
+    },
+    {
+      "id": "family.religious_charity",
+      "group": "family",
+      "label": "Religious offerings & donations",
+      "frequency": "annual",
+      "inflation": "general",
+      "essential": false,
+      "postFireFactor": 1.0
+    },
+    {
+      "id": "personal.clothing",
+      "group": "personal",
+      "label": "Clothing & footwear",
+      "frequency": "annual",
+      "inflation": "general",
+      "essential": true,
+      "postFireFactor": 0.8
+    },
+    {
+      "id": "personal.care",
+      "group": "personal",
+      "label": "Salon, personal care",
+      "frequency": "monthly",
+      "inflation": "general",
+      "essential": false,
+      "postFireFactor": 1.0
+    },
+    {
+      "id": "personal.fitness_hobbies",
+      "group": "personal",
+      "label": "Gym, sports, hobbies",
+      "frequency": "monthly",
+      "inflation": "general",
+      "essential": false,
+      "postFireFactor": 1.2,
+      "hint": "Often rises after FIRE."
+    },
+    {
+      "id": "leisure.travel_domestic",
+      "group": "leisure",
+      "label": "Domestic travel & vacations",
+      "frequency": "annual",
+      "inflation": "general",
+      "essential": false,
+      "postFireFactor": 1.3
+    },
+    {
+      "id": "leisure.travel_international",
+      "group": "leisure",
+      "label": "International travel",
+      "frequency": "annual",
+      "inflation": "general",
+      "essential": false,
+      "postFireFactor": 1.3
+    },
+    {
+      "id": "leisure.gadgets",
+      "group": "leisure",
+      "label": "Phones, laptops, gadgets",
+      "frequency": "annual",
+      "inflation": "general",
+      "essential": false,
+      "postFireFactor": 1.0
+    },
+    {
+      "id": "other.misc",
+      "group": "other",
+      "label": "Other (describe in comment)",
+      "frequency": "monthly",
+      "inflation": "general",
+      "essential": false,
+      "postFireFactor": 1.0,
+      "hint": "Anything city- or family-specific not listed above."
+    }
+  ],
+  "goalTemplates": [
+    {
+      "id": "goal.child_ug",
+      "label": "Child's undergraduate education",
+      "inflation": "education",
+      "defaultInflationRate": 0.1,
+      "suggestAge": {
+        "relativeTo": "child",
+        "age": 18
+      },
+      "showIf": {
+        "ref": "/profile/children",
+        "op": "nonEmpty"
+      }
+    },
+    {
+      "id": "goal.child_pg",
+      "label": "Child's postgraduate / abroad education",
+      "inflation": "education",
+      "defaultInflationRate": 0.1,
+      "suggestAge": {
+        "relativeTo": "child",
+        "age": 22
+      },
+      "showIf": {
+        "ref": "/profile/children",
+        "op": "nonEmpty"
+      }
+    },
+    {
+      "id": "goal.child_wedding",
+      "label": "Child's wedding",
+      "inflation": "general",
+      "defaultInflationRate": 0.07,
+      "suggestAge": {
+        "relativeTo": "child",
+        "age": 28
+      },
+      "showIf": {
+        "ref": "/profile/children",
+        "op": "nonEmpty"
+      }
+    },
+    {
+      "id": "goal.home_purchase",
+      "label": "Buy a home / down payment",
+      "inflation": "custom",
+      "defaultInflationRate": 0.06
+    },
+    {
+      "id": "goal.home_renovation",
+      "label": "Home renovation",
+      "inflation": "general",
+      "defaultInflationRate": 0.06
+    },
+    {
+      "id": "goal.car",
+      "label": "Car purchase / replacement",
+      "inflation": "general",
+      "defaultInflationRate": 0.06,
+      "hint": "Add one goal per planned purchase."
+    },
+    {
+      "id": "goal.parents_care",
+      "label": "Parents' medical / care reserve",
+      "inflation": "health",
+      "defaultInflationRate": 0.1,
+      "showIf": {
+        "ref": "/profile/parentsSupported",
+        "op": "gt",
+        "value": 0
+      }
+    },
+    {
+      "id": "goal.sabbatical_travel",
+      "label": "Big trip / sabbatical",
+      "inflation": "general",
+      "defaultInflationRate": 0.06
+    },
+    {
+      "id": "goal.other",
+      "label": "Other goal",
+      "inflation": "custom",
+      "defaultInflationRate": 0.06
+    }
+  ],
+  "resolution": [
+    {
+      "quantity": "takeHomeMonthly",
+      "detailed": "sum(incomes where type=salary|business, monthly)",
+      "quick": "/quick/takeHomeMonthly",
+      "fallback": null
+    },
+    {
+      "quantity": "livingExpensesMonthly",
+      "detailed": "sum(expenses where inflation!=health, monthly-equivalent)",
+      "quick": "/quick/monthlyExpenses",
+      "fallback": null,
+      "note": "Detailed wins once the 'expenses' section is in sectionsDone."
+    },
+    {
+      "quantity": "healthcareMonthly",
+      "detailed": "sum(expenses where inflation=health, monthly-equivalent)",
+      "quick": "/quick/healthcareMonthly",
+      "fallback": "10% of livingExpensesMonthly",
+      "note": "Quick answer is optional; fallback splits out an assumed healthcare share."
+    },
+    {
+      "quantity": "emiMonthly",
+      "detailed": "sum(liabilities, emi)",
+      "quick": "/quick/emiMonthly",
+      "fallback": 0
+    },
+    {
+      "quantity": "fireCorpus",
+      "detailed": "sum(holdings where countInFire && !isEmergencyFund, value)",
+      "quick": "/quick/investedCorpus",
+      "fallback": null
+    },
+    {
+      "quantity": "monthlySip",
+      "detailed": "sum(holdings, monthlyContribution + annualContribution/12) excluding EPF/VPF/NPS employer",
+      "quick": "/quick/monthlySip",
+      "fallback": 0
+    },
+    {
+      "quantity": "epfMonthly",
+      "detailed": "sum(holdings where instrument in [epf,vpf], monthlyContribution + employerMonthlyContribution)",
+      "quick": "/quick/epfMonthly",
+      "fallback": 0
+    }
+  ],
+  "questionFlow": {
+    "quick": {
+      "id": "quick",
+      "title": "Quick estimate",
+      "weight": 0,
+      "intro": "Nine questions, about two minutes. You'll get a first FIRE age with a confidence score; refine any section afterwards.",
+      "questions": [
+        {
+          "id": "q.birth",
+          "prompt": "When were you born?",
+          "input": "yearMonth",
+          "bind": "/profile/birthYearMonth",
+          "impact": "high"
+        },
+        {
+          "id": "q.fire_age",
+          "prompt": "At what age would you like to stop depending on a salary?",
+          "input": "integer",
+          "bind": "/plan/fireTargetAge",
+          "min": 25,
+          "max": 80,
+          "impact": "high"
+        },
+        {
+          "id": "q.household",
+          "prompt": "Who depends on your income?",
+          "input": "multiselect",
+          "bind": "/profile/dependentsQuick",
+          "options": [
+            {
+              "value": "spouse",
+              "label": "Spouse"
+            },
+            {
+              "value": "children",
+              "label": "Children"
+            },
+            {
+              "value": "parents",
+              "label": "Parents"
+            },
+            {
+              "value": "none",
+              "label": "Just me"
+            }
+          ],
+          "help": "Unlocks the right follow-up questions later.",
+          "impact": "medium"
+        },
+        {
+          "id": "q.take_home",
+          "prompt": "Monthly take-home income (household)?",
+          "input": "currency",
+          "bind": "/quick/takeHomeMonthly",
+          "impact": "medium",
+          "impactHint": "Used for savings rate and surplus; affects FIRE age only through what you invest."
+        },
+        {
+          "id": "q.expenses",
+          "prompt": "Monthly household spending, excluding EMIs and investments?",
+          "input": "currency",
+          "bind": "/quick/monthlyExpenses",
+          "allowDontKnow": true,
+          "impact": "high",
+          "impactHint": "The single biggest driver: ±10% here moves the corpus needed by ±10%."
+        },
+        {
+          "id": "q.emi",
+          "prompt": "Total monthly EMIs?",
+          "input": "currency",
+          "bind": "/quick/emiMonthly",
+          "allowDontKnow": false,
+          "impact": "low",
+          "help": "Assumed to end before FIRE unless you add loan details later."
+        },
+        {
+          "id": "q.corpus",
+          "prompt": "Roughly how much have you invested so far (MF, stocks, EPF, PPF, FDs, gold)? Exclude your home.",
+          "input": "currency",
+          "bind": "/quick/investedCorpus",
+          "impact": "high"
+        },
+        {
+          "id": "q.sip",
+          "prompt": "How much do you invest each month (SIPs, PPF, etc.), excluding EPF?",
+          "input": "currency",
+          "bind": "/quick/monthlySip",
+          "impact": "high"
+        },
+        {
+          "id": "q.epf",
+          "prompt": "Monthly EPF contribution (yours + employer's)?",
+          "input": "currency",
+          "bind": "/quick/epfMonthly",
+          "allowDontKnow": true,
+          "showIf": {
+            "ref": "/profile/employment",
+            "op": "ne",
+            "value": "selfEmployed"
+          },
+          "impact": "medium",
+          "help": "Roughly 24% of basic salary if you don't know."
+        }
+      ]
+    },
+    "refine": [
+      {
+        "id": "expenses",
+        "title": "Break down your expenses",
+        "weight": 30,
+        "intro": "Line by line, monthly or annual. Anything not listed goes in 'Other' with a comment.",
+        "replacesQuick": [
+          "/quick/monthlyExpenses",
+          "/quick/healthcareMonthly"
+        ],
+        "questions": [
+          {
+            "id": "r.expenses",
+            "prompt": "Add your expenses by category",
+            "input": "list.expenses",
+            "bind": "/expenses",
+            "impact": "high",
+            "impactHint": "Also unlocks Lean FIRE (essentials only) and post-FIRE adjustments like lower commuting."
+          }
+        ]
+      },
+      {
+        "id": "holdings",
+        "title": "List your investments",
+        "weight": 20,
+        "intro": "One row per account or fund. Mark what you can actually use at your FIRE age.",
+        "replacesQuick": [
+          "/quick/investedCorpus",
+          "/quick/monthlySip",
+          "/quick/epfMonthly"
+        ],
+        "questions": [
+          {
+            "id": "r.holdings",
+            "prompt": "Add each holding",
+            "input": "list.holdings",
+            "bind": "/holdings",
+            "impact": "high"
+          }
+        ]
+      },
+      {
+        "id": "goals",
+        "title": "Life goals",
+        "weight": 15,
+        "intro": "Big one-off costs paid from your corpus: education, weddings, car, home.",
+        "questions": [
+          {
+            "id": "r.goals",
+            "prompt": "Add your goals",
+            "input": "list.goals",
+            "bind": "/goals",
+            "impact": "high",
+            "impactHint": "A ₹25 lakh education goal 12 years out needs about ₹80 lakh at 10% inflation."
+          }
+        ]
+      },
+      {
+        "id": "family",
+        "title": "Family details",
+        "weight": 5,
+        "questions": [
+          {
+            "id": "r.spouse",
+            "prompt": "Do you have a spouse/partner?",
+            "input": "boolean",
+            "bind": "/profile/hasSpouse"
+          },
+          {
+            "id": "r.spouse_earns",
+            "prompt": "Does your spouse earn?",
+            "input": "boolean",
+            "bind": "/profile/spouseEarns",
+            "showIf": {
+              "ref": "/profile/hasSpouse",
+              "op": "eq",
+              "value": true
+            }
+          },
+          {
+            "id": "r.children",
+            "prompt": "Children (birth year)",
+            "input": "list.children",
+            "bind": "/profile/children"
+          },
+          {
+            "id": "r.parents",
+            "prompt": "How many parents do you support financially?",
+            "input": "integer",
+            "bind": "/profile/parentsSupported",
+            "min": 0,
+            "max": 4
+          },
+          {
+            "id": "r.employment",
+            "prompt": "Employment type",
+            "input": "select",
+            "bind": "/profile/employment",
+            "options": [
+              {
+                "value": "salaried",
+                "label": "Salaried"
+              },
+              {
+                "value": "selfEmployed",
+                "label": "Self-employed / professional"
+              },
+              {
+                "value": "business",
+                "label": "Business owner"
+              },
+              {
+                "value": "notWorking",
+                "label": "Not working"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "income",
+        "title": "Income sources",
+        "weight": 5,
+        "replacesQuick": [
+          "/quick/takeHomeMonthly"
+        ],
+        "questions": [
+          {
+            "id": "r.incomes",
+            "prompt": "Add each income source",
+            "input": "list.incomes",
+            "bind": "/incomes",
+            "impact": "medium"
+          }
+        ]
+      },
+      {
+        "id": "loans",
+        "title": "Loans",
+        "weight": 5,
+        "replacesQuick": [
+          "/quick/emiMonthly"
+        ],
+        "questions": [
+          {
+            "id": "r.loans",
+            "prompt": "Add each loan",
+            "input": "list.liabilities",
+            "bind": "/liabilities",
+            "impact": "medium",
+            "impactHint": "A loan running past your FIRE age becomes a retirement expense."
+          }
+        ]
+      },
+      {
+        "id": "protection",
+        "title": "Insurance & emergency fund",
+        "weight": 5,
+        "questions": [
+          {
+            "id": "r.health_cover",
+            "prompt": "Family health cover you own (excluding employer cover)",
+            "input": "currency",
+            "bind": "/insurance/healthCover"
+          },
+          {
+            "id": "r.employer_cover",
+            "prompt": "Employer health cover",
+            "input": "currency",
+            "bind": "/insurance/employerHealthCover"
+          },
+          {
+            "id": "r.term_cover",
+            "prompt": "Term life cover",
+            "input": "currency",
+            "bind": "/insurance/termCover"
+          },
+          {
+            "id": "r.term_end",
+            "prompt": "Term policy ends at your age",
+            "input": "integer",
+            "bind": "/insurance/termCoverEndsAtAge"
+          }
+        ]
+      },
+      {
+        "id": "retirement",
+        "title": "Life after FIRE",
+        "weight": 5,
+        "questions": [
+          {
+            "id": "r.plan_until",
+            "prompt": "Plan for money to last until age",
+            "input": "integer",
+            "bind": "/plan/planUntilAge",
+            "defaultFrom": "plan.untilAge"
+          },
+          {
+            "id": "r.part_time",
+            "prompt": "Part-time / consulting income after FIRE (monthly, today's ₹)",
+            "input": "currency",
+            "bind": "/plan/partTimeIncomeMonthly",
+            "help": "Barista FIRE. Leave 0 for full FIRE."
+          },
+          {
+            "id": "r.part_time_until",
+            "prompt": "Part-time income until age",
+            "input": "integer",
+            "bind": "/plan/partTimeUntilAge",
+            "showIf": {
+              "ref": "/plan/partTimeIncomeMonthly",
+              "op": "gt",
+              "value": 0
+            }
+          },
+          {
+            "id": "r.step_up",
+            "prompt": "Yearly SIP increase until FIRE",
+            "input": "percent",
+            "bind": "/plan/sipStepUp",
+            "defaultFrom": "sip.stepUp"
+          }
+        ]
+      },
+      {
+        "id": "assumptions",
+        "title": "Assumptions",
+        "weight": 10,
+        "intro": "Sensible defaults are pre-filled. Change only if you have a reason.",
+        "questions": [
+          {
+            "id": "r.assumptions",
+            "prompt": "Review inflation, returns and tax assumptions",
+            "input": "text",
+            "bind": "/assumptionOverrides",
+            "help": "Rendered as a table of rules-pack assumptions with editable overrides."
+          }
+        ]
+      }
+    ]
+  },
+  "confidence": {
+    "method": "Each answer scores by source: exact 1.0, estimate 0.6, default 0.3, missing 0. Quick-pass answers count as 'estimate' for the sections they stand in for. Score = Σ(section weight × mean answer score) ÷ Σ(weights of visible sections) × 100. Range: rerun the engine with expenses +band and corpus −band (and vice versa) to show an earliest-FIRE-age range.",
+    "sourceScores": {
+      "exact": 1.0,
+      "estimate": 0.6,
+      "default": 0.3,
+      "missing": 0.0
+    },
+    "uncertaintyBand": {
+      "exact": 0.0,
+      "estimate": 0.15,
+      "default": 0.3
+    },
+    "bands": [
+      {
+        "min": 0,
+        "label": "Rough",
+        "message": "Ballpark only. Refine expenses and investments first."
+      },
+      {
+        "min": 40,
+        "label": "Reasonable",
+        "message": "Good enough to set direction."
+      },
+      {
+        "min": 75,
+        "label": "Solid",
+        "message": "Detailed enough to plan against. Revisit yearly."
+      }
+    ]
+  },
+  "tiers": [
+    {
+      "id": "lean",
+      "label": "Lean FIRE",
+      "basis": "essentialsOnly",
+      "description": "Only categories marked essential. Needs the expenses section."
+    },
+    {
+      "id": "standard",
+      "label": "Standard FIRE",
+      "basis": "allExpenses",
+      "description": "Your current lifestyle, adjusted for post-FIRE factors."
+    },
+    {
+      "id": "fat",
+      "label": "Fat FIRE",
+      "basis": "allExpensesTimes",
+      "multiplier": 1.5,
+      "description": "Current lifestyle × Fat FIRE multiplier."
+    },
+    {
+      "id": "barista",
+      "label": "Barista FIRE",
+      "basis": "withPartTimeIncome",
+      "description": "Standard, reduced by part-time income until the chosen age."
+    },
+    {
+      "id": "coast",
+      "label": "Coast FIRE",
+      "basis": "coastToday",
+      "description": "Amount needed today so that, with no further investing, it grows into the Standard target by your FIRE age."
+    }
+  ],
+  "scenarios": [
+    {
+      "id": "base",
+      "label": "Base case",
+      "changes": {}
+    },
+    {
+      "id": "high_inflation",
+      "label": "High inflation",
+      "description": "+1% general, +2% healthcare, sustained.",
+      "changes": {
+        "generalInflationDelta": 0.01,
+        "healthInflationDelta": 0.02
+      }
+    },
+    {
+      "id": "low_returns",
+      "label": "Low returns",
+      "description": "−3% before FIRE, −2% after.",
+      "changes": {
+        "returnBeforeFireDelta": -0.03,
+        "returnAfterFireDelta": -0.02
+      }
+    },
+    {
+      "id": "crash_today",
+      "label": "Market crash today",
+      "description": "Corpus falls 30% now.",
+      "changes": {
+        "corpusShock": 0.3
+      }
+    },
+    {
+      "id": "sip_plus_25",
+      "label": "Invest 25% more",
+      "changes": {
+        "sipMultiplier": 1.25
+      }
+    },
+    {
+      "id": "retire_2_later",
+      "label": "Retire 2 years later",
+      "changes": {
+        "fireAgeDelta": 2
+      }
+    }
+  ],
+  "nudges": [
+    {
+      "id": "nps_locked",
+      "severity": "warn",
+      "section": "holdings",
+      "when": {
+        "all": [
+          {
+            "ref": "/holdings",
+            "op": "hasInstrument",
+            "value": "nps_tier1"
+          },
+          {
+            "ref": "/plan/fireTargetAge",
+            "op": "lt",
+            "value": 60
+          }
+        ]
+      },
+      "message": "NPS Tier-1 is locked until 60, so it isn't counted toward FIRE before then by default."
+    },
+    {
+      "id": "no_health_cover",
+      "severity": "critical",
+      "section": "protection",
+      "when": {
+        "ref": "/insurance/healthCover",
+        "op": "lt",
+        "value": 1500000
+      },
+      "message": "Employer health cover ends when you retire. Buy your own family floater while you are healthy."
+    },
+    {
+      "id": "no_term_with_dependents",
+      "severity": "critical",
+      "section": "protection",
+      "when": {
+        "all": [
+          {
+            "any": [
+              {
+                "ref": "/profile/hasSpouse",
+                "op": "eq",
+                "value": true
+              },
+              {
+                "ref": "/profile/children",
+                "op": "nonEmpty"
+              }
+            ]
+          },
+          {
+            "any": [
+              {
+                "ref": "/insurance/termCover",
+                "op": "missing"
+              },
+              {
+                "ref": "/insurance/termCover",
+                "op": "eq",
+                "value": 0
+              }
+            ]
+          }
+        ]
+      },
+      "message": "People depend on your income but there's no term cover."
+    },
+    {
+      "id": "emergency_short",
+      "severity": "warn",
+      "section": "holdings",
+      "when": {
+        "ref": "$emergencyShortfall",
+        "op": "gt",
+        "value": 0
+      },
+      "message": "Emergency fund is below target. Build it before increasing SIPs."
+    },
+    {
+      "id": "loan_past_fire",
+      "severity": "warn",
+      "section": "loans",
+      "when": {
+        "ref": "/liabilities",
+        "op": "nonEmpty"
+      },
+      "message": "Check each loan's end date: EMIs running past your FIRE age are added to retirement expenses."
+    },
+    {
+      "id": "ppf_maturity",
+      "severity": "info",
+      "section": "holdings",
+      "when": {
+        "ref": "/holdings",
+        "op": "hasInstrument",
+        "value": "ppf"
+      },
+      "message": "Add the PPF opening date so we can tell if it's accessible at your FIRE age."
+    },
+    {
+      "id": "endowment_policy",
+      "severity": "info",
+      "section": "holdings",
+      "when": {
+        "ref": "/holdings",
+        "op": "hasInstrument",
+        "value": "insurance_traditional"
+      },
+      "message": "Enter the surrender value, not the sum assured. Premiums belong under Expenses → Protection."
+    },
+    {
+      "id": "uninvested_surplus",
+      "severity": "info",
+      "when": {
+        "ref": "$monthlySurplus",
+        "op": "gt",
+        "value": 0
+      },
+      "message": "You have money left over each month that isn't invested, so it isn't in your plan yet."
+    },
+    {
+      "id": "low_confidence",
+      "severity": "info",
+      "when": {
+        "ref": "$confidence",
+        "op": "lt",
+        "value": 40
+      },
+      "message": "Your answer is a rough estimate. Breaking down expenses improves it the most."
+    }
+  ]
+}
