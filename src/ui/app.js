@@ -7,8 +7,11 @@ import { marketNote } from "./market.js";
 import * as store from "./store.js";
 import { evaluatePlan, evaluate, getPointer, setPointer, ageAt } from "../engine/index.js";
 
-const APP_VERSION = "0.2.0";
-const PACK_URL = "rules/in.2026.1.json";
+const APP_VERSION = "0.3.0";
+// Replaced with the commit id at deploy time; also appended to every file URL so browsers
+// fetch the new version right after a deploy instead of reusing a cached copy.
+const BUILD = "dev";
+const PACK_URL = `rules/in.2026.1.json?v=${BUILD}`;
 const S = { pack: null, user: null, result: null, error: null, passphrase: null };
 const app = document.getElementById("app");
 const live = h("div", { class: "live", "aria-live": "polite" });
@@ -74,7 +77,7 @@ function header() {
 function footer() {
   return h("footer", { class: "foot" },
     h("p", {}, "Your plan stays on this device. It's saved in this browser and in the file you download. Nothing is uploaded: no accounts, no analytics."),
-    h("p", { class: "muted" }, `A planning tool, not investment, tax or legal advice. Rules pack ${S.pack?.packId}.${S.pack?.packVersion} (${S.pack?.effectiveFrom || "FY2025-26"}). App v${APP_VERSION}. `,
+    h("p", { class: "muted" }, `A planning tool, not investment, tax or legal advice. Rules pack ${S.pack?.packId}.${S.pack?.packVersion} (${S.pack?.effectiveFrom || "FY2025-26"}). App v${APP_VERSION} (build ${BUILD}). `,
       h("a", { href: "https://github.com/AnoopkumarNair/FindMyFIRE", rel: "noopener" }, "Source code")));
 }
 
@@ -426,7 +429,7 @@ function recordCheckIn() {
 
 async function loadExample() {
   if (S.user?.profile?.birthYearMonth && !(await confirmBox("Replace your current plan in this browser with an example? Save your file first if you want to keep it."))) return;
-  const ex = await (await fetch("examples/user-detailed.example.json")).json();
+  const ex = await (await fetch(`examples/user-detailed.example.json?v=${BUILD}`)).json();
   ex.$schema = "https://fire-in.local/schemas/user-file.schema.json";
   S.user = ex;
   S.passphrase = null;
