@@ -103,6 +103,18 @@ async function load({ manifestUrl, modelId, variant }) {
   const oldSafari = v.device === "wasm" && /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
   const wasm = `${VENDOR}ort/ort-wasm-simd-threaded${oldSafari ? "" : ".asyncify"}`;
   onnx.wasm.wasmPaths = { mjs: `${wasm}.mjs${BUST}`, wasm: `${wasm}.wasm${BUST}` };
+  // Laptops with two GPUs (Intel + NVIDIA/AMD): ask for the faster one. Fall back to the
+  // default if it can't run this build (e.g. no 16-bit maths).
+  let gpu = null;
+  if (String(v.device).startsWith("webgpu") && self.navigator?.gpu) {
+    const needF16 = /f16/.test(v.dtype || "");
+    for (const opts of [{ powerPreference: "high-performance" }, undefined]) {
+      let a = null;
+      try { a = await navigator.gpu.requestAdapter(opts); } catch { a = null; }
+      if (a && (!needF16 || a.features.has("shader-f16"))) { onnx.webgpu.adapter = a; gpu = a.info || null; break; }
+    }
+    onnx.webgpu.powerPreference = "high-performance";
+  }
   onnx.wasm.numThreads = 1; // threads need cross-origin isolation, which static hosting can't give
   onnx.wasm.proxy = false;
 
@@ -113,7 +125,8 @@ async function load({ manifestUrl, modelId, variant }) {
   loaded = { key: `${modelId}/${variant}`, tokenizer, lm, chat: model.chat || {} };
   // One tiny run compiles the GPU shaders now rather than on the first question.
   await generate({ id: "warmup", messages: [{ role: "user", content: "Hi" }], maxTokens: 1, quiet: true });
-  post({ type: "loaded", ms: Math.round(performance.now() - t0) });
+  post({ type: "loaded", ms: Math.round(performance.now() - t0),
+    gpu: gpu ? [gpu.vendor, gpu.architecture, gpu.description].filter(Boolean).join(" ").trim() || null : null });
 }
 
 async function generate({ id, messages, maxTokens = 140, quiet = false }) {

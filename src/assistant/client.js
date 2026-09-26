@@ -31,12 +31,12 @@ function getWorker() {
     else if (m.type === "downloaded") { keep({ ...load(), status: "downloaded" }); set({ status: "downloaded", done: m.bytes, total: m.bytes }); }
     else if (m.type === "paused") { keep({ ...load(), status: "paused" }); set({ status: "paused" }); }
     else if (m.type === "checked") {
-      if (m.complete) set({ status: "downloaded" });
+      if (m.complete) { set({ status: "downloaded" }); if (wantPreload) preload(); }
       else if (load().status === "downloading") resume();
       else set({ status: "paused" });
     }
     else if (m.type === "loading") set({ status: "loading", message: m.file || "" });
-    else if (m.type === "loaded") { keep({ ...load(), loadingSince: null }); set({ status: "ready" }); loadWaiters.splice(0).forEach((w) => w.res()); }
+    else if (m.type === "loaded") { keep({ ...load(), loadingSince: null }); set({ status: "ready", gpu: m.gpu || null }); loadWaiters.splice(0).forEach((w) => w.res()); }
     else if (m.type === "removed") {
       keep({});
       set(tooBigHere(state.total) ? { status: "unavailable", message: TOO_BIG(state.total), done: 0 } : { status: "none", done: 0 });
@@ -93,7 +93,8 @@ async function pickVariant(model) {
   } else {
     let adapter = null;
     // Some laptops only answer for a specific GPU (dual-graphics machines), so ask three ways.
-    for (const opts of [undefined, { powerPreference: "high-performance" }, { powerPreference: "low-power" }]) {
+    // The faster GPU first (the same one the worker will use), then whatever the browser offers.
+    for (const opts of [{ powerPreference: "high-performance" }, undefined, { powerPreference: "low-power" }]) {
       try { adapter = await navigator.gpu.requestAdapter(opts); } catch { adapter = null; }
       if (adapter) break;
     }
@@ -178,6 +179,17 @@ export function ensureLoaded() {
       getWorker().postMessage({ type: "load", manifestUrl, modelId: state.model.id, variant: state.variant });
     }
   });
+}
+
+/**
+ * Loads a downloaded model in the background (called when the results page opens), so the
+ * first question doesn't wait for it. Never downloads anything, and skips a model that
+ * crashed the tab last time.
+ */
+let wantPreload = false;
+export function preload() {
+  wantPreload = true; // if the start-up check hasn't finished yet, load when it does
+  if (state.status === "downloaded") { wantPreload = false; ensureLoaded().catch(() => { /* shown in the status line */ }); }
 }
 
 /** The interface answer.js expects. */

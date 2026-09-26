@@ -58,7 +58,7 @@ function engineStatus(s, opts = statusOpts) {
       // Just a small tag once it's on; removing it sits behind a disclosure.
       body = [h("details", { class: "ai-on" },
         h("summary", {}, h("span", { class: "spark", "aria-hidden": "true" }, "✦ "), "AI on (beta)"),
-        h("span", { class: "muted small" }, ` ${label}, running on this device's ${s.device}. `),
+        h("span", { class: "muted small" }, ` ${label}, running on this device's ${s.device}${s.gpu ? ` (${s.gpu})` : ""}. `),
         btn(`Remove (frees ${size})`, () => opts.confirmRemove(s)))];
       break;
     case "crashed":
@@ -204,5 +204,8 @@ export function askCard(opts) {
     h("div", { class: "chips starters" }, ...starters.map((q) => h("button", { type: "button", class: "chip", onMousedown: (e) => e.preventDefault(), onClick: () => ask(q, opts) }, q))),
     threadEl);
   queueMicrotask(() => drawThread(opts));
+  // Warm the AI up while the person reads their result, so the first answer is quick.
+  const warm = () => { if (el.isConnected) ai.preload(); };
+  if ("requestIdleCallback" in window) requestIdleCallback(warm, { timeout: 3000 }); else setTimeout(warm, 1500);
   return el;
 }
