@@ -2088,7 +2088,7 @@
         "op": "hasInstrument",
         "value": "ppf"
       },
-      "message": "Add the PPF opening date so we can tell if it's accessible at your FIRE age."
+      "message": "Add the PPF opening date to see whether it's accessible at your FIRE age."
     },
     {
       "id": "endowment_policy",

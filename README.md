@@ -109,6 +109,13 @@ The deploy workflow runs `scripts/fetch-market-data.mjs` at every deploy and wee
 - Every tax item or administered rate that changes with Budgets or EPFO/PFRDA notices has `verify: true`. Re-check them all when publishing a new pack version.
 - User files carry `schemaVersion` and `rulesPackVersion`, so the app can migrate old files forward. Never mutate a published pack; ship `in.2027.1.json`.
 
+## Design
+
+- Type: [Bricolage Grotesque](https://github.com/ateliertriay/bricolage) for headlines and numbers, [Plus Jakarta Sans](https://github.com/tokotype/PlusJakartaSans) for text. Both are SIL Open Font License, self-hosted in `src/ui/fonts/` with their licences, and subset to Latin + Latin Extended (which carries ₹).
+- Illustrations are small duotone SVGs drawn in code (`src/ui/art.js`), themed by CSS, with no image files.
+- The share card (`src/ui/share.js`) is drawn on a canvas on the user's device and handed to the share sheet or downloaded. Amounts appear only if ticked.
+- All motion respects `prefers-reduced-motion`.
+
 ## Privacy rules for the app
 
 - Static hosting only.

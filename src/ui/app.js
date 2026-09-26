@@ -4,10 +4,12 @@ import { inr, inrShort, pct, age1, monthAtAge } from "./format.js";
 import { corpusChart } from "./chart.js";
 import { sectionEditor } from "./editors.js";
 import { marketNote } from "./market.js";
+import { art, questionArt } from "./art.js";
+import { openShareDialog } from "./share.js";
 import * as store from "./store.js";
 import { evaluatePlan, evaluate, getPointer, setPointer, ageAt } from "../engine/index.js";
 
-const APP_VERSION = "0.5.0";
+const APP_VERSION = "0.6.0";
 // Replaced with the commit id at deploy time; also appended to every file URL so browsers
 // fetch the new version right after a deploy instead of reusing a cached copy.
 const BUILD = "dev";
@@ -23,8 +25,12 @@ function ready(u) {
 }
 
 function recompute() {
+  const before = S.result;
   try {
     S.result = ready(S.user) ? evaluatePlan(S.user, S.pack) : null;
+    // A change that moves the plan from short to on track for the same target deserves a moment.
+    if (before && S.result && before.target.age === S.result.target.age && before.target.gap < 0 && S.result.target.gap >= 0)
+      celebrate(`You're on track for ${S.result.target.age}!`);
     S.error = null;
   } catch (e) {
     S.result = null;
@@ -124,8 +130,8 @@ function welcomeView() {
        h("a", { href: "#/quick/0", class: "btn big ghost" }, "Change my answers")]
     : [h("button", { type: "button", class: "btn primary big", onClick: start }, "Find my FIRE age →"),
        h("button", { type: "button", class: "btn big ghost", onClick: loadExample }, "See an example")];
-  const step = (num, title, text) => h("li", { class: "step" }, h("span", { class: "num" }, num), h("h3", {}, title), h("p", {}, text));
-  const feature = (ic, title, text) => h("li", { class: "feature" }, h("span", { class: "ficon", "aria-hidden": "true" }, ic), h("h3", {}, title), h("p", {}, text));
+  const step = (num, pic, title, text) => h("li", { class: "step" }, h("div", { class: "step-art" }, art(pic), h("span", { class: "num" }, num)), h("h3", {}, title), h("p", {}, text));
+  const feature = (ic, title, text) => h("li", { class: "feature" }, h("span", { class: "ficon" }, art(ic)), h("h3", {}, title), h("p", {}, text));
   const faq = (q, a) => h("details", { class: "faq" }, h("summary", {}, q), h("p", {}, a));
   return h("div", { class: "landing" },
     h("section", { class: "landing-hero" },
@@ -141,25 +147,25 @@ function welcomeView() {
     h("section", { class: "band" },
       h("h2", {}, "How it works"),
       h("ol", { class: "steps" },
-        step("1", "Tell us the basics", "Your age, what you earn, spend and have saved. Round numbers are fine; you can sharpen them later."),
-        step("2", "See your FIRE age", "And how sure it is. We test your plan against a thousand possible market futures, not one lucky guess."),
-        step("3", "Get your plan", "What to invest this year, when to build a cash cushion, and how much to take out each month once you stop."))),
+        step("1", "pen", "Enter the basics", "Your age, what you earn, spend and have saved. Round numbers are fine; sharpen them later."),
+        step("2", "target", "See your FIRE age", "And how sure it is. Your plan is tested against a thousand possible market futures, right on your device."),
+        step("3", "path", "Get your plan", "What to invest this year, when to build a cash cushion, and how much to take out each month once you stop."))),
 
     h("section", { class: "band" },
       h("h2", {}, "It counts what other calculators leave out"),
       h("ul", { class: "features" },
-        feature("🏦", "EPF, PPF and NPS", "Including money that's locked until 58 or 60, and when it actually becomes yours."),
-        feature("🏠", "Your property", "Rent it earns, what it costs to keep, and a sale in any year you choose."),
-        feature("🩺", "Health cover after work", "Your employer's policy ends when you stop. We plan for the premiums that rise every year after."),
-        feature("🧾", "Tax on withdrawals", "Worked out every year under the new regime, not a flat guess."),
-        feature("🎁", "Money coming in", "Gratuity, policy payouts, an inheritance: dated, taxed, and put to work."),
-        feature("📉", "A crash at the worst time", "What happens if markets fall right after you stop, the risk that sinks most plans."))),
+        feature("pillars", "EPF, PPF and NPS", "Including money that's locked until 58 or 60, and when it actually becomes yours."),
+        feature("house", "Your property", "Rent it earns, what it costs to keep, and a sale in any year you choose."),
+        feature("health", "Health cover after work", "Your employer's policy ends when you stop. The plan includes the premiums that rise every year after."),
+        feature("receipt", "Tax on withdrawals", "Worked out every year under the new regime, not a flat guess."),
+        feature("gift", "Money coming in", "Gratuity, policy payouts, an inheritance: dated, taxed, and put to work."),
+        feature("umbrella", "A crash at the worst time", "What happens if markets fall right after you stop, the risk that sinks most plans."))),
 
     h("section", { class: "band privacy" },
       h("div", {},
         h("h2", {}, "Your numbers stay with you"),
         h("p", {}, "Nothing you type is sent anywhere: no account, no tracking, no server that stores your data. Your plan lives in this browser. Download it as a file, lock it with a passphrase if you like, and open it here any time.")),
-      h("div", { class: "lock", "aria-hidden": "true" }, "🔒")),
+      h("div", { class: "lock" }, art("lock"))),
 
     h("section", { class: "band" },
       h("h2", {}, "Questions people ask"),
@@ -212,6 +218,7 @@ function icon(name) {
     chart: "M4 19h16M6 16l4-5 3 3 5-7",
     save: "M12 4v11m0 0l-4-4m4 4l4-4M5 20h14",
     open: "M12 20V9m0 0l-4 4m4-4l4 4M5 4h14",
+    share: "M8 12l8-5M8 12l8 5M18 6a2 2 0 1 0 0-.01M18 18a2 2 0 1 0 0-.01M6 12a2 2 0 1 0 0-.01",
   };
   return h("svg:svg", { viewBox: "0 0 24 24", class: "ic", "aria-hidden": "true" },
     h("svg:path", { d: paths[name], fill: "none", stroke: "currentColor", "stroke-width": 2, "stroke-linecap": "round", "stroke-linejoin": "round" }));
@@ -313,6 +320,7 @@ function quickView(i) {
     h("div", { class: "progress", role: "progressbar", "aria-valuemin": 0, "aria-valuemax": qs.length, "aria-valuenow": i + 1 },
       h("span", { class: "bar" }, h("span", { class: "fill", "data-w": (i + 1) / qs.length, "data-from": fromW })),
       h("span", { class: "muted" }, `Question ${i + 1} of ${qs.length}`)),
+    h("div", { class: "q-art" }, art(questionArt[q.id])),
     h("h1", { tabindex: -1 }, q.prompt),
     q.help ? h("p", { class: "help" }, q.help) : null,
     h("div", { class: "answer" }, ctl),
@@ -352,8 +360,10 @@ function resultsView() {
         : r.range.to == null ? "With pessimistic readings of your answers it may not be reachable." : "")
       : h("p", { class: "sub" }, "With current savings and spending, the corpus doesn't catch up with what you'd need. Try the levers below."),
     chanceStrip(r),
-    h("p", { class: ["verdict", ahead ? "good" : "warn"] },
-      ahead ? `✓ On track for your target of ${t.age}` : `Your target is ${t.age}: ${pct(t.funded, 0)} funded by then`));
+    h("div", { class: "hero-actions" },
+      h("p", { class: ["verdict", ahead ? "good" : "warn"] },
+        ahead ? `✓ On track for your target of ${t.age}` : `Your target is ${t.age}: ${pct(t.funded, 0)} funded by then`),
+      reached ? h("button", { type: "button", class: "btn small share-btn", onClick: () => openShareDialog(r) }, icon("share"), "Share my FIRE age") : null));
 
   const kpis = h("div", { class: "kpis" },
     kpi(`Corpus needed at ${t.age}`, inrShort(t.required), lumpsAtFire(r) > 0
@@ -585,7 +595,7 @@ function assumptionsSummary(r) {
 function snapshotsCard() {
   const snaps = S.user.snapshots || [];
   return card("Check-ins",
-    h("p", { class: "muted small" }, "Record a check-in every few months to see progress over time. It's stored in your plan file."),
+    h("p", { class: "muted small" }, "Record a check-in every few months to see progress over time. It's saved in your plan file, on your device."),
     snaps.length ? h("div", { class: "table-wrap" }, h("table", {},
       h("thead", {}, h("tr", {}, h("th", {}, "Date"), h("th", { class: "num" }, "FIRE corpus"), h("th", { class: "num" }, "Net worth"), h("th", { class: "num" }, "Earliest age"), h("th", { class: "num" }, "Confidence"))),
       h("tbody", {}, ...snaps.map((s) => h("tr", {}, h("td", {}, s.date), h("td", { class: "num" }, inrShort(s.fireCorpus)),
@@ -733,6 +743,27 @@ new MutationObserver(() => {
     for (const el of fresh) el.style.width = clamp01(el.dataset.w);
   }));
 }).observe(app, { childList: true, subtree: true });
+
+/** A sun that rises, a burst of confetti and a short message. Motion is skipped if the user prefers less. */
+function celebrate(message) {
+  const calm = matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const colors = ["var(--sun)", "var(--accent)", "var(--series-3)", "var(--series-2)"];
+  const bits = calm ? [] : Array.from({ length: 36 }, (_, i) => {
+    const el = h("span", { class: "confetti" });
+    el.style.setProperty("--x", `${(Math.random() - 0.5) * 520}px`);
+    el.style.setProperty("--y", `${-160 - Math.random() * 260}px`);
+    el.style.setProperty("--r", `${Math.random() * 720 - 360}deg`);
+    el.style.setProperty("--d", `${Math.random() * 0.25}s`);
+    el.style.background = colors[i % colors.length];
+    return el;
+  });
+  const layer = h("div", { class: "celebrate", role: "status" },
+    calm ? null : h("div", { class: "burst" }, h("span", { class: "sun" }), ...bits),
+    h("div", { class: "toast" }, h("strong", {}, "🎉 ", message), h("span", {}, " Nice work.")));
+  document.body.append(layer);
+  setTimeout(() => layer.classList.add("out"), 3200);
+  setTimeout(() => layer.remove(), 3800);
+}
 
 // ---------------- boot ----------------
 async function boot() {
