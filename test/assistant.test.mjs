@@ -288,3 +288,21 @@ test("reasoning that leaks into a reply is never shown", async () => {
     assert.match(a.problem.why, /reasoning/);
   }
 });
+
+test("rupees written after the number are still an amount", async () => {
+  const { amountIn } = await import("../src/assistant/parse.js");
+  assert.equal(amountIn("What if I invest 20,000Rs more per month."), 20000);
+  assert.equal(amountIn("invest 20000 Rs. more"), 20000);
+  assert.equal(amountIn("invest 15000 rupees more"), 15000);
+  assert.equal(amountIn("invest 20,000/- more a month"), 20000);
+});
+
+test("every suggested question goes to the right answer", async () => {
+  const { route } = await import("../src/assistant/router.js");
+  const expect = {
+    "Why this age?": "why_age", "Will my money last?": "chance", "What if I invest ₹10k more a month?": "what_if",
+    "What would it take to stop at 47?": "solve_for", "How does the money come out after FIRE?": "withdraw",
+    "What if I invest 20,000Rs more per month.": "what_if", "what does SWP mean?": "term", "what is FIRE?": "term",
+  };
+  for (const [q, intent] of Object.entries(expect)) assert.equal(route(q, {}).intent, intent, q);
+});

@@ -5,7 +5,8 @@ const UNIT = { k: 1e3, thousand: 1e3, l: 1e5, lakh: 1e5, lakhs: 1e5, lac: 1e5, l
 const num = (s) => Number(String(s).replace(/,/g, ""));
 
 // A money amount: ₹/Rs prefix and/or a unit suffix (10k, 1.5 lakh, ₹2 Cr, ₹45,000).
-const MONEY = /(?:(₹|rs\.?|inr)\s*)?(\d[\d,]*(?:\.\d+)?)\s*(k|thousand|lakhs?|lacs?|l|crores?|cr)?\b/gi;
+// "20,000Rs", "20000 rupees" and "20,000/-" are rupees too (the currency written after).
+const MONEY = /(?:(₹|rs\.?|inr)\s*)?(\d[\d,]*(?:\.\d+)?)\s*(k|thousand|lakhs?|lacs?|l|crores?|cr|rs\b\.?|rupees?\b|inr\b|\/-)?(?:\b|(?<=[.\/-])|$)/gi;
 const PERCENT = /(\d+(?:\.\d+)?)\s*(?:%|percent\b|per cent\b)/gi;
 
 const ONES = ["zero", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine", "ten", "eleven", "twelve",
@@ -31,7 +32,7 @@ export function numbersIn(text) {
     const [, cur, digits, unit] = m;
     // A bare number right after a letter (e.g. "Q3", "v2") isn't a quantity.
     if (!cur && start > 0 && /[a-z]/i.test(s[start - 1])) continue;
-    const value = num(digits) * (unit ? UNIT[unit.toLowerCase()] : 1);
+    const value = num(digits) * (unit ? UNIT[unit.toLowerCase()] ?? 1 : 1);
     if (cur || unit) out.push({ kind: "money", value, raw: m[0].trim() });
     else out.push({ kind: "plain", value, raw: m[0].trim() });
   }

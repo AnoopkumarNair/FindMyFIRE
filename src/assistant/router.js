@@ -103,9 +103,13 @@ export function route(text, ctx = {}) {
   if (has(t, /\b(fire age|earliest|when can i|how soon|what age|this age|my age|so late|so early|later than|pushes? .*back|pushing|driving|drives|holding me back|what'?s? delaying|delay|my date|that date|not earlier|why not sooner)\b/)) add("why_age", 1.5);
   if (has(t, /\b(chance|chances|likely|likelihood|probability|risk|risky|safe|safer|sure|monte carlo|simulat|crash|bad market|9 in 10|3 in 4|odds|confident|lasts?|run out|running out|runs out|worry|worried|wreck|collapse|go broke|outlive)\b/)) add("chance", 1.6);
   if (has(t, /\b(corpus|how much (do i|will i|money)|need to have|target amount|pays? for|made up of|breakdown|break down|number i need|big number|so huge|so big|so high|so much money|all that money|where does (all )?(that|the) money go)\b/)) add("corpus", 1.6);
-  if (has(t, /\b(swp|withdraw|withdrawal|withdrawals|bucket|buckets|draw ?down|monthly income after|after (i )?retire|pension|take out|tax after|pay myself|salary stops|cash ?flow|income in retirement|live off|paycheck)\b/)) add("withdraw", 1.6);
+  const withdrawing = has(t, /\b(swp|withdraw|withdrawal|withdrawals|bucket|buckets|draw ?down|monthly income after|after (i )?retire|pension|take out|tax after|pay myself|salary stops|cash ?flow|income in retirement|live off|paycheck|(come|comes|coming|get|take|draw) (the )?money out|money (come|comes|coming) out|draw from)\b/) ||
+    has(t, /\bmoney\b.*\b(come|comes|coming) out\b/);
+  if (withdrawing) add("withdraw", 2.4);
   if (has(t, /\b(on track|how am i doing|summary|summarise|summarize|overview|big picture|am i ok|am i okay|am i (doing )?(alright|fine|good)|status|gist|tl;?dr|explain my (plan|result))\b/)) add("summary", 2);
-  if (term && has(t, /\b(what is|what's|whats|what are|meaning|mean|means|define|explain|how does|how do)\b/) && !has(t, /\bmy\b/)) add("term", 2.2);
+  // "How does the money come out after FIRE?" asks about withdrawals, not what "FIRE" means.
+  if (term && has(t, /\b(what is|what's|whats|what are|meaning|mean|means|define|stands? for)\b/) && !has(t, /\bmy\b/)) add("term", 2.6);
+  else if (term && !withdrawing && has(t, /\b(explain|how does|how do)\b/) && !has(t, /\bmy\b/)) add("term", 2.2);
   else if (term) add("term", 0.6);
 
   const ranked = Object.entries(scores).sort((a, b) => b[1] - a[1]);

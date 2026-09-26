@@ -9,6 +9,9 @@ import { CACHE_NAME, download, isComplete, storedFile, variantBytes, prune } fro
 const MODEL_HOST = "https://fmf-model.invalid/";
 const HF_CDN = ["https://cdn-lfs.hf.co", "https://cdn-lfs-us-1.hf.co", "https://cas-bridge.xethub.hf.co"];
 const VENDOR = new URL("../../vendor/", import.meta.url).href;
+// The deploy adds ?v=<build> to this worker's own URL. Reusing it on the runtime files means a
+// new deploy never gets an old cached copy (or an old cached "not found") from the browser or CDN.
+const BUST = new URL(import.meta.url).search;
 let manifest = null, allowedOrigins = [self.location.origin];
 
 const realFetch = self.fetch.bind(self);
@@ -72,8 +75,15 @@ async function load({ manifestUrl, modelId, variant }) {
   if (loaded?.key === `${modelId}/${variant}`) { post({ type: "loaded" }); return; }
   const cache = await caches.open(CACHE_NAME);
   if (!T) {
-    try { T = await import(`${VENDOR}transformers/transformers.min.js`); }
-    catch { throw new Error("this site was published without the AI runtime files; the site owner needs to redeploy it"); }
+    const url = `${VENDOR}transformers/transformers.min.js${BUST}`;
+    try { T = await import(url); }
+    catch (e) {
+      // Say which it is: the file isn't there, or it's there but won't run.
+      let status = 0;
+      try { status = (await self.fetch(url, { method: "HEAD", cache: "no-store" })).status; } catch { /* offline */ }
+      throw new Error(status === 404 ? "the AI runtime files are missing from this site; it needs redeploying"
+        : status === 200 ? `the AI runtime didn't start: ${e?.message || e}` : "the AI runtime couldn't be downloaded; check your connection");
+    }
   }
   const E = T.env;
   E.allowLocalModels = false;
@@ -92,7 +102,7 @@ async function load({ manifestUrl, modelId, variant }) {
   // The asyncify build runs both GPU and CPU; Safari before 26 (no WebGPU) needs the plain build.
   const oldSafari = v.device === "wasm" && /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
   const wasm = `${VENDOR}ort/ort-wasm-simd-threaded${oldSafari ? "" : ".asyncify"}`;
-  onnx.wasm.wasmPaths = { mjs: `${wasm}.mjs`, wasm: `${wasm}.wasm` };
+  onnx.wasm.wasmPaths = { mjs: `${wasm}.mjs${BUST}`, wasm: `${wasm}.wasm${BUST}` };
   onnx.wasm.numThreads = 1; // threads need cross-origin isolation, which static hosting can't give
   onnx.wasm.proxy = false;
 
