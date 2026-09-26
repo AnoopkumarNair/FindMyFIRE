@@ -104,6 +104,6 @@ export function art(name) {
 
 /** Illustration for each quick-pass question. */
 export const questionArt = {
-  "q.birth": "birthday", "q.fire_age": "sunrise", "q.plan_until": "hourglass", "q.take_home": "wallet",
+  "q.ages": "birthday", "q.birth": "birthday", "q.fire_age": "sunrise", "q.plan_until": "hourglass", "q.take_home": "wallet",
   "q.expenses": "basket", "q.emi": "housekey", "q.corpus": "jar", "q.sip": "seedling", "q.epf": "pillars",
 };

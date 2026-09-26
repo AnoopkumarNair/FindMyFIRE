@@ -59,7 +59,9 @@ for (const f of rulesFiles) {
     derived: r.derived.map((d) => d.name),
     section: r.questionFlow.refine.map((s) => s.id),
   };
-  const questions = [r.questionFlow.quick, ...r.questionFlow.refine].flatMap((s) => s.questions);
+  // A group asks several questions on one screen; its fields are questions too.
+  const withFields = (qs) => qs.flatMap((q) => (q.fields ? [q, ...q.fields] : [q]));
+  const questions = [r.questionFlow.quick, ...r.questionFlow.refine].flatMap((s) => withFields(s.questions));
   ids.question = questions.map((q) => q.id);
   for (const [k, list] of Object.entries(ids))
     dupes(list).forEach((d) => fail(file, `duplicate ${k} id '${d}'`));
@@ -91,7 +93,8 @@ for (const f of rulesFiles) {
   for (const s of [r.questionFlow.quick, ...r.questionFlow.refine]) {
     walkCond(`section ${s.id}`, s.showIf);
     (s.replacesQuick || []).forEach((p) => checkRef(`section ${s.id}.replacesQuick`, p));
-    for (const q of s.questions) {
+    for (const q of withFields(s.questions)) {
+      if (q.input === "group") { walkCond(`question ${q.id}.showIf`, q.showIf); continue; }
       checkRef(`question ${q.id}.bind`, q.bind);
       walkCond(`question ${q.id}.showIf`, q.showIf);
       if (q.defaultFrom && !ids.assumption.includes(q.defaultFrom)) fail(file, `question ${q.id}: unknown defaultFrom ${q.defaultFrom}`);

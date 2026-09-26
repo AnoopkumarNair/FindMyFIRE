@@ -9,7 +9,7 @@ export function confidence(user, pack, derived = {}) {
   const { sourceScores: S, bands } = pack.confidence;
   const prov = user.provenance || {};
   const done = new Set(user.sectionsDone || []);
-  const quickBinds = new Set(pack.questionFlow.quick.questions.map((q) => q.bind));
+  const quickBinds = new Set(pack.questionFlow.quick.questions.flatMap((q) => (q.fields || [q]).map((f) => f.bind)));
   const mean = (xs) => (xs.length ? xs.reduce((a, b) => a + b, 0) / xs.length : 0);
 
   const sections = [];

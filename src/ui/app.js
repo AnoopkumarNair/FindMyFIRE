@@ -309,41 +309,49 @@ function quickView(i) {
   const qs = S.pack.questionFlow.quick.questions.filter((q) => evaluate(q.showIf, u));
   i = Math.min(Math.max(0, i), qs.length - 1);
   const q = qs[i];
-  const value = getPointer(u, q.bind);
+  // A group asks several short questions (the three ages) on one screen.
+  const fields = q.input === "group" ? q.fields : [q];
   const prov = (u.provenance ||= {});
   const err = h("p", { class: "error", role: "alert" });
 
-  const set = (v) => {
-    setPointer(u, q.bind, v);
-    if (q.input === "currency") prov[q.bind] ||= "estimate";
-    else prov[q.bind] = "exact";
+  const setter = (f) => (v) => {
+    setPointer(u, f.bind, v);
+    if (f.input === "currency") prov[f.bind] ||= "estimate";
+    else prov[f.bind] = "exact";
     save();
   };
-  const valid = () => {
-    const v = getPointer(u, q.bind);
-    if (q.input === "multiselect") return v?.length ? null : "Pick at least one.";
-    if (v == null || v === "") return q.defaultFrom ? null : "Please answer, or use a rough number.";
-    if (q.input === "yearMonth" || q.input === "age") {
+  const validOne = (f) => {
+    const v = getPointer(u, f.bind);
+    const who = fields.length > 1 ? `${f.prompt}: ` : "";
+    if (f.input === "multiselect") return v?.length ? null : "Pick at least one.";
+    if (v == null || v === "") return f.defaultFrom ? null : fields.length > 1 ? `${who}please fill this in.` : "Please answer, or use a rough number.";
+    if (f.input === "yearMonth" || f.input === "age") {
       const a = ageAt(v, new Date());
-      if (q.input === "age") return a < q.min || a >= q.max + 1 ? `Enter an age from ${q.min} to ${q.max}.` : null;
+      if (f.input === "age") return a < f.min || a >= f.max + 1 ? `${who}enter an age from ${f.min} to ${f.max}.` : null;
       return a < 16 || a > 90 ? "That birth date gives an age outside 16–90." : null;
     }
-    if (q.min != null && v < q.min) return `At least ${q.min}.`;
-    if (q.max != null && v > q.max) return `At most ${q.max}.`;
-    if (q.bind === "/plan/fireTargetAge" && u.profile.birthYearMonth && v <= ageAt(u.profile.birthYearMonth, new Date()))
-      return "Pick an age later than your current age.";
-    if (q.bind === "/plan/planUntilAge" && u.plan.fireTargetAge && v <= u.plan.fireTargetAge)
+    if (f.min != null && v < f.min) return `${who}at least ${f.min}.`;
+    if (f.max != null && v > f.max) return `${who}at most ${f.max}.`;
+    if (f.bind === "/plan/fireTargetAge" && u.profile.birthYearMonth && v <= ageAt(u.profile.birthYearMonth, new Date()))
+      return "Pick a stopping age later than your current age.";
+    if (f.bind === "/plan/planUntilAge" && u.plan.fireTargetAge && v <= u.plan.fireTargetAge)
       return `Pick an age after your FIRE age (${u.plan.fireTargetAge}).`;
+    return null;
+  };
+  const valid = () => {
+    for (const f of fields) { const e = validOne(f); if (e) return e.charAt(0).toUpperCase() + e.slice(1); }
     return null;
   };
   const next = () => {
     const e = valid();
     if (e) { err.textContent = e; return; }
-    if (q.defaultFrom && getPointer(u, q.bind) == null) {
-      // Skipped: keep the rules-pack default and mark it as such (lowers confidence a little).
-      setPointer(u, q.bind, defaultOf(q));
-      prov[q.bind] = "default";
-      persist();
+    for (const f of fields) {
+      if (f.defaultFrom && getPointer(u, f.bind) == null) {
+        // Skipped: keep the rules-pack default and mark it as such (lowers confidence a little).
+        setPointer(u, f.bind, defaultOf(f));
+        prov[f.bind] = "default";
+        persist();
+      }
     }
     // This answer may switch a follow-up question on (or off), so look again.
     const now = S.pack.questionFlow.quick.questions.filter((x) => evaluate(x.showIf, u));
@@ -353,11 +361,23 @@ function quickView(i) {
   };
 
   const defaultOf = (x) => S.pack.assumptions.find((a) => a.id === x.defaultFrom)?.value;
-  const opts = { autofocus: true, options: q.options, min: q.min, max: q.max, exclusive: ["none"],
-    placeholder: q.defaultFrom ? String(defaultOf(q)) : undefined };
-  const ctl = q.input === "age"
-    ? control("integer", value ? Math.floor(ageAt(value, new Date())) : undefined, (a) => set(a == null ? undefined : birthMonthForAge(a, value)), opts)
-    : control(q.input === "integer" ? "integer" : q.input, value, set, opts);
+  const controlFor = (f, extra = {}) => {
+    const value = getPointer(u, f.bind);
+    const opts = { autofocus: f === fields[0], options: f.options, min: f.min, max: f.max, exclusive: ["none"],
+      placeholder: f.defaultFrom ? String(defaultOf(f)) : undefined, ...extra };
+    return f.input === "age"
+      ? control("integer", value ? Math.floor(ageAt(value, new Date())) : undefined, (a) => setter(f)(a == null ? undefined : birthMonthForAge(a, value)), opts)
+      : control(f.input === "integer" ? "integer" : f.input, value, setter(f), opts);
+  };
+  const ctl = fields.length === 1 ? controlFor(q)
+    : h("div", { class: "field-group" }, ...fields.map((f) => {
+      const id = `f-${f.id.replace(/\W/g, "-")}`, hid = `${id}-help`;
+      return h("div", { class: "group-field" },
+        h("label", { for: id }, f.prompt),
+        controlFor(f, { id, describedBy: f.help ? hid : undefined }),
+        f.help ? h("p", { class: "muted small", id: hid }, f.help) : null,
+        f.defaultFrom ? h("p", { class: "muted small" }, `Leave blank to use ${defaultOf(f)}.`) : null);
+    }));
   const certainty = q.input === "currency"
     ? h("div", { class: "certainty" }, h("span", { class: "muted" }, "How sure are you?"),
         h("span", { class: "seg" }, ...[["exact", "Exact"], ["estimate", "Rough estimate"]].map(([k, label]) =>
@@ -369,7 +389,15 @@ function quickView(i) {
   const dir = (S.lastQuick ?? -1) <= i ? "fwd" : "back";
   const fromW = S.lastQuick == null ? 0 : (S.lastQuick + 1) / qs.length;
   S.lastQuick = i;
-  return h("section", { class: ["wizard", dir], onKeydown: (e) => { if (e.key === "Enter" && e.target.tagName === "INPUT") { e.target.blur(); next(); } } },
+  return h("section", { class: ["wizard", dir], onKeydown: (e) => {
+    if (e.key !== "Enter" || e.target.tagName !== "INPUT") return;
+    e.preventDefault();
+    // In a group, Enter moves to the next empty box; on the last one it goes on.
+    const boxes = [...e.currentTarget.querySelectorAll(".answer input")];
+    const later = boxes.slice(boxes.indexOf(e.target) + 1).find((b) => b.value === "");
+    if (later) { later.focus(); return; }
+    e.target.blur(); next();
+  } },
     h("div", { class: "progress", role: "progressbar", "aria-valuemin": 0, "aria-valuemax": qs.length, "aria-valuenow": i + 1 },
       h("span", { class: "bar" }, h("span", { class: "fill", "data-w": (i + 1) / qs.length, "data-from": fromW })),
       h("span", { class: "muted" }, `Question ${i + 1} of ${qs.length}`)),
@@ -378,7 +406,7 @@ function quickView(i) {
     q.help ? h("p", { class: "help" }, q.help) : null,
     h("div", { class: "answer" }, ctl),
     certainty,
-    q.defaultFrom ? h("p", { class: "muted small" }, `Leave blank to use ${defaultOf(q)}.`) : null,
+    fields.length === 1 && q.defaultFrom ? h("p", { class: "muted small" }, `Leave blank to use ${defaultOf(q)}.`) : null,
     q.impactHint ? h("p", { class: "impact" }, q.impactHint) : null,
     err,
     h("div", { class: "wizard-nav" },

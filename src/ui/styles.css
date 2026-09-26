@@ -276,6 +276,9 @@ body[data-view="results"]::before { background: radial-gradient(40rem 22rem at 1
 .answer .money input { width: 100%; flex: 1; font-size: 1.6rem; font-weight: 700; letter-spacing: -0.01em; }
 .answer .prefix { font-size: 1.4rem; }
 .impact { border-left: 3px solid var(--accent); padding: 0.35rem 0 0.35rem 0.9rem; color: var(--ink-2); font-size: 0.95rem; background: linear-gradient(90deg, var(--accent-soft), transparent); border-radius: 0 8px 8px 0; }
+.field-group { display: grid; gap: 1.1rem; }
+.group-field label { display: block; font-weight: 600; margin-bottom: 0.35rem; }
+.group-field .small { margin: 0.35rem 0 0; }
 .wizard-nav { display: flex; gap: 0.6rem; justify-content: space-between; align-items: center; margin-top: 1.8rem; flex-wrap: wrap; }
 .wizard-nav .primary { margin-left: auto; min-width: 150px; min-height: 50px; }
 .certainty { display: flex; gap: 0.6rem; align-items: center; flex-wrap: wrap; font-size: 0.9rem; }

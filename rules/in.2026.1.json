@@ -1525,35 +1525,44 @@
       "intro": "Nine questions, about two minutes. You'll get a first FIRE age with a confidence score; refine any section afterwards.",
       "questions": [
         {
-          "id": "q.birth",
-          "prompt": "How old are you?",
-          "input": "age",
-          "bind": "/profile/birthYearMonth",
+          "id": "q.ages",
+          "prompt": "Three ages to start with",
+          "input": "group",
           "impact": "high",
-          "min": 18,
-          "max": 80,
-          "help": "Only your age is needed. It's saved as an approximate birth month so it stays correct when you come back next year, and it never leaves your device."
-        },
-        {
-          "id": "q.fire_age",
-          "prompt": "At what age would you like to stop depending on a salary?",
-          "input": "integer",
-          "bind": "/plan/fireTargetAge",
-          "min": 25,
-          "max": 80,
-          "impact": "high"
-        },
-        {
-          "id": "q.plan_until",
-          "prompt": "Until what age should your money last?",
-          "input": "integer",
-          "bind": "/plan/planUntilAge",
-          "min": 60,
-          "max": 110,
-          "defaultFrom": "plan.untilAge",
-          "help": "Plan beyond the average. Life expectancy at birth in India is around 70–72, but people who reach their 40s in good health often live into their 80s, and many past 90. 90–95 is a prudent choice.",
-          "impact": "medium",
-          "impactHint": "Each extra 5 years adds roughly 5–8% to the corpus you need."
+          "help": "Your age now, when you'd like to stop working, and how long your money should last. None of it leaves your device.",
+          "fields": [
+            {
+              "id": "q.birth",
+              "prompt": "Your age today",
+              "input": "age",
+              "bind": "/profile/birthYearMonth",
+              "impact": "high",
+              "min": 18,
+              "max": 80,
+              "help": "Saved as an approximate birth month, so it stays right next year."
+            },
+            {
+              "id": "q.fire_age",
+              "prompt": "Age you'd like to stop depending on a salary",
+              "input": "integer",
+              "bind": "/plan/fireTargetAge",
+              "min": 25,
+              "max": 80,
+              "impact": "high"
+            },
+            {
+              "id": "q.plan_until",
+              "prompt": "Age your money should last until",
+              "input": "integer",
+              "bind": "/plan/planUntilAge",
+              "min": 60,
+              "max": 110,
+              "defaultFrom": "plan.untilAge",
+              "help": "Plan beyond the average: people who reach their 40s in good health often live into their 80s or 90s. 90–95 is a prudent choice.",
+              "impact": "medium",
+              "impactHint": "Each extra 5 years adds roughly 5–8% to the corpus you need."
+            }
+          ]
         },
         {
           "id": "q.take_home",

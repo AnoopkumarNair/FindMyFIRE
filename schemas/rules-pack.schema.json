@@ -851,8 +851,7 @@
       "required": [
         "id",
         "prompt",
-        "input",
-        "bind"
+        "input"
       ],
       "properties": {
         "id": {
@@ -883,7 +882,8 @@
             "list.properties",
             "list.incomes",
             "list.liabilities",
-            "list.children"
+            "list.children",
+            "group"
           ]
         },
         "bind": {
@@ -931,8 +931,43 @@
         },
         "impactHint": {
           "type": "string"
+        },
+        "fields": {
+          "type": "array",
+          "minItems": 2,
+          "items": {
+            "$ref": "#/$defs/question"
+          },
+          "description": "For input 'group': several short questions answered on one screen."
         }
-      }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "input": {
+                "const": "group"
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "fields"
+            ],
+            "properties": {
+              "fields": true
+            }
+          },
+          "else": {
+            "required": [
+              "bind"
+            ],
+            "properties": {
+              "bind": true
+            }
+          }
+        }
+      ]
     },
     "section": {
       "type": "object",
