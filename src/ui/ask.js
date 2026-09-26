@@ -71,9 +71,14 @@ let statusOpts = null;
 function answerBlock(entry, opts) {
   const a = entry.answer;
   if (!a) {
+    // The facts arrive at once; the AI's wording streams in above them.
+    const b = entry.base;
     return h("div", { class: "ask-a pending" },
-      entry.sentences?.length ? h("p", {}, entry.sentences.join(" ")) : h("p", { class: "muted" }, entry.note || "Working it out…"),
-      h("button", { type: "button", class: "btn small ghost", onClick: () => running?.abort() }, "Stop"));
+      b ? h("h3", {}, b.title) : null,
+      entry.sentences?.length ? h("p", {}, entry.sentences.join(" ")) : null,
+      h("p", { class: "writing" }, h("span", { class: "spark", "aria-hidden": "true" }, "✦ "), entry.note || (b ? "The AI is putting this into words…" : "Working it out…"),
+        h("button", { type: "button", class: "btn small ghost", onClick: () => running?.abort() }, "Stop")),
+      b ? h("ul", { class: "facts muted" }, ...b.facts.map((f) => h("li", {}, f))) : null);
   }
   const facts = h("ul", { class: "facts" }, ...a.facts.map((f) => h("li", {}, f)));
   const c = a.card;
@@ -127,6 +132,7 @@ async function ask(q, opts) {
   try {
     entry.answer = await answer(q, opts.getCtx(), {
       llm: useAi ? ai.llm : null, signal: running.signal,
+      onFacts: (b) => { entry.base = b; entry.note = null; drawThread(opts); },
       onUpdate: ({ sentences }) => { entry.sentences = sentences; drawThread(opts); },
     });
     if (entry.answer.mode === "model") entry.stats = ai.current().stats;

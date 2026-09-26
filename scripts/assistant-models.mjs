@@ -3,7 +3,7 @@
 // this entry, so what users run is exactly what was reviewed here.
 //
 //   node scripts/assistant-models.mjs fetch --repo onnx-community/Qwen3-0.6B-ONNX --id qwen3-0.6b \
-//        --label Lite --name "Qwen3 0.6B" --out models-dev
+//        --label Lite --name "Qwen3 0.6B" --out models-dev [--cpu yes]
 //   node scripts/assistant-models.mjs merge models-dev/qwen3-0.6b.entry.json   # into src/assistant/models.json
 
 import { mkdir, writeFile, readFile } from "node:fs/promises";
@@ -15,7 +15,8 @@ const root = fileURLToPath(new URL("..", import.meta.url));
 const MANIFEST = join(root, "src/assistant/models.json");
 const HF = "https://huggingface.co";
 
-// Which ONNX build each browser variant uses, best first.
+// Which ONNX build each browser variant uses, best first. The "webgpu" (q4) build is a fallback
+// for GPUs without 16-bit float support.
 const VARIANTS = {
   "webgpu-f16": { device: "webgpu", dtypes: ["q4f16"] },
   webgpu: { device: "webgpu", dtypes: ["q4", "int8"] },
@@ -51,6 +52,8 @@ async function fetchModel(o) {
   };
   const variants = {}, wanted = new Set(common);
   for (const [name, v] of Object.entries(VARIANTS)) {
+    // CPU inference is far too slow for bigger models; offer it only when asked (--cpu yes).
+    if (v.device === "wasm" && o.cpu !== "yes") continue;
     const dtype = v.dtypes.find((d) => onnxFor(d));
     if (!dtype) continue;
     variants[name] = { dtype, device: v.device, files: [...common, ...onnxFor(dtype)] };

@@ -84,8 +84,10 @@ export function route(text, ctx = {}) {
 
   if (has(t, /\b(which|what|best|good|recommend|suggest)\b.*\b(fund|funds|stock|stocks|share|shares|etf|scheme|policy|crypto|bitcoin|gold bond|nfo|smallcase|portfolio)\b/) ||
       has(t, /\b(should i|shall i)\b.*\b(buy|sell|switch)\b/) || has(t, /\b(crypto|bitcoin|stock tips?|intraday|f&o|options trading)\b/) ||
-      has(t, /\b(file|filing)\b.*\b(itr|return|returns|tax)\b|\bitr\b/)) add("out_of_scope", 3);
-  if (has(t, /^(hi|hello|hey|help|what can you do|how do (i|you) use|what do you do)\b/)) add("help", 2.5);
+      has(t, /\b(file|filing)\b.*\b(itr|return|returns|tax)\b|\bitr\b/) ||
+      has(t, /\b(which|what|best|good)\b.*\b(term plan|insurance plan|ulip|annuity plan|bank|broker|app)\b/) ||
+      has(t, /\b(hdfc|sbi|icici|axis|kotak|nippon|parag parikh|ppfas|mirae|quant|tata|uti|zerodha|groww|flexi ?cap|small ?cap|mid ?cap|large ?cap)\b.*\b(good|better|best|buy|worth|safe)\b|\b(good|better|best|buy|worth)\b.*\b(hdfc|sbi|icici|axis|kotak|nippon|flexi ?cap|small ?cap|mid ?cap)\b/)) add("out_of_scope", 3);
+  if (has(t, /^(hi|hello|hey|yo|hii+|help|what can you do|how do (i|you) use|what do you do)\b|\bpoint of this (tool|app|site)\b|\bwhat (is|does) this (tool|app|site)\b/)) add("help", 2.5);
 
   if (has(t, /\bwhat if\b|\bwhat happens if\b|\bif i\b|\bsuppose\b|\bimagine\b|\binstead\b/)) add("what_if", 1.5);
   if (nChanges && !changes.fireAge) add("what_if", 1.5);
@@ -94,13 +96,15 @@ export function route(text, ctx = {}) {
     if (has(t, /\b(what|how)\b.*\b(take|need|do|change|required|would it)\b|\bcan i\b|\bpossible\b|\bis it\b|\bto retire at\b|\bto stop at\b|\bwant to\b/)) add("solve_for", 2.5);
     else add("solve_for", 1.5);
   }
+  if (age != null && has(t, /\b(doable|realistic|possible|feasible|achievable|enough)\b/)) add("solve_for", 2);
+  if (has(t, /^\s*(is|can i do|what about)\s+\d{2}\b/)) add("solve_for", 2);
 
   if (has(t, /\bwhy\b/)) add("why_age", 1.2);
-  if (has(t, /\b(fire age|earliest|when can i|how soon|what age|this age|my age|so late|so early|later than|pushes? .*back|driving|drives|holding me back|what'?s? delaying|delay)\b/)) add("why_age", 1.5);
-  if (has(t, /\b(chance|chances|likely|likelihood|probability|risk|risky|safe|safer|sure|monte carlo|simulat|crash|bad market|9 in 10|3 in 4|odds|confident|lasts?|run out)\b/)) add("chance", 1.6);
-  if (has(t, /\b(corpus|how much (do i|will i|money)|need to have|target amount|pays? for|made up of|breakdown|number i need)\b/)) add("corpus", 1.6);
-  if (has(t, /\b(swp|withdraw|withdrawal|withdrawals|bucket|buckets|draw ?down|monthly income after|after (i )?retire|pension|take out|tax after)\b/)) add("withdraw", 1.6);
-  if (has(t, /\b(on track|how am i doing|summary|summarise|summarize|overview|big picture|am i ok|am i okay|status|explain my (plan|result))\b/)) add("summary", 2);
+  if (has(t, /\b(fire age|earliest|when can i|how soon|what age|this age|my age|so late|so early|later than|pushes? .*back|pushing|driving|drives|holding me back|what'?s? delaying|delay|my date|that date|not earlier|why not sooner)\b/)) add("why_age", 1.5);
+  if (has(t, /\b(chance|chances|likely|likelihood|probability|risk|risky|safe|safer|sure|monte carlo|simulat|crash|bad market|9 in 10|3 in 4|odds|confident|lasts?|run out|running out|runs out|worry|worried|wreck|collapse|go broke|outlive)\b/)) add("chance", 1.6);
+  if (has(t, /\b(corpus|how much (do i|will i|money)|need to have|target amount|pays? for|made up of|breakdown|break down|number i need|big number|so huge|so big|so high|so much money|all that money|where does (all )?(that|the) money go)\b/)) add("corpus", 1.6);
+  if (has(t, /\b(swp|withdraw|withdrawal|withdrawals|bucket|buckets|draw ?down|monthly income after|after (i )?retire|pension|take out|tax after|pay myself|salary stops|cash ?flow|income in retirement|live off|paycheck)\b/)) add("withdraw", 1.6);
+  if (has(t, /\b(on track|how am i doing|summary|summarise|summarize|overview|big picture|am i ok|am i okay|am i (doing )?(alright|fine|good)|status|gist|tl;?dr|explain my (plan|result))\b/)) add("summary", 2);
   if (term && has(t, /\b(what is|what's|whats|what are|meaning|mean|means|define|explain|how does|how do)\b/) && !has(t, /\bmy\b/)) add("term", 2.2);
   else if (term) add("term", 0.6);
 

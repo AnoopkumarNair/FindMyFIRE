@@ -122,7 +122,7 @@ test("the checker accepts faithful rewording", () => {
     "That's roughly 9.1 crore needed.",
     "Right now the chance is 11 percent.",
     "Your earliest age is about 58.",
-    "The 3 buckets keep 1 year safe.",
+    "The 3 buckets keep you safe.",
   ];
   for (const s of ok) assert.equal(checkSentence(s, allowedNumbers(facts)), null, s);
 });
@@ -158,6 +158,33 @@ test("a changed number in any fact is caught (every tool, both example plans)", 
     }
   }
   assert.ok(checked > 40, `only ${checked} numbers checked`);
+});
+
+// Real failures from the model evaluation (Qwen3 0.6B / 1.7B), kept as regression cases.
+test("the checker catches the mistakes small models actually made", () => {
+  const facts = ["Your earliest FIRE age is 57.7 with steady markets. Your target is 50.",
+    "Target 50: 55% funded (₹4.96 Cr of ₹9.08 Cr needed).", "That's about 3.2 years sooner.",
+    "Chance the money lasts if you stop at 50: 11%."];
+  const allowed = allowedNumbers(facts);
+  const claims = { age: 36.4, onTrack: false, chance: 0.11 };
+  const bad = [
+    "Because you're already in your 50s, so you need to build up to that age.",
+    "Am I on track? Yes, based on the facts provided.",
+    "Yes, it's achievable.",
+    "Your current funding status is 55% toward your target of 50%.",
+    "It takes about 10 years to reach financial independence at that rate.",
+    "Your FIRE age is reduced by about 3.3 years.",
+    "With steady markets, the chances are high.",
+  ];
+  for (const s of bad) assert.notEqual(checkSentence(s, allowed, claims), null, s);
+  const good = [
+    "Your earliest FIRE age is 57.7, well after your target of 50.",
+    "You're not on track yet: 55% funded.",
+    "That's about 3.2 years sooner.",
+    "In your 30s, the chance of stopping at 50 is only 11%.",
+    "The chance is low at 11%.",
+  ];
+  for (const s of good) assert.equal(checkSentence(s, allowed, claims), null, s);
 });
 
 test("sentences are split without breaking decimals", () => {
@@ -213,7 +240,7 @@ test("a reply that recommends a product falls back to the facts", async () => {
 
 test("the model only picks a label when the rules aren't sure, and can't invent one", async () => {
   const m = fakeModel("Fine.", "chance");
-  const a = await answer("hmm my worry is the whole thing collapsing", ctx, { llm: m });
+  const a = await answer("hmm tell me something about all this", ctx, { llm: m });
   assert.equal(a.by, "model");
   assert.equal(a.intent, "chance");
   const sure = fakeModel("Fine.");

@@ -23,8 +23,12 @@ on:
       name:
         description: Model name shown in the download dialog
         default: Qwen3 0.6B
+      cpu:
+        description: Also offer it on devices without WebGPU (small models only; slow)
+        type: boolean
+        default: false
       browser:
-        description: Also run the browser check (slower)
+        description: Also run the browser check (needs the CPU build)
         type: boolean
         default: true
       publish:
@@ -53,13 +57,13 @@ jobs:
       - run: npm ci
       - run: npm install --no-save @huggingface/transformers@4.3.0 playwright@1.56.1
       - name: Fetch the model and hash every piece
-        run: node scripts/assistant-models.mjs fetch --repo "${{ inputs.repo }}" --id "$ID" --label "${{ inputs.label }}" --name "${{ inputs.name }}" --out models-dev
+        run: node scripts/assistant-models.mjs fetch --repo "${{ inputs.repo }}" --id "$ID" --label "${{ inputs.label }}" --name "${{ inputs.name }}" --out models-dev --cpu "${{ inputs.cpu && 'yes' || 'no' }}"
       - name: Evaluate on CPU with the app's answer pipeline
         run: |
           node scripts/assistant-eval.mjs "models-dev/$ID.entry.json" models-dev | tee eval.md
           cat eval.md >> "$GITHUB_STEP_SUMMARY"
       - name: Browser check (download, refresh, resume, answer)
-        if: inputs.browser
+        if: inputs.browser && inputs.cpu
         continue-on-error: true
         run: |
           npx playwright install --with-deps chromium

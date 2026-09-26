@@ -14,7 +14,8 @@ const entry = JSON.parse(await readFile(entryFile, "utf8"));
 const T = await import("@huggingface/transformers");
 T.env.allowRemoteModels = false;
 T.env.localModelPath = dir.endsWith("/") ? dir : dir + "/";
-const variant = entry.variants.wasm || entry.variants.webgpu;
+// Node runs on CPU: use the q4 build (the one GPUs without f16 get), whichever variant lists it.
+const variant = entry.variants.wasm || entry.variants.webgpu || entry.variants["webgpu-f16"];
 const load0 = Date.now();
 const tokenizer = await T.AutoTokenizer.from_pretrained(entry.path);
 const lm = await T.AutoModelForCausalLM.from_pretrained(entry.path, { dtype: variant.dtype, device: "cpu" });
@@ -57,9 +58,36 @@ const HARD = [
   ["explain my result", "summary"], ["why not earlier", "why_age"], ["do I need to worry about inflation eating it", "chance"],
   ["how is the pension-like income set up", "withdraw"], ["suppose I get a 30 lakh bonus at 40", "what_if"],
 ];
+// Written after the rules were widened using HARD, so the rules were never tuned on these.
+const HELD_OUT = [
+  ["is my retirement date too far away and why", "why_age"], ["what's slowing me down", "why_age"],
+  ["can I really afford to stop at 48", "solve_for"], ["what would make 46 work", "solve_for"],
+  ["would I be okay if the sensex tanks right after I quit", "chance"], ["how safe is my plan really", "chance"],
+  ["how is that crore figure calculated", "corpus"], ["why do I need so many crores", "corpus"],
+  ["how much can I take out every month later", "withdraw"], ["how do I turn my savings into a monthly income", "withdraw"],
+  ["what if I increase my SIP by 15000", "what_if"], ["what happens if I don't buy the car", "what_if"],
+  ["quick recap please", "summary"], ["where do I stand overall", "summary"],
+  ["what's a withdrawal rate", "term"], ["meaning of real return?", "term"],
+  ["should I put money in gold ETFs", "out_of_scope"], ["recommend a good SIP fund", "out_of_scope"],
+  ["hello there", "help"], ["how do I use this", "help"],
+];
 const EXPLAIN = ["Why this age?", "How likely is it to work?", "What does the corpus pay for?", "How does the money come out after FIRE?",
   "What if I invest ₹10k more a month?", "Am I on track?", "What is an SWP?"];
 
+async function routing(set) {
+  let rules = 0, model = 0, asked = 0;
+  const rows = [];
+  for (const [q, want] of set) {
+    const r = route(q, { goals: plans.detailed.user.goals, age: plans.detailed.result.inputs.age });
+    const u = await understand(q, plans.detailed, llm);
+    if (r.intent === want) rules++;
+    if (u.intent === want) model++;
+    if (r.confidence < SURE) asked++;
+    rows.push(`| ${q} | ${want} | ${r.intent ?? "–"} (${r.confidence.toFixed(2)}) | ${u.intent ?? "–"} ${u.by === "model" ? "🤖" : ""} |`);
+  }
+  return { rules, model, asked, rows };
+}
+const held = await routing(HELD_OUT);
 let rulesRight = 0, modelRight = 0, asked = 0;
 const routeRows = [];
 for (const [q, want] of HARD) {
@@ -90,7 +118,14 @@ console.log(`## ${entry.name} (${entry.repo}@${entry.revision.slice(0, 7)}, ${en
 Download: ${Object.entries(entry.variants).map(([n, v]) => `${n} ${v.dtype} **${bytes(v)} MB**`).join(" · ")}
 Load on this CPU: ${(loadMs / 1000).toFixed(1)} s · Speed on this CPU (${variant.dtype}): **${tps.toFixed(1)} tokens/s**, first token after ${(sum((x) => x.firstMs) / stats.length / 1000).toFixed(1)} s on average
 
-### Understanding hard phrasings (${HARD.length})
+### Understanding new phrasings the rules were not tuned on (${HELD_OUT.length})
+Rules alone: **${held.rules}/${HELD_OUT.length}** · Rules + model (asked for ${held.asked}): **${held.model}/${HELD_OUT.length}**
+
+| Question | Expected | Rules | With model |
+|---|---|---|---|
+${held.rows.join("\n")}
+
+### Understanding the phrasings the rules were tuned on (${HARD.length})
 Rules alone: **${rulesRight}/${HARD.length}** · Rules + model (asked for ${asked}): **${modelRight}/${HARD.length}**
 
 | Question | Expected | Rules | With model |

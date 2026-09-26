@@ -151,6 +151,7 @@ function whatIfTool(ctx, slots) {
     else facts.push("That barely moves the earliest age.");
   }
   return { title: "What if…", facts, card: { type: "whatif", label, changes: w.changes, before: B, after: A },
+    claims: { onTrack: A.gap >= 0, chance: A.chance },
     followUps: ["Why this age?", "What would it take to stop 2 years earlier?"] };
 }
 
@@ -176,7 +177,7 @@ function solveForTool(ctx, slots) {
     if (L.investMore != null && ctx.result.inputs.takeHomeMonthly > 0 && inp.monthlySip + L.investMore > ctx.result.inputs.takeHomeMonthly)
       facts.push(`That investment is more than your take-home pay of ${inr(ctx.result.inputs.takeHomeMonthly)}, so it would take a mix of changes.`);
   }
-  return { title: `Stopping at ${age}`, facts, card: { type: "solve", age }, followUps: ["How likely is it to work?", "What if I spend ₹10k less a month?"] };
+  return { title: `Stopping at ${age}`, facts, card: { type: "solve", age }, claims: { onTrack: s.gap >= 0, chance: s.chance }, followUps: ["How likely is it to work?", "What if I spend ₹10k less a month?"] };
 }
 
 function outOfScope() {

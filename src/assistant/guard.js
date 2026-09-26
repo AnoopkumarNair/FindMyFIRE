@@ -18,24 +18,43 @@ export function allowedNumbers(facts, question = "") {
 }
 
 function close(n, a) {
+  if (n.kind !== a.kind && !(n.kind === "plain" && a.kind === "money" && n.value >= 1000)) return false;
   const v = n.value, x = a.value;
-  if (n.kind === "percent" || a.kind === "percent") {
-    // "8.5%" may be written "8.5 percent"; a percent can also match a plain number in the facts ("9 in 10").
-    return Math.abs(v - x) <= 0.051 && (n.kind === a.kind || n.kind === "percent");
-  }
   if (n.kind === "money" || x >= 1000) {
     // ₹1.23 Cr may be rounded to ₹1.2 crore; never more than 3% off.
     return x !== 0 ? Math.abs(v - x) / Math.abs(x) <= 0.03 : v === 0;
   }
-  // Ages and years: 56.9 may be written "about 57".
-  return Math.abs(v - x) <= 0.51;
+  // A whole number may round a decimal ("about 58" for 57.7); a decimal must match to the decimal.
+  return Number.isInteger(v) && !Number.isInteger(x) ? Math.abs(v - x) <= 0.5 : Math.abs(v - x) <= 0.051;
+}
+
+/**
+ * Claims a reply can't make, given what the plan says. The model can be wrong without using a
+ * number ("you're in your 50s", "yes, you're on track"); these catch the ones that matter most.
+ * claims: { age, onTrack, chance }
+ */
+function contradicts(sentence, claims = {}) {
+  const t = sentence.toLowerCase();
+  const decade = t.match(/\b(?:your|his|her|their) (\d0)s\b/);
+  if (decade && claims.age != null && Number(decade[1]) !== Math.floor(claims.age / 10) * 10) return "wrong age";
+  const negated = /\b(not|n't|isn't|aren't|off|behind|short)\b/.test(t);
+  if (claims.onTrack === false && /\b(on track|ahead of|enough (money|savings)|comfortably)\b/.test(t) && !negated) return "says on track";
+  if (claims.onTrack === false && /^(yes|yep|absolutely|definitely)\b/.test(t.trim())) return "says yes to a shortfall";
+  if (claims.onTrack === true && /\b(shortfall|not on track|off track|behind)\b/.test(t) && !/\bno shortfall\b/.test(t)) return "says off track";
+  if (claims.chance != null && claims.chance < 0.5 &&
+      /\b(high|good|strong|excellent|great)\b.{0,20}\b(chance|chances|likelihood|probability|odds)\b|\b(chances?|likelihood|probability|odds)\b.{0,15}\b(high|good|strong)\b/.test(t)) return "says the chance is high";
+  return null;
 }
 
 /** Why a sentence can't be shown, or null if it's fine. */
-export function checkSentence(sentence, allowed) {
+export function checkSentence(sentence, allowed, claims) {
   for (const re of BANNED) if (re.test(sentence)) return `banned: ${re}`;
+  const c = contradicts(sentence, claims);
+  if (c) return `contradicts the plan: ${c}`;
   for (const n of numbersIn(sentence)) {
-    if (n.kind === "plain" && Number.isInteger(n.value) && n.value <= 12) continue; // "3 buckets", "1 in 4"
+    // "3 buckets", "1 in 4": tiny counts are fine, but never as a number of years or months.
+    const after = sentence.slice(sentence.indexOf(n.raw) + n.raw.length);
+    if (n.kind === "plain" && Number.isInteger(n.value) && n.value <= 3 && !/^\s*(years?|yrs?|months?|decades?)\b/i.test(after)) continue;
     if (!allowed.some((a) => close(n, a))) return `unknown number: ${n.raw}`;
   }
   return null;
@@ -58,13 +77,13 @@ export function splitSentences(text) {
 }
 
 /** Checks a whole reply. Returns the sentences that pass and, if any failed, why. */
-export function checkReply(text, facts, question = "") {
+export function checkReply(text, facts, question = "", claims) {
   const allowed = allowedNumbers(facts, question);
   const { sentences, rest } = splitSentences(text.trim() + " ");
   const all = rest.trim() ? [...sentences, rest.trim()] : sentences;
   const ok = [], problems = [];
   for (const s of all) {
-    const why = checkSentence(s, allowed);
+    const why = checkSentence(s, allowed, claims);
     if (why) problems.push({ sentence: s, why }); else ok.push(s);
   }
   return { ok, problems, passed: problems.length === 0 && ok.length > 0 };

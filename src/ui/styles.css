@@ -709,7 +709,6 @@ table.breakdown .total-row th, table.breakdown .total-row td { font-weight: 700;
 .ask-a { max-width: 100%; padding: 0.8rem 1rem; border-radius: 4px 16px 16px 16px; background: var(--page); border: 1px solid var(--border); }
 .ask-a h3 { margin: 0 0 0.35rem; font-size: 1rem; }
 .ask-a p { margin: 0.2rem 0; }
-.ask-a.pending { display: flex; align-items: center; justify-content: space-between; gap: 0.8rem; }
 .ask-a .facts { margin: 0.2rem 0 0.2rem 1.1rem; padding: 0; display: grid; gap: 0.3rem; }
 .ask-a .checked { color: var(--good); font-size: 0.82rem; font-weight: 700; }
 .ask-a .source summary { font-size: 0.85rem; color: var(--muted); }
@@ -739,3 +738,6 @@ table.breakdown .total-row th, table.breakdown .total-row td { font-weight: 700;
 .ask-a .whatif button { justify-self: start; }
 @media (max-width: 640px) { .ask-a .whatif table { font-size: 0.8rem; } .ask-a .whatif th, .ask-a .whatif td { padding: 0.4rem 0.35rem; } }
 .ask-a .whatif .table-wrap > table { min-width: 0; }
+.ask-a.pending { display: block; }
+.ask-a .writing { display: flex; align-items: center; justify-content: space-between; gap: 0.6rem; color: var(--muted); font-size: 0.88rem; }
+@media (prefers-reduced-motion: no-preference) { .ask-a .writing .spark { animation: twinkle 1.2s ease-in-out infinite; } }

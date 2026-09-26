@@ -19,17 +19,19 @@ manifest.models = [entry];
 (async () => {
   const server = spawn("node", ["scripts/serve.mjs"], { cwd: root, stdio: "ignore" });
   await new Promise((r) => setTimeout(r, 800));
-  const browser = await chromium.launch();
-  const ctx = await browser.newContext({ viewport: { width: 1280, height: 900 } });
+  // A normal (persistent) profile: private-mode contexts get too little storage for a model.
+  const profile = require("node:fs").mkdtempSync(path.join(require("node:os").tmpdir(), "fmf-e2e-"));
+  const ctx = await chromium.launchPersistentContext(profile, { viewport: { width: 1280, height: 900 } });
+  const browser = { close: () => ctx.close() };
   await ctx.route("**/src/assistant/models.json*", (r) => r.fulfill({ contentType: "application/json", body: JSON.stringify(manifest) }));
   // Slow the model host down a little so the refresh lands mid-download.
   await ctx.route("**/models-dev/**", async (r) => { await new Promise((x) => setTimeout(x, 120)); r.continue(); });
-  const page = await ctx.newPage();
+  const page = ctx.pages()[0] || await ctx.newPage();
   const log = [];
   page.on("console", (m) => (m.type() === "error" || m.type() === "warning") && log.push(`${m.type()}: ${m.text()}`));
   page.on("pageerror", (e) => log.push(`pageerror: ${e.message}`));
   const status = () => page.textContent(".ai-status");
-  const pct = async () => Number(((await status()).match(/(\d+)%/) || [])[1] || 0);
+  const pct = async () => { const t = await status(); return /On-device AI on/.test(t) ? 100 : Number((t.match(/(\d+)%/) || [])[1] || 0); };
   const result = { ok: false };
   try {
     await page.goto("http://localhost:8080/#/");
