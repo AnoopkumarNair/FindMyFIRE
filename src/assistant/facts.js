@@ -8,6 +8,16 @@ import { GLOSSARY } from "./glossary.js";
 
 const round1 = (x) => Math.round(x * 10) / 10;
 
+/**
+ * A label the user (or a plan file someone shared) typed, made safe to put in front of the model:
+ * plain characters only, no brackets or instructions-looking punctuation, and short.
+ */
+export function clean(label, max = 40) {
+  const s = String(label ?? "").normalize("NFKC").replace(/[\u0000-\u001f\u007f-\u009f\u200b-\u200f\u2028-\u202e]/g, " ")
+    .replace(/[<>{}\[\]`|\\#*_~^=]/g, " ").replace(/\s+/g, " ").trim();
+  return s.length > max ? s.slice(0, max - 1).trimEnd() + "…" : s || "a goal";
+}
+
 function mainDrivers(r) {
   const b = r.breakdown;
   const parts = [
@@ -40,7 +50,7 @@ function whyAge(ctx) {
   if (d.length) facts.push(`The corpus needed pays for ${d.slice(0, 3).map(([k, v]) => `${k} (${inrShort(v)})`).join(", ")} from ${t.age} to ${inp.planUntilAge}.`);
   facts.push(`Costs are assumed to rise ${pct(P.infl.general)} a year (healthcare ${pct(P.infl.health)}), which is why the amount needed is much larger than today's spending suggests.`);
   const gb = goalsBefore(r).slice(0, 2);
-  if (gb.length) facts.push(`Goals paid before ${t.age} come out of your investments: ${gb.map((g) => `${g.label} at ${Math.round(g.atAge)} (about ${inrShort(g.cost)} by then)`).join(" and ")}.`);
+  if (gb.length) facts.push(`Goals paid before ${t.age} come out of your investments: ${gb.map((g) => `${clean(g.label)} at ${Math.round(g.atAge)} (about ${inrShort(g.cost)} by then)`).join(" and ")}.`);
   const L = r.levers;
   if (L && !L.onTrack && L.investMore != null) facts.push(`Investing ${inr(L.investMore)} more a month would reach ${t.age}.`);
   if (L?.onTrack && L.spendAfterFire) facts.push(`You're on track: you could spend up to ${inr(L.spendAfterFire.to)} a month after FIRE (today's money) and still stop at ${t.age}.`);
@@ -118,7 +128,7 @@ function describeChanges(ch, r, goals) {
   if (ch.sipTotal != null) bits.push(`investing ${inr(ch.sipTotal)} a month in total`);
   if (ch.sipDelta) bits.push(`investing ${inr(Math.abs(ch.sipDelta))} ${ch.sipDelta > 0 ? "more" : "less"} a month`);
   if (ch.expenseDelta) bits.push(`spending ${inr(Math.abs(ch.expenseDelta))} ${ch.expenseDelta > 0 ? "more" : "less"} a month`);
-  if (ch.dropGoalIds?.length) bits.push(`skipping ${goals.filter((g) => ch.dropGoalIds.includes(g.id)).map((g) => g.label).join(" and ")}`);
+  if (ch.dropGoalIds?.length) bits.push(`skipping ${goals.filter((g) => ch.dropGoalIds.includes(g.id)).map((g) => clean(g.label)).join(" and ")}`);
   if (ch.returnDelta) bits.push(`returns of ${pct(r.params.rPre + ch.returnDelta)} before FIRE and ${pct(r.params.rPost + ch.returnDelta)} after`);
   if (ch.inflationDelta) bits.push(`inflation of ${pct(r.params.infl.general + ch.inflationDelta)}`);
   if (ch.lumpSum) bits.push(`receiving ${inrShort(ch.lumpSum.amount)} at ${ch.lumpSum.atAge}`);

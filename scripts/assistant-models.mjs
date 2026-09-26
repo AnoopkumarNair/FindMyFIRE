@@ -18,7 +18,7 @@ const HF = "https://huggingface.co";
 // Which ONNX build each browser variant uses, best first. The "webgpu" (q4) build is a fallback
 // for GPUs without 16-bit float support.
 const VARIANTS = {
-  "webgpu-f16": { device: "webgpu", dtypes: ["q4f16"] },
+  "webgpu-f16": { device: "webgpu", dtypes: ["q4f16", "q2f16"] },
   webgpu: { device: "webgpu", dtypes: ["q4", "int8"] },
   wasm: { device: "wasm", dtypes: ["q4", "int8", "quantized"] },
 };
