@@ -621,3 +621,6 @@ table.breakdown tr.minus th, table.breakdown tr.minus td { color: var(--good); f
 table.breakdown .total-row th, table.breakdown .total-row td { font-weight: 700; border-top: 2px solid var(--axis); font-family: var(--font-display); font-size: 1.1rem; }
 .table-wrap > table.breakdown { min-width: 420px; }
 .overlap-warn { background: var(--warn-bg); color: var(--warn); border-radius: 12px; padding: 0.7rem 0.9rem; font-weight: 500; }
+.inline-help { display: inline-flex; align-items: center; gap: 0.4rem; flex-wrap: wrap; font-size: 0.85rem; color: var(--ink-2); margin-top: 0.3rem; }
+.inline-help input.short { width: 6rem; min-height: 34px; padding: 0.3rem 0.5rem; }
+.overlap-warn.tip { background: var(--sun-soft); color: var(--ink); }

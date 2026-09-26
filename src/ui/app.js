@@ -9,7 +9,7 @@ import { openShareDialog } from "./share.js";
 import * as store from "./store.js";
 import { evaluatePlan, evaluate, getPointer, setPointer, ageAt } from "../engine/index.js";
 
-const APP_VERSION = "0.7.0";
+const APP_VERSION = "0.8.0";
 // Replaced with the commit id at deploy time; also appended to every file URL so browsers
 // fetch the new version right after a deploy instead of reusing a cached copy.
 const BUILD = "dev";

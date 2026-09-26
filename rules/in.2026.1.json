@@ -1033,12 +1033,8 @@
       "inflation": "education",
       "essential": true,
       "postFireFactor": 1,
-      "hint": "Stops when the child finishes school.",
-      "endsByDefault": "childIndependent",
-      "showIf": {
-        "ref": "/profile/children",
-        "op": "nonEmpty"
-      }
+      "hint": "Stops when your youngest child finishes school (18). College is a goal, under Life goals.",
+      "endsByDefault": "childLeavesSchool"
     },
     {
       "id": "children.tuition_activities",
@@ -1048,11 +1044,8 @@
       "inflation": "education",
       "essential": false,
       "postFireFactor": 1,
-      "endsByDefault": "childIndependent",
-      "showIf": {
-        "ref": "/profile/children",
-        "op": "nonEmpty"
-      }
+      "endsByDefault": "childLeavesSchool",
+      "hint": "Stops when your youngest child finishes school (18). College is a goal, under Life goals."
     },
     {
       "id": "children.books_uniform_transport",
@@ -1062,11 +1055,8 @@
       "inflation": "education",
       "essential": true,
       "postFireFactor": 1,
-      "endsByDefault": "childIndependent",
-      "showIf": {
-        "ref": "/profile/children",
-        "op": "nonEmpty"
-      }
+      "endsByDefault": "childLeavesSchool",
+      "hint": "Stops when your youngest child finishes school (18). College is a goal, under Life goals."
     },
     {
       "id": "health.insurance_premium",
@@ -1101,12 +1091,12 @@
     {
       "id": "protection.other_premiums",
       "group": "protection",
-      "label": "Endowment / ULIP premiums",
+      "label": "LIC / endowment / other policy premiums",
       "frequency": "annual",
       "inflation": "general",
       "essential": false,
       "postFireFactor": 1,
-      "hint": "Treat as an expense until the policy ends.",
+      "hint": "Set the age the premiums stop (policy term), or they'll run for life.",
       "endsByDefault": "policyTerm"
     },
     {
@@ -1117,11 +1107,17 @@
       "inflation": "general",
       "essential": true,
       "postFireFactor": 1,
-      "showIf": {
-        "ref": "/profile/parentsSupported",
-        "op": "gt",
-        "value": 0
-      }
+      "hint": "Money you send your parents each month. Set 'stops at age' for when you no longer expect to."
+    },
+    {
+      "id": "family.parents_health",
+      "group": "family",
+      "label": "Parents' health insurance and medical costs",
+      "frequency": "annual",
+      "inflation": "health",
+      "essential": true,
+      "postFireFactor": 1,
+      "hint": "Senior-citizen premiums rise every year. Enter your parent's age to set when this stops: someone who has reached 70 in India lives on average about 12 more years, but many live past 85, so the plan runs it to their age 90."
     },
     {
       "id": "family.festivals_gifts",
@@ -1218,10 +1214,7 @@
         "relativeTo": "child",
         "age": 18
       },
-      "showIf": {
-        "ref": "/profile/children",
-        "op": "nonEmpty"
-      }
+      "hint": "In today's money: roughly ₹8–25 lakh for a private engineering or management degree in India, ₹60 lakh–1 crore+ for private medicine. Enter the total, or the yearly fee with 'Repeats every 1 year' until graduation."
     },
     {
       "id": "goal.child_pg",
@@ -1232,10 +1225,7 @@
         "relativeTo": "child",
         "age": 22
       },
-      "showIf": {
-        "ref": "/profile/children",
-        "op": "nonEmpty"
-      }
+      "hint": "A master's abroad is often ₹40–70 lakh in today's money including living costs; in India, ₹5–25 lakh."
     },
     {
       "id": "goal.child_wedding",
@@ -1246,10 +1236,7 @@
         "relativeTo": "child",
         "age": 28
       },
-      "showIf": {
-        "ref": "/profile/children",
-        "op": "nonEmpty"
-      }
+      "hint": "Whatever you plan to contribute, in today's money."
     },
     {
       "id": "goal.home_purchase",
@@ -1285,11 +1272,7 @@
       "label": "Parents' medical / care reserve",
       "inflation": "health",
       "defaultInflationRate": 0.1,
-      "showIf": {
-        "ref": "/profile/parentsSupported",
-        "op": "gt",
-        "value": 0
-      }
+      "hint": "A reserve for a big medical event or care at home. Parents' yearly insurance goes under Expenses → Family."
     },
     {
       "id": "goal.sabbatical_travel",
@@ -1574,7 +1557,7 @@
           "input": "currency",
           "bind": "/quick/investedCorpus",
           "impact": "high",
-          "help": "Mutual funds, stocks, PPF, FDs, gold, and your PF balance (EPFO passbook or the UMANG app). Leave out your home, and NPS Tier-1 if you plan to stop before 60 (it's locked until then)."
+          "help": "Mutual funds, stocks, PPF, FDs, gold, your PF balance, and money in bank accounts beyond your emergency fund. Leave out about 6 months of expenses (your emergency fund), your home, and NPS Tier-1 if you plan to stop before 60 (it's locked until then)."
         },
         {
           "id": "q.sip",

@@ -110,6 +110,19 @@ The same money can be entered in two places, so the engine applies fixed rules a
 
 `test/engine.test.mjs` checks that the same household entered through quick answers and through detailed sections gives an identical result. It also checks that each rule above holds, and that the "what the corpus pays for" breakdown adds up to the corpus needed.
 
+### Tests that catch overlaps and calculation errors
+
+`npm test` runs three layers:
+
+1. **Golden tests** (`test/golden-sheet.test.mjs`): the original Google Sheet's formulas, recalculated by LibreOffice, reproduced exactly.
+2. **Example tests** (`test/engine.test.mjs`): specific cases such as tax slabs, NPS unlock, repeating goals, and each double-counting rule.
+3. **Property tests** (`test/invariants.test.mjs`): 150 seeded random households (quick and detailed, with children, goals, loans, property, PF and lump sums). Every one must satisfy these rules:
+   - **Direction:** more spending, a new goal, a loan past FIRE, a longer life, pricier health cover or higher medical inflation never needs *less* money. More savings, PF, a pension or a lump sum never delays FIRE. Stress scenarios never improve the answer.
+   - **Same money, different wording:** quick vs detailed, monthly vs yearly, one line vs two, and list order never change the result.
+   - **Book-keeping:** the corpus needed pays every withdrawal and ends at zero. The "what it pays for" breakdown adds up to the headline. Results are finite and in range. Money entered twice is counted once. School costs stop at 18, so they can't overlap a college goal.
+
+   A failure prints the exact household, and the generator is seeded, so every failure reproduces.
+
 ## Keeping it honest
 
 - `npm test` validates every rules pack and example against the schemas. It then checks cross-references that schemas can't express:

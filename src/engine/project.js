@@ -172,7 +172,9 @@ export function analyse(inp, p, tier = {}) {
       break;
     }
   }
-  const tTarget = Math.min(Math.max(0, p.fireTargetAge - p.age), maxT);
+  // The target is valued at a whole plan year (the one containing the target age), so the headline,
+  // the breakdown, the SWP plan and the chart all describe the same moment.
+  const tTarget = Math.min(Math.max(0, Math.round(p.fireTargetAge - p.age)), maxT);
   const projected = hit(lerp(path, tTarget));
   const required = lerp(req, tTarget);
   return {

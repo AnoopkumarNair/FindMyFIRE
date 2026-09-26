@@ -67,8 +67,11 @@ test("earliest FIRE age is where projected meets required", () => {
   const p = makeParams(inp);
   const a = analyse(inp, p);
   assert.ok(a.earliestAge > inp.age && a.earliestAge < p.planUntilAge);
-  const at = analyse(inp, { ...p, fireTargetAge: a.earliestAge });
-  assert.ok(Math.abs(at.gap) / at.required < 0.01, "gap ≈ 0 at the earliest age");
+  // Between the two plan years around the earliest age, the gap crosses zero.
+  const t = a.earliestAge - inp.age, i = Math.floor(t), f = t - i;
+  const gap = (k) => a.path[k] - a.req[k];
+  assert.ok(gap(i) < 0 && gap(i + 1) >= 0);
+  assert.ok(Math.abs(gap(i) * (1 - f) + gap(i + 1) * f) < 1e-6 * a.req[i]);
 });
 
 test("stress scenarios move the answer the right way", () => {
@@ -128,7 +131,7 @@ test("inflows: before FIRE they compound, after FIRE they cut the corpus needed"
   const early = evaluatePlan(u, pack, { today });
   // Credited at the start of the plan year it falls in (as the sheet does), then invested to the target.
   const age = early.inputs.age;
-  const years = 45 - age - Math.floor(35 - age);
+  const years = Math.round(45 - age) - Math.floor(35 - age); // target valued at a whole plan year
   const expected = 1000000 * (1 + early.params.rPre) ** years;
   assert.ok(Math.abs(early.target.projected - base.target.projected - expected) / expected < 0.01);
   assert.equal(early.target.required, base.target.required);

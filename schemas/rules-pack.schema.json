@@ -741,6 +741,7 @@
         "endsByDefault": {
           "enum": [
             "never",
+            "childLeavesSchool",
             "childIndependent",
             "policyTerm",
             "loanEnd"

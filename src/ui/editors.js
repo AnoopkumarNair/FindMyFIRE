@@ -97,11 +97,29 @@ function expensesEditor(ctx) {
     };
     const e = get();
     const post = c.postFireFactor !== 1 ? `After FIRE ×${c.postFireFactor}` : null;
-    const endable = c.group === "children" || c.id === "protection.term_premium";
+    const endable = c.endsByDefault === "childLeavesSchool" || c.id === "protection.term_premium";
+    const userBirth = Number(user.profile.birthYearMonth.slice(0, 4));
+    const userAge = Math.floor(resolveInputs(user, pack).age);
+    const kids = (user.profile.children ||= []);
+    // School costs end when the youngest child turns 18; ask for a birth year if no child is recorded yet.
+    let helper = null;
+    if (c.endsByDefault === "childLeavesSchool") {
+      helper = kids.length
+        ? h("small", { class: "muted" }, `Stops automatically at your age ${Math.max(...kids.map((k) => k.birthYear)) + 18 - userBirth}, when your youngest turns 18.`)
+        : h("span", { class: "inline-help" }, "Youngest child's birth year ",
+            control("integer", undefined, (v) => { if (v > 1990) { kids.push({ id: newId("c"), birthYear: v }); ctx.redraw(); } },
+              { placeholder: String(new Date().getFullYear() - 8), min: 1990, max: 2100 }));
+    }
+    // Parents' costs: from the parent's age, run to their age 90.
+    if (c.id.startsWith("family.parents")) {
+      helper = h("span", { class: "inline-help" }, "Elder parent's age now ",
+        control("integer", undefined, (v) => { if (v > 40 && v < 110) { ensure().endsAtAge = userAge + Math.max(1, 90 - v); ctx.redraw(); } }, { placeholder: "70" }),
+        e?.endsAtAge ? h("small", { class: "muted" }, ` → runs until your age ${e.endsAtAge}`) : null);
+    }
     return h("div", { class: "exp-row" },
       h("div", { class: "exp-label" }, h("span", {}, c.label),
         h("small", { class: "muted" }, [c.essential ? "Essential" : "Lifestyle", c.inflation !== "general" ? `${c.inflation} inflation` : null, post].filter(Boolean).join(" · ")),
-        c.hint ? h("small", { class: "help" }, c.hint) : null),
+        c.hint ? h("small", { class: "help" }, c.hint) : null, helper),
       control("currency", e?.amount || undefined, (v) => {
         if (!v) { user.expenses = user.expenses.filter((x) => x !== get()); item = null; }
         else ensure().amount = v;
@@ -182,6 +200,7 @@ function goalsEditor(ctx) {
   const inp = resolveInputs(user, pack);
   const kids = user.profile.children || [];
   const templates = pack.goalTemplates.filter((t) => evaluate(t.showIf, user));
+  const tplHint = (id) => pack.goalTemplates.find((t) => t.id === id)?.hint;
   const picker = control("select", "", (v) => {
     const t = pack.goalTemplates.find((x) => x.id === v);
     if (!t) return;
@@ -192,11 +211,37 @@ function goalsEditor(ctx) {
     ctx.redraw();
   }, { options: templates.map((t) => ({ value: t.id, label: t.label })), placeholder: "+ Add a goal…" });
 
+  // Link a child goal to a child; typing a birth year creates the child and sets the due age.
+  const childFields = (g) => {
+    const tpl = pack.goalTemplates.find((t) => t.id === g.templateId) || {};
+    const kid = kids.find((k) => k.id === g.childId);
+    const setYear = (y) => {
+      if (!(y > 1990)) return;
+      let k = kid;
+      if (!k) { k = { id: newId("c"), birthYear: y }; kids.push(k); g.childId = k.id; user.profile.children = kids; }
+      else k.birthYear = y;
+      if (tpl.suggestAge?.relativeTo === "child") g.atAge = y + tpl.suggestAge.age - inp.birthYear;
+      ctx.redraw();
+    };
+    return [
+      kids.length > 1 ? field("Which child", "select", g.childId, (v) => {
+        g.childId = v; const k = kids.find((x) => x.id === v);
+        if (k && tpl.suggestAge?.relativeTo === "child") g.atAge = k.birthYear + tpl.suggestAge.age - inp.birthYear;
+        ctx.redraw();
+      }, { options: kids.map((k, i) => ({ value: k.id, label: k.label || `Child ${i + 1} (born ${k.birthYear})` })) }) : null,
+      field("Child's birth year", "integer", kid?.birthYear, setYear,
+        { placeholder: String(new Date().getFullYear() - 8), help: tpl.suggestAge ? `Due age is set for when they turn ${tpl.suggestAge.age}.` : null }),
+    ];
+  };
+
   return h("div", {},
     h("p", { class: "muted small" }, "Enter today's cost; it's inflated to the year you need it. Goals before your FIRE age come out of your investments; later ones are added to retirement spending."),
+    items.some((g) => g.templateId.startsWith("goal.child")) ? null
+      : h("p", { class: "overlap-warn tip" }, "💡 Children? Their college is usually the biggest goal. Add “Child's undergraduate education” below."),
     listEditor(ctx, {
       items, create: picker, empty: "No goals yet.",
       render: (g) => [
+        h("div", { class: "row-head" }, tplHint(g.templateId) ? h("small", { class: "help" }, tplHint(g.templateId)) : null),
         field("Goal", "text", g.label, (v) => { g.label = v || "Goal"; ctx.save(); }),
         field("Your age when it's due", "integer", g.atAge, (v) => { g.atAge = v; ctx.save(); }),
         field("Cost in today's money", "currency", g.costToday, (v) => { g.costToday = v || 0; ctx.save(); }),
@@ -208,8 +253,7 @@ function goalsEditor(ctx) {
         field("Priority", "select", g.priority, (v) => { g.priority = v; ctx.save(); }, { placeholder: false,
           options: [{ value: "must", label: "Must have" }, { value: "want", label: "Want" }, { value: "nice", label: "Nice to have" }],
         }),
-        kids.length && g.templateId.startsWith("goal.child") ? field("Child", "select", g.childId, (v) => { g.childId = v; ctx.save(); },
-          { options: kids.map((k, i) => ({ value: k.id, label: k.label || `Child ${i + 1} (${k.birthYear})` })) }) : null,
+        ...(g.templateId.startsWith("goal.child") ? childFields(g) : []),
         field("How sure?", "source", g.source, (v) => { g.source = v; ctx.save(); }),
       ],
     }));

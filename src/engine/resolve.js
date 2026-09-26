@@ -45,13 +45,16 @@ export function resolveInputs(user, pack, today = new Date()) {
   let expenses;
   if (detailed.expenses) {
     const children = user.profile.children || [];
-    const lastChildIndependent = children.length
-      ? Math.max(...children.map((c) => c.birthYear + (c.independentAtAge ?? 22) - birthYear))
+    // Child costs stop when the youngest child finishes school (18) or becomes independent;
+    // expressed as the user's own age.
+    const lastChildAt = (childAge) => children.length
+      ? Math.max(...children.map((c) => c.birthYear + (childAge ?? c.independentAtAge ?? 22) - birthYear))
       : null;
     expenses = user.expenses.map((e) => {
       const cat = cats[e.categoryId] || {};
       let endsAtAge = e.endsAtAge ?? null;
-      if (endsAtAge == null && cat.group === "children") endsAtAge = lastChildIndependent;
+      if (endsAtAge == null && cat.endsByDefault === "childLeavesSchool") endsAtAge = lastChildAt(18);
+      if (endsAtAge == null && cat.endsByDefault === "childIndependent") endsAtAge = lastChildAt(null);
       if (endsAtAge == null && e.categoryId === "protection.term_premium")
         endsAtAge = user.insurance?.termCoverEndsAtAge ?? null;
       return {
