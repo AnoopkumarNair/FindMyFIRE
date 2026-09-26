@@ -340,3 +340,19 @@ test("breakdown of the corpus needed adds up to it", () => {
   const r = ev(quickHH());
   assert.ok(Math.abs(r.breakdown.net - r.target.required) / r.target.required < 0.01);
 });
+
+test("one total-savings answer: the emergency fund is set aside first, the rest counts toward FIRE", async () => {
+  const { resolveInputs } = await import("../src/engine/index.js");
+  const pack = JSON.parse(readFileSync(new URL("../rules/in.2026.1.json", import.meta.url)));
+  const base = { schemaVersion: "1.0.0", profile: { birthYearMonth: "1990-01" }, plan: { fireTargetAge: 50 },
+    quick: { takeHomeMonthly: 150000, monthlyExpenses: 60000, emiMonthly: 10000, monthlySip: 30000 } };
+  const at = (q) => resolveInputs({ ...base, quick: { ...base.quick, ...q } }, pack, new Date("2026-09-26"));
+  const plenty = at({ totalSavings: 2000000 });
+  assert.equal(plenty.emergencyFund, 6 * 70000);           // 6 months of spending + EMIs
+  assert.equal(plenty.fireCorpus, 2000000 - 6 * 70000);
+  const little = at({ totalSavings: 200000 });             // less than the cushion: all of it stays aside
+  assert.equal(little.emergencyFund, 200000);
+  assert.equal(little.fireCorpus, 0);
+  const old = at({ investedCorpus: 2000000 });             // older files already left it out
+  assert.equal(old.fireCorpus, 2000000);
+});

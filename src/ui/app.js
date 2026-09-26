@@ -196,10 +196,10 @@ function welcomeView() {
 const calm = () => matchMedia("(prefers-reduced-motion: reduce)").matches;
 
 /** A few warm specks drifting up behind the hero, like a sunrise. Decoration only. */
-function embers() {
+function embers(count = 9) {
   if (calm()) return null;
   const box = h("div", { class: "embers", "aria-hidden": "true" });
-  for (let i = 0; i < 9; i++) {
+  for (let i = 0; i < count; i++) {
     const e = h("span", { class: "ember" });
     e.style.setProperty("--x", `${6 + Math.random() * 88}%`);
     e.style.setProperty("--s", `${3 + Math.random() * 4}px`);
@@ -399,6 +399,7 @@ function resultsView() {
   const ahead = reached && r.earliestAge <= t.age;
 
   const hero = h("section", { class: "hero" },
+    embers(5),
     h("p", { class: "eyebrow" }, "Earliest you could stop working"),
     h("h1", { tabindex: -1, class: "big-age" }, reached
       ? [h("span", { class: "unit" }, "Age "), h("span", { "data-count": Number(age1(r.earliestAge)), "data-dec": 1 }, age1(r.earliestAge))]

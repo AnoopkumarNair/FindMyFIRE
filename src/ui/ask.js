@@ -119,6 +119,7 @@ function answerBlock(entry, opts) {
 }
 
 let threadEl = null;
+let inputEl = null; // the question box: focus always returns here
 function drawThread(opts) {
   if (!threadEl?.isConnected) return;
   const fresh = thread.some((e) => !e.drawn);
@@ -148,6 +149,7 @@ async function ask(q, opts) {
   } finally {
     running = null;
     drawThread(opts);
+    if (inputEl?.isConnected) inputEl.focus({ preventScroll: true });
   }
 }
 
@@ -160,7 +162,8 @@ export function askCard(opts) {
   const r = opts.getCtx().result;
   const input = h("input", { type: "text", enterkeyhint: "send", maxlength: 200, autocomplete: "off",
     placeholder: "e.g. What if I invest ₹10k more a month?", "aria-label": "Your question" });
-  const form = h("form", { class: "ask-form", onSubmit: (e) => { e.preventDefault(); const q = input.value; input.value = ""; ask(q, opts); } },
+  inputEl = input;
+  const form = h("form", { class: "ask-form", onSubmit: (e) => { e.preventDefault(); const q = input.value; input.value = ""; input.focus({ preventScroll: true }); ask(q, opts); } },
     input, h("button", { type: "submit", class: "btn primary" }, "Ask"));
   const soon = Math.max(Math.ceil(r.inputs.age) + 1, r.target.age - 3);
   const starters = ["Why this age?", "Will my money last?", "What if I invest ₹10k more a month?", `What would it take to stop at ${soon}?`, "How does the money come out after FIRE?"];

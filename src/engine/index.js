@@ -61,7 +61,7 @@ export function evaluatePlan(user, pack, { today = new Date() } = {}) {
   const bE = bandFor(inp.expenses.map((e) => ({ source: e.source, weight: e.monthly })), pack);
   const bC = inp.detailed.holdings
     ? bandFor(user.holdings.map((h) => ({ source: h.source, weight: h.value })), pack)
-    : bandFor([{ source: user.provenance?.["/quick/investedCorpus"] || "estimate", weight: 1 }], pack);
+    : bandFor([{ source: user.provenance?.["/quick/totalSavings"] || user.provenance?.["/quick/investedCorpus"] || "estimate", weight: 1 }], pack);
   const pessimistic = analyse(inp, makeParams(inp, { expenseScale: 1 + bE, corpusScale: 1 - bC }));
   const optimistic = analyse(inp, makeParams(inp, { expenseScale: 1 - bE, corpusScale: 1 + bC }));
 

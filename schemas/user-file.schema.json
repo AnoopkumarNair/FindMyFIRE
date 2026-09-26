@@ -209,6 +209,11 @@
         "epfMonthly": {
           "type": "number",
           "minimum": 0
+        },
+        "totalSavings": {
+          "type": "number",
+          "minimum": 0,
+          "description": "Everything saved and invested, bank balances included. The app keeps an emergency fund aside from it."
         }
       }
     },

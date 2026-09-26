@@ -76,18 +76,35 @@ export function deviceKind(nav = navigator) {
 const GB = (bytes) => `${Math.round(bytes / 1e8) / 10} GB`;
 const tooBigHere = (bytes) => deviceKind() !== "computer" && bytes > PHONE_MAX_BYTES;
 const TOO_BIG = (bytes) => `The AI assistant needs a laptop or desktop: its ${GB(bytes)} model is too big for a phone or tablet browser. Your answers here come straight from your plan, with the same numbers.`;
-const NO_GPU = "Your answers come straight from your plan. The optional AI needs a browser with WebGPU, such as a recent Chrome, Edge or Safari on a laptop or desktop.";
+const NO_GPU = () => `Your answers come straight from your plan. The optional AI needs WebGPU, and here it isn't available: ${gpuProblem} ` +
+  "In Chrome or Edge, check Settings → System → \"Use graphics acceleration when available\" is on, then open chrome://gpu and look for \"WebGPU: Hardware accelerated\".";
 const smallest = (model) => Math.min(...Object.keys(model.variants).map((v) => variantBytes(model, v)));
+
+/** Why WebGPU isn't usable here, in words a person can act on (set by pickVariant). */
+let gpuProblem = "";
 
 /** Which build of a model suits this device: GPU (with or without 16-bit floats), else CPU. */
 async function pickVariant(model) {
-  try {
-    const adapter = await navigator.gpu?.requestAdapter?.();
+  gpuProblem = "";
+  if (!navigator.gpu) {
+    gpuProblem = /Linux/.test(navigator.userAgent) && !/Android/.test(navigator.userAgent)
+      ? "Chrome on Linux keeps WebGPU switched off by default."
+      : "This browser has WebGPU switched off.";
+  } else {
+    let adapter = null;
+    // Some laptops only answer for a specific GPU (dual-graphics machines), so ask three ways.
+    for (const opts of [undefined, { powerPreference: "high-performance" }, { powerPreference: "low-power" }]) {
+      try { adapter = await navigator.gpu.requestAdapter(opts); } catch { adapter = null; }
+      if (adapter) break;
+    }
     if (adapter) {
       const f16 = adapter.features.has("shader-f16");
       for (const v of f16 ? ["webgpu-f16", "webgpu"] : ["webgpu"]) if (model.variants[v]) return { variant: v, device: "GPU" };
+      gpuProblem = "This graphics chip lacks a feature the model needs (16-bit maths).";
+    } else {
+      gpuProblem = "The browser couldn't use the graphics chip: hardware acceleration may be off, or the GPU is on Chrome's block list.";
     }
-  } catch { /* no WebGPU */ }
+  }
   return model.variants.wasm ? { variant: "wasm", device: "CPU" } : null;
 }
 
@@ -104,7 +121,7 @@ export async function init() {
   // Phones and tablets first: they get the same message whatever their browser supports.
   if (tooBigHere(smallest(model))) { set({ model, total: smallest(model), status: had ? "toobig" : "unavailable", message: TOO_BIG(smallest(model)) }); return; }
   const pick = saved.variant && model.variants[saved.variant] ? { variant: saved.variant, device: saved.device } : await pickVariant(model);
-  if (!pick) { set({ status: "unavailable", model, message: NO_GPU }); return; }
+  if (!pick) { set({ status: "unavailable", model, message: NO_GPU() }); return; }
   const total = variantBytes(model, pick.variant);
   set({ model, variant: pick.variant, device: pick.device, total, done: saved.modelId === model.id ? saved.done || 0 : 0 });
   // Loading started last visit and never finished: the tab was killed (out of memory). Don't try again by itself.
@@ -136,7 +153,7 @@ function resume() {
 export async function start(modelId) {
   const model = models().find((m) => m.id === modelId) || state.model;
   const pick = await pickVariant(model);
-  if (!pick) { set({ status: "unavailable", message: NO_GPU }); return; }
+  if (!pick) { set({ status: "unavailable", message: NO_GPU() }); return; }
   const total = variantBytes(model, pick.variant);
   set({ model, variant: pick.variant, device: pick.device, total });
   if (tooBigHere(total)) { set({ status: "unavailable", message: TOO_BIG(total) }); return; }

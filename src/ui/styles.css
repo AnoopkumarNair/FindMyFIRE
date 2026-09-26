@@ -796,3 +796,14 @@ body[data-view="home"]::after {
   .reveal { opacity: 1 !important; transform: none !important; }
   .demo-tracer { display: none; }
 }
+
+/* The same slow dawn light behind every page, not just the landing. */
+body:not([data-view="home"]):not([data-view="results"])::before {
+  content: ""; position: fixed; inset: 0; z-index: -1; pointer-events: none;
+  background: radial-gradient(36rem 24rem at 92% 0%, var(--glow-a), transparent 68%),
+    radial-gradient(30rem 22rem at 0% 100%, var(--glow-b), transparent 70%);
+}
+body::before { inset: -12%; animation: dawn-drift 34s ease-in-out infinite alternate; }
+.results .hero { isolation: isolate; }
+.results .hero > .embers { z-index: -1; }
+@media (prefers-reduced-motion: reduce) { body::before { transform: none !important; } }

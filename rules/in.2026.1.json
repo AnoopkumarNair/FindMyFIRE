@@ -1553,11 +1553,11 @@
         },
         {
           "id": "q.corpus",
-          "prompt": "How much have you invested so far?",
+          "prompt": "How much have you saved and invested in total?",
           "input": "currency",
-          "bind": "/quick/investedCorpus",
+          "bind": "/quick/totalSavings",
           "impact": "high",
-          "help": "Mutual funds, stocks, PPF, FDs, gold, your PF balance, and money in bank accounts beyond your emergency fund. Leave out about 6 months of expenses (your emergency fund), your home, and NPS Tier-1 if you plan to stop before 60 (it's locked until then)."
+          "help": "Add it all up: bank balances, FDs, mutual funds, stocks, PPF, gold and your PF balance. Leave out your home and NPS if you'll stop before 60. Don't set anything aside: the app keeps about 6 months of expenses as your emergency fund for you."
         },
         {
           "id": "q.sip",

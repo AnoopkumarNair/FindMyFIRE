@@ -132,7 +132,13 @@ export function resolveInputs(user, pack, today = new Date()) {
       else monthlySip += contrib;
     }
   } else {
-    fireCorpus = q.investedCorpus ?? 0;
+    if (q.totalSavings != null) {
+      // One simple total: the emergency fund (months of spending + EMIs) is kept aside first,
+      // and only what's left counts toward FIRE. If there isn't enough, it all stays aside.
+      const need = (A["emergency.months"] ?? 6) * (expenses.reduce((s, e) => s + e.monthly, 0) + emiMonthlyNow);
+      emergencyFund = Math.min(q.totalSavings, need);
+      fireCorpus = q.totalSavings - emergencyFund;
+    } else fireCorpus = q.investedCorpus ?? 0; // older plan files: already excluded the emergency fund
     monthlySip = q.monthlySip ?? 0;
     epfMonthly = q.epfMonthly ?? 0;
   }
@@ -242,7 +248,7 @@ export function resolveInputs(user, pack, today = new Date()) {
   };
   if (detailed.expenses) drop("expenses", "expenses", expenses.reduce((a, e) => a + e.monthly, 0), q.monthlyExpenses);
   if (detailed.holdings) {
-    drop("holdings", "investments", fireCorpus + excludedCorpus + emergencyFund, q.investedCorpus);
+    drop("holdings", "investments", fireCorpus + excludedCorpus + emergencyFund, q.totalSavings ?? q.investedCorpus);
     drop("holdings", "monthly investments (incl. PF)", monthlySip + epfMonthly, (q.monthlySip || 0) + (q.epfMonthly || 0));
   }
   if (detailed.income) drop("income", "take-home incomes", takeHomeMonthly, q.takeHomeMonthly);
