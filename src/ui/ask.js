@@ -7,7 +7,7 @@ import { age1 } from "./format.js";
 import { answer } from "../assistant/answer.js";
 import * as ai from "../assistant/client.js";
 
-const thread = [];            // this visit's questions and answers (never saved)
+const thread = [];            // the current question and its answer only (never saved)
 let statusEl = null;          // the status line currently on screen
 let running = null;           // AbortController of the answer being written
 const MB = (b) => (b >= 1e9 ? `${Math.round(b / 1e8) / 10} GB` : `${Math.round(b / 1e6)} MB`);
@@ -80,6 +80,25 @@ function engineStatus(s, opts = statusOpts) {
 }
 let statusOpts = null;
 
+/** Where an answer came from, and why the AI wasn't used, so it's never a guess. */
+function sourceLine(entry) {
+  if (entry.answer?.mode === "model") return null; // it has its own "✓ Every number checked" line
+  const s = entry.aiState || {};
+  const why = {
+    none: "The AI isn't added on this device.",
+    unavailable: /WebGPU/.test(s.message || "") ? "The AI is off: this browser isn't letting it use the graphics chip (WebGPU)."
+      : /laptop/.test(s.message || "") ? "The AI runs on laptops and desktops only." : "The AI isn't available here.",
+    downloading: "The AI is still downloading.",
+    paused: "The AI download is paused.",
+    error: `The AI is off: ${(s.message || "it couldn't start.").replace(/^The AI /, "it ").replace(/ Plain answers still work\.$/, "")}`,
+    crashed: "The AI closed the page last time, so it's off.",
+    toobig: "The AI is too big for this device.",
+  }[s.status];
+  const failed = entry.answer?.problem && entry.answer.problem.why !== "stopped";
+  return h("p", { class: "source-line muted small" }, "Plain answer, straight from your plan's calculations. ",
+    failed ? null : why || null);
+}
+
 function answerBlock(entry, opts) {
   const a = entry.answer;
   if (!a) {
@@ -119,8 +138,9 @@ function answerBlock(entry, opts) {
         ? "The AI's wording didn't pass the number check, so here are the plain facts."
         : "The AI couldn't answer this time, so here are the plain facts.") : null],
     cardEl,
+    sourceLine(entry),
     a.followUps?.length ? h("div", { class: "chips follow" }, ...a.followUps.map((q) => h("button", { type: "button", class: "chip", onMousedown: (e) => e.preventDefault(), onClick: () => ask(q, opts) }, q))) : null,
-    entry.stats ? h("p", { class: "muted tiny" }, `Written by the on-device AI in ${(entry.stats.ms / 1000).toFixed(1)} s.`) : null);
+    entry.stats ? h("p", { class: "muted tiny" }, `✦ Worded by the on-device AI in ${(entry.stats.ms / 1000).toFixed(1)} s.`) : null);
 }
 
 let threadEl = null;
@@ -129,7 +149,7 @@ function drawThread(opts) {
   if (!threadEl?.isConnected) return;
   if (statusEl?.isConnected) statusEl.replaceWith(statusEl = engineStatus(ai.current()));
   const fresh = thread.some((e) => !e.drawn);
-  threadEl.replaceChildren(...thread.slice(-6).map((e) => h("div", { class: ["ask-turn", !e.drawn && "new"] }, h("p", { class: "ask-q" }, e.q), answerBlock(e, opts))));
+  threadEl.replaceChildren(...thread.slice(-1).map((e) => h("div", { class: ["ask-turn", !e.drawn && "new"] }, h("p", { class: "ask-q" }, e.q), answerBlock(e, opts))));
   for (const e of thread) e.drawn = true;
   if (fresh) threadEl.lastElementChild?.scrollIntoView({ block: "nearest", behavior: "smooth" });
 }
@@ -138,8 +158,8 @@ async function ask(q, opts) {
   q = q.trim();
   if (!q || running) return;
   if (inputEl?.isConnected) inputEl.focus({ preventScroll: true }); // suggestions never keep focus
-  const entry = { q, answer: null, sentences: [] };
-  thread.push(entry);
+  const entry = { q, answer: null, sentences: [], aiState: ai.current() };
+  thread.splice(0, thread.length, entry); // a new question replaces the last answer
   const useAi = ai.usable();
   if (useAi && ai.current().status !== "ready") entry.note = "Loading the AI (first question only)…";
   drawThread(opts);
