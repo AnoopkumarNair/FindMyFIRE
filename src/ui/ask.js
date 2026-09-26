@@ -10,7 +10,7 @@ import * as ai from "../assistant/client.js";
 const thread = [];            // this visit's questions and answers (never saved)
 let statusEl = null;          // the status line currently on screen
 let running = null;           // AbortController of the answer being written
-const MB = (b) => `${Math.round(b / 1e6)} MB`;
+const MB = (b) => (b >= 1e9 ? `${Math.round(b / 1e8) / 10} GB` : `${Math.round(b / 1e6)} MB`);
 const pctOf = (s) => (s.total ? Math.floor((100 * s.done) / s.total) : 0);
 
 // One chip in the header while the model downloads, so progress is visible on every page.
@@ -57,6 +57,13 @@ function engineStatus(s, opts = statusOpts) {
     case "ready":
       body = [h("span", {}, h("span", { class: "spark", "aria-hidden": "true" }, "✦ "), `On-device AI on (beta) · ${label} · runs on this device's ${s.device}`),
         btn(`Remove (frees ${size})`, () => opts.confirmRemove(s))];
+      break;
+    case "crashed":
+      body = [h("span", { class: "warn-text" }, `${s.message} Plain answers keep working.`),
+        btn(`Remove it (frees ${size})`, () => opts.confirmRemove(s), "btn small primary"), btn("Try once more", ai.retryAfterCrash)];
+      break;
+    case "toobig":
+      body = [h("span", { class: "warn-text" }, s.message), btn(`Remove it (frees ${size})`, () => opts.confirmRemove(s), "btn small primary")];
       break;
     case "error":
       body = [h("span", { class: "warn-text" }, s.message || "Something went wrong."), s.model ? btn("Try again", () => ai.start(s.model.id), "btn small primary") : null];

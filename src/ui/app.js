@@ -402,6 +402,7 @@ function resultsView() {
 }
 
 // ---------------- ask about your plan ----------------
+const sizeText = (b) => (b >= 1e9 ? `${Math.round(b / 1e8) / 10} GB` : `${Math.round(b / 1e6)} MB`);
 const detailedIn = (id) => (S.user.sectionsDone || []).includes(id);
 const askOptions = {
   getCtx: () => ({ user: S.user, pack: S.pack, result: S.result, today: new Date() }),
@@ -426,7 +427,7 @@ const askOptions = {
     const ok = await dialog((close) => [
       h("h2", {}, "Add the on-device AI (beta)?"),
       h("ul", { class: "ticks" },
-        h("li", {}, h("span", { class: "tick" }, "✓"), h("span", {}, `A one-time download of about ${Math.round(s.total / 1e6)} MB. Wi-Fi recommended.`)),
+        h("li", {}, h("span", { class: "tick" }, "✓"), h("span", {}, `A one-time download of about ${sizeText(s.total)}. Wi-Fi recommended.`)),
         h("li", {}, h("span", { class: "tick" }, "✓"), h("span", {}, `It runs inside this browser. Your questions and numbers never leave this device${s.model.host ? `; the model file itself comes from ${s.model.host}, where its makers publish it` : ""}.`)),
         h("li", {}, h("span", { class: "tick" }, "✓"), h("span", {}, "Ask in your own words and get conversational answers. Every number still comes from the planner and is checked before it's shown, and the plain facts are always one tap away.")),
         h("li", {}, h("span", { class: "tick" }, "!"), h("span", {}, "It's a small model and still in beta: its wording can be off, so trust the numbers and the facts under each answer.")),
@@ -442,7 +443,7 @@ const askOptions = {
     if (ok) ai.start(s.model.id);
   },
   confirmRemove: async (s) => {
-    if (await confirmBox(`Remove the AI model from this browser? It frees about ${Math.round(s.total / 1e6)} MB. Plain answers keep working.`)) ai.remove();
+    if (await confirmBox(`Remove the AI model from this browser? It frees about ${sizeText(s.total)}. Plain answers keep working.`)) ai.remove();
   },
 };
 

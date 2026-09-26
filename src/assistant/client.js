@@ -9,6 +9,7 @@ const load = () => { try { return JSON.parse(localStorage.getItem(KEY)) || {}; }
 const keep = (x) => { try { localStorage.setItem(KEY, JSON.stringify(x)); } catch { /* private mode: resume won't survive a refresh */ } };
 
 // status: unavailable | none | downloading | paused | downloaded | loading | ready | error
+//         | crashed (loading killed the tab last time) | toobig (downloaded, but this device can't hold it)
 const state = { status: "none", done: 0, total: 0, model: null, variant: null, message: "", device: null, stats: null, manifest: null };
 const listeners = new Set();
 const emit = () => { for (const fn of listeners) fn({ ...state }); };
@@ -35,8 +36,11 @@ function getWorker() {
       else set({ status: "paused" });
     }
     else if (m.type === "loading") set({ status: "loading", message: m.file || "" });
-    else if (m.type === "loaded") { set({ status: "ready" }); loadWaiters.splice(0).forEach((w) => w.res()); }
-    else if (m.type === "removed") { keep({}); set({ status: "none", done: 0, total: 0 }); }
+    else if (m.type === "loaded") { keep({ ...load(), loadingSince: null }); set({ status: "ready" }); loadWaiters.splice(0).forEach((w) => w.res()); }
+    else if (m.type === "removed") {
+      keep({});
+      set(tooBigHere(state.total) ? { status: "unavailable", message: TOO_BIG(state.total), done: 0 } : { status: "none", done: 0 });
+    }
     else if (m.type === "token") pending.get(m.id)?.onToken?.(m.piece);
     else if (m.type === "done") {
       const p = pending.get(m.id);
@@ -47,6 +51,7 @@ function getWorker() {
     else if (m.type === "error") {
       if (m.id && pending.has(m.id)) { pending.get(m.id).rej(new Error(m.message)); pending.delete(m.id); return; }
       if (m.during === "load") {
+        keep({ ...load(), loadingSince: null });
         loadWaiters.splice(0).forEach((w) => w.rej(new Error(m.message)));
         set({ status: "error", message: `The AI couldn't start on this device (${m.message}). Plain answers still work.` });
         return;
@@ -56,6 +61,13 @@ function getWorker() {
   };
   return worker;
 }
+
+// A browser tab on a phone can't hold a model this big in memory (a 3.1 GB model crashed an
+// Android phone's tab while loading). Bigger models are for laptops and desktops.
+export const PHONE_MAX_BYTES = 1.6e9;
+const phoneLike = () => navigator.userAgentData?.mobile ?? /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent);
+const tooBigHere = (bytes) => phoneLike() && bytes > PHONE_MAX_BYTES;
+const TOO_BIG = (bytes) => `The AI model (${Math.round(bytes / 1e8) / 10} GB) is too big to run in a phone's browser. It works on laptops and desktops; plain answers work everywhere.`;
 
 /** Which build of a model suits this device: GPU (with or without 16-bit floats), else CPU. */
 async function pickVariant(model) {
@@ -80,8 +92,13 @@ export async function init() {
   const model = models.find((m) => m.id === saved.modelId) || models[0];
   const pick = saved.variant && model.variants[saved.variant] ? { variant: saved.variant, device: saved.device } : await pickVariant(model);
   if (!pick) { set({ status: "unavailable", model, message: "This browser can't run the model." }); return; }
-  set({ model, variant: pick.variant, device: pick.device, total: variantBytes(model, pick.variant), done: saved.modelId === model.id ? saved.done || 0 : 0 });
-  if (saved.modelId === model.id && saved.status) getWorker().postMessage({ type: "check", manifestUrl, modelId: model.id, variant: pick.variant });
+  const total = variantBytes(model, pick.variant);
+  set({ model, variant: pick.variant, device: pick.device, total, done: saved.modelId === model.id ? saved.done || 0 : 0 });
+  const had = saved.modelId === model.id && saved.status;
+  // Loading started last visit and never finished: the tab was killed (out of memory). Don't try again by itself.
+  if (tooBigHere(total)) { set({ status: had ? "toobig" : "unavailable", message: TOO_BIG(total) }); return; }
+  if (had && saved.loadingSince) { set({ status: "crashed", message: "Loading the AI closed this page last time, most likely because this device ran out of memory." }); return; }
+  if (had) getWorker().postMessage({ type: "check", manifestUrl, modelId: model.id, variant: pick.variant });
   else emit();
 }
 
@@ -111,12 +128,15 @@ export async function start(modelId) {
   if (!pick) { set({ status: "unavailable", message: "This browser can't run the model." }); return; }
   const total = variantBytes(model, pick.variant);
   set({ model, variant: pick.variant, device: pick.device, total });
+  if (tooBigHere(total)) { set({ status: "unavailable", message: TOO_BIG(total) }); return; }
   if (!(await storageOk(total))) { set({ status: "error", message: "Not enough free storage on this device for the model." }); return; }
   resume();
 }
 
 export const pause = () => worker?.postMessage({ type: "pause" });
 export const remove = () => getWorker().postMessage({ type: "remove" });
+/** After a crash: let the user try loading once more, knowingly. */
+export const retryAfterCrash = () => { keep({ ...load(), loadingSince: null }); set({ status: "downloaded", message: "" }); };
 
 /** Loads the model into memory (once per page load). */
 export function ensureLoaded() {
@@ -125,6 +145,7 @@ export function ensureLoaded() {
   return new Promise((res, rej) => {
     loadWaiters.push({ res, rej });
     if (state.status !== "loading") {
+      keep({ ...load(), loadingSince: Date.now() }); // cleared when loading ends; still set after a crash
       set({ status: "loading", message: "" });
       getWorker().postMessage({ type: "load", manifestUrl, modelId: state.model.id, variant: state.variant });
     }
