@@ -1526,14 +1526,14 @@
       "questions": [
         {
           "id": "q.ages",
-          "prompt": "Three ages to start with",
+          "prompt": "Your ages",
           "input": "group",
           "impact": "high",
-          "help": "Your age now, when you'd like to stop working, and how long your money should last. None of it leaves your device.",
+          "help": "Plan for money to last well past the average: 90–95 is prudent, and 90 is used if you leave it blank. Your age never leaves your device.",
           "fields": [
             {
               "id": "q.birth",
-              "prompt": "Your age today",
+              "prompt": "Your age now",
               "input": "age",
               "bind": "/profile/birthYearMonth",
               "impact": "high",
@@ -1543,7 +1543,7 @@
             },
             {
               "id": "q.fire_age",
-              "prompt": "Age you'd like to stop depending on a salary",
+              "prompt": "Stop working at",
               "input": "integer",
               "bind": "/plan/fireTargetAge",
               "min": 25,
@@ -1552,7 +1552,7 @@
             },
             {
               "id": "q.plan_until",
-              "prompt": "Age your money should last until",
+              "prompt": "Money lasts until",
               "input": "integer",
               "bind": "/plan/planUntilAge",
               "min": 60,

@@ -375,8 +375,8 @@ function quickView(i) {
       return h("div", { class: "group-field" },
         h("label", { for: id }, f.prompt),
         controlFor(f, { id, describedBy: f.help ? hid : undefined }),
-        f.help ? h("p", { class: "muted small", id: hid }, f.help) : null,
-        f.defaultFrom ? h("p", { class: "muted small" }, `Leave blank to use ${defaultOf(f)}.`) : null);
+        // Side by side, so the hints stay short; the group's own help covers the rest.
+        f.help ? h("span", { class: "sr-only", id: hid }, f.help) : null);
     }));
   const certainty = q.input === "currency"
     ? h("div", { class: "certainty" }, h("span", { class: "muted" }, "How sure are you?"),
