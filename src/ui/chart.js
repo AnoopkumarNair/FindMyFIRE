@@ -39,7 +39,7 @@ export function corpusChart(points, { targetAge, earliestAge }) {
     marker(targetAge, `Target ${targetAge}`, "mark target"),
     marker(earliestAge, `Earliest ${age1(earliestAge)}`, "mark earliest", 14),
     h("svg:path", { d: line("required"), class: "series s2" }),
-    h("svg:path", { d: line("corpus"), class: "series s1" }),
+    h("svg:path", { d: line("corpus"), class: "series s1 draw", pathLength: 1 }),
     cross, dotA, dotB, hit);
 
   const show = (evt) => {

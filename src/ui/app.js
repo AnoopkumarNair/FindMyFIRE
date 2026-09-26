@@ -7,7 +7,7 @@ import { marketNote } from "./market.js";
 import * as store from "./store.js";
 import { evaluatePlan, evaluate, getPointer, setPointer, ageAt } from "../engine/index.js";
 
-const APP_VERSION = "0.4.0";
+const APP_VERSION = "0.5.0";
 // Replaced with the commit id at deploy time; also appended to every file URL so browsers
 // fetch the new version right after a deploy instead of reusing a cached copy.
 const BUILD = "dev";
@@ -72,11 +72,12 @@ function header() {
   const fileInput = h("input", { type: "file", accept: ".json,application/json", hidden: true,
     onChange: (e) => e.target.files[0] && openFile(e.target.files[0]) });
   return h("header", { class: "top" },
-    h("a", { href: "#/", class: "brand" }, h("span", { class: "flame", "aria-hidden": "true" }), "FindMyFIRE"),
+    h("a", { href: "#/", class: "brand", "aria-label": "FindMyFIRE home" }, h("span", { class: "flame", "aria-hidden": "true" }),
+      h("span", { class: "wordmark" }, "FindMy", h("b", {}, "FIRE"))),
     h("nav", {},
-      hasPlan ? h("a", { href: "#/results", class: "btn ghost" }, "Results") : null,
-      hasPlan ? h("button", { type: "button", class: "btn", onClick: saveFile }, "Save file") : null,
-      h("button", { type: "button", class: "btn ghost", onClick: () => fileInput.click() }, "Open file"),
+      hasPlan ? h("a", { href: "#/results", class: "btn ghost" }, icon("chart"), h("span", { class: "lbl" }, "Results")) : null,
+      hasPlan ? h("button", { type: "button", class: "btn", onClick: saveFile, "aria-label": "Save file" }, icon("save"), h("span", { class: "lbl" }, "Save")) : null,
+      h("button", { type: "button", class: "btn ghost", onClick: () => fileInput.click(), "aria-label": "Open file" }, icon("open"), h("span", { class: "lbl" }, "Open")),
       fileInput,
       h("details", { class: "menu" }, h("summary", { class: "btn ghost", "aria-label": "More" }, "⋯"),
         h("div", { class: "menu-body" },
@@ -101,9 +102,13 @@ function route() {
   else if (view === "results") body = resultsView();
   else if (view === "refine") body = refineView(arg);
   else body = welcomeView();
-  mount(app, header(), h("main", {}, body), footer());
+  const key = `${view || "home"}/${arg || ""}`;
+  const changed = key !== S.lastKey;
+  document.body.dataset.view = view || "home";
+  S.lastKey = key;
+  mount(app, header(), h("main", { class: changed ? "enter" : "" }, body), footer());
   drawLive();
-  window.scrollTo(0, 0);
+  if (changed) { window.scrollTo({ top: 0, behavior: "instant" }); countUp(app); }
   const focusable = app.querySelector("main [autofocus], main h1");
   if (focusable) focusable.focus({ preventScroll: true });
 }
@@ -112,18 +117,120 @@ function route() {
 const quickCount = () => S.pack.questionFlow.quick.questions.length;
 function welcomeView() {
   const working = S.user?.profile?.birthYearMonth ? S.user : null;
-  return h("section", { class: "welcome" },
-    h("h1", { tabindex: -1 }, "When can you stop working?"),
-    h("p", { class: "lede" }, `A guided FIRE (Financial Independence, Retire Early) calculator for India. ${quickCount()} quick questions give you a first answer. Add detail whenever you like: each section you complete makes the answer more reliable.`),
-    h("div", { class: "cta" },
-      working
-        ? [h("a", { href: "#/results", class: "btn primary" }, "Continue your plan"),
-           h("a", { href: "#/quick/0", class: "btn" }, "Review quick answers")]
-        : h("button", { type: "button", class: "btn primary", onClick: () => { S.user = store.newUserFile(S.pack, APP_VERSION); location.hash = "#/quick/0"; } }, `Start: ${quickCount()} questions`)),
-    h("ul", { class: "points" },
-      h("li", {}, h("strong", {}, "Private by design. "), "Everything runs in your browser. Your plan is a JSON file you keep; open it here next time."),
-      h("li", {}, h("strong", {}, "Built for India. "), "EPF, PPF, NPS lock-ins, separate healthcare and education inflation, rupees in lakhs and crores."),
-      h("li", {}, h("strong", {}, "Honest about uncertainty. "), "Guesses show up as a range and a confidence score, and stress tests show what inflation or a crash would do.")));
+  const n = quickCount();
+  const start = () => { S.user = store.newUserFile(S.pack, APP_VERSION); location.hash = "#/quick/0"; };
+  const cta = working
+    ? [h("a", { href: "#/results", class: "btn primary big" }, "Continue your plan →"),
+       h("a", { href: "#/quick/0", class: "btn big ghost" }, "Change my answers")]
+    : [h("button", { type: "button", class: "btn primary big", onClick: start }, "Find my FIRE age →"),
+       h("button", { type: "button", class: "btn big ghost", onClick: loadExample }, "See an example")];
+  const step = (num, title, text) => h("li", { class: "step" }, h("span", { class: "num" }, num), h("h3", {}, title), h("p", {}, text));
+  const feature = (ic, title, text) => h("li", { class: "feature" }, h("span", { class: "ficon", "aria-hidden": "true" }, ic), h("h3", {}, title), h("p", {}, text));
+  const faq = (q, a) => h("details", { class: "faq" }, h("summary", {}, q), h("p", {}, a));
+  return h("div", { class: "landing" },
+    h("section", { class: "landing-hero" },
+      h("div", { class: "hero-copy" },
+        h("p", { class: "eyebrow" }, "A FIRE planner made for India"),
+        h("h1", { tabindex: -1 }, "Find out when work becomes ", h("em", {}, "optional"), "."),
+        h("p", { class: "lede" }, "FIRE stands for Financial Independence, Retire Early. It's the point where your investments can pay your bills for the rest of your life. You might keep working after that. The difference is, you won't have to."),
+        h("p", { class: "lede" }, `Answer ${n} questions about your money. In about two minutes you'll see the age you could get there, how likely it is, and what to do next.`),
+        h("div", { class: "cta" }, ...cta),
+        h("p", { class: "fineprint" }, working ? "Your plan is saved in this browser." : "Rough numbers are fine · No sign-up · Nothing leaves your device")),
+      heroDemo()),
+
+    h("section", { class: "band" },
+      h("h2", {}, "How it works"),
+      h("ol", { class: "steps" },
+        step("1", "Tell us the basics", "Your age, what you earn, spend and have saved. Round numbers are fine; you can sharpen them later."),
+        step("2", "See your FIRE age", "And how sure it is. We test your plan against a thousand possible market futures, not one lucky guess."),
+        step("3", "Get your plan", "What to invest this year, when to build a cash cushion, and how much to take out each month once you stop."))),
+
+    h("section", { class: "band" },
+      h("h2", {}, "It counts what other calculators leave out"),
+      h("ul", { class: "features" },
+        feature("🏦", "EPF, PPF and NPS", "Including money that's locked until 58 or 60, and when it actually becomes yours."),
+        feature("🏠", "Your property", "Rent it earns, what it costs to keep, and a sale in any year you choose."),
+        feature("🩺", "Health cover after work", "Your employer's policy ends when you stop. We plan for the premiums that rise every year after."),
+        feature("🧾", "Tax on withdrawals", "Worked out every year under the new regime, not a flat guess."),
+        feature("🎁", "Money coming in", "Gratuity, policy payouts, an inheritance: dated, taxed, and put to work."),
+        feature("📉", "A crash at the worst time", "What happens if markets fall right after you stop, the risk that sinks most plans."))),
+
+    h("section", { class: "band privacy" },
+      h("div", {},
+        h("h2", {}, "Your numbers stay with you"),
+        h("p", {}, "Nothing you type is sent anywhere: no account, no tracking, no server that stores your data. Your plan lives in this browser. Download it as a file, lock it with a passphrase if you like, and open it here any time.")),
+      h("div", { class: "lock", "aria-hidden": "true" }, "🔒")),
+
+    h("section", { class: "band" },
+      h("h2", {}, "Questions people ask"),
+      faq("Do I need exact numbers?", "No. Start with rough figures and mark them as estimates. The app shows how accurate your answer is and suggests the one section worth filling in next."),
+      faq("I don't want to retire at 40. Is this still useful?", "Yes. FIRE is about having the choice. The same plan tells you whether you're on track for 60, what a career break would cost, or how much a move to a cheaper city helps."),
+      faq("Is this financial advice?", "No. It's a planning tool that does the maths carefully and shows its working. Tax rules and rates are current to FY2025-26; check big decisions with a SEBI-registered adviser."),
+      faq("Where do the numbers come from?", "Your answers, plus assumptions you can see and change: inflation, returns, life expectancy. Inflation is compared with the latest World Bank data for India.")),
+
+    h("section", { class: "final-cta" },
+      h("h2", {}, "Two minutes to your number."),
+      h("div", { class: "cta" }, working
+        ? h("a", { href: "#/results", class: "btn primary big" }, "Continue your plan →")
+        : h("button", { type: "button", class: "btn primary big", onClick: start }, "Find my FIRE age →"))));
+}
+
+/** The landing page's example: a corpus that grows, then carries you, drawn as the page loads. */
+function heroDemo() {
+  const W = 520, H = 300, pad = 24;
+  const pts = [];
+  for (let a = 35; a <= 90; a++) {
+    const v = a <= 53 ? Math.pow((a - 33) / 20, 2.1) : Math.max(0, 1 - Math.pow((a - 53) / 38, 1.6) * 0.92);
+    pts.push([pad + ((a - 35) / 55) * (W - 2 * pad), H - pad - v * (H - 3 * pad)]);
+  }
+  const d = pts.map(([x, y], i) => `${i ? "L" : "M"}${x.toFixed(1)},${y.toFixed(1)}`).join("");
+  const sx = pts[18][0], sy = pts[18][1];
+  return h("div", { class: "demo", "aria-hidden": "true" },
+    h("div", { class: "demo-card" },
+      h("p", { class: "demo-tag" }, "Example"),
+      h("svg:svg", { viewBox: `0 0 ${W} ${H}`, class: "demo-svg" },
+        h("svg:defs", {},
+          h("svg:linearGradient", { id: "demoFill", x1: 0, y1: 0, x2: 0, y2: 1 },
+            h("svg:stop", { offset: "0%", class: "stop-a" }), h("svg:stop", { offset: "100%", class: "stop-b" }))),
+        h("svg:line", { x1: pad, x2: W - pad, y1: H - pad, y2: H - pad, class: "demo-axis" }),
+        h("svg:path", { d: `${d}L${W - pad},${H - pad}L${pad},${H - pad}Z`, class: "demo-area", fill: "url(#demoFill)" }),
+        h("svg:path", { d, class: "demo-line", pathLength: 1 }),
+        h("svg:line", { x1: sx, x2: sx, y1: pad, y2: H - pad, class: "demo-mark" }),
+        h("svg:circle", { cx: sx, cy: sy, r: 9, class: "demo-sun" }),
+        h("svg:text", { x: pad, y: H - 6, class: "demo-tick" }, "35"),
+        h("svg:text", { x: sx - 8, y: H - 6, class: "demo-tick" }, "53"),
+        h("svg:text", { x: W - pad - 14, y: H - 6, class: "demo-tick" }, "90")),
+      h("div", { class: "demo-chips" },
+        h("span", { class: "chip-pop c1" }, h("b", {}, "53"), " could stop working"),
+        h("span", { class: "chip-pop c2" }, h("b", {}, "₹4.9 Cr"), " needed by then"),
+        h("span", { class: "chip-pop c3" }, h("b", {}, "9 in 10"), " chance by 61"))));
+}
+
+/** Small line icons for the header (drawn with SVG, no icon font). */
+function icon(name) {
+  const paths = {
+    chart: "M4 19h16M6 16l4-5 3 3 5-7",
+    save: "M12 4v11m0 0l-4-4m4 4l4-4M5 20h14",
+    open: "M12 20V9m0 0l-4 4m4-4l4 4M5 4h14",
+  };
+  return h("svg:svg", { viewBox: "0 0 24 24", class: "ic", "aria-hidden": "true" },
+    h("svg:path", { d: paths[name], fill: "none", stroke: "currentColor", "stroke-width": 2, "stroke-linecap": "round", "stroke-linejoin": "round" }));
+}
+
+/** Count numbers up to their value once, on elements marked data-count. */
+function countUp(root) {
+  if (matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+  for (const el of root.querySelectorAll("[data-count]")) {
+    const to = Number(el.dataset.count), dec = Number(el.dataset.dec || 0), pre = el.dataset.pre || "";
+    if (!Number.isFinite(to)) continue;
+    const t0 = performance.now(), dur = 900, from = to * 0.6;
+    const tick = (now) => {
+      const k = Math.min(1, (now - t0) / dur), e = 1 - (1 - k) ** 3;
+      el.textContent = pre + (from + (to - from) * e).toFixed(dec);
+      if (k < 1) requestAnimationFrame(tick);
+    };
+    requestAnimationFrame(tick);
+  }
 }
 
 // ---------------- quick pass ----------------
@@ -199,9 +306,12 @@ function quickView(i) {
         prov[q.bind] === "default" ? h("span", { class: "badge" }, "Filled in for you") : null)
     : null;
 
-  return h("section", { class: "wizard", onKeydown: (e) => { if (e.key === "Enter" && e.target.tagName === "INPUT") { e.target.blur(); next(); } } },
+  const dir = (S.lastQuick ?? -1) <= i ? "fwd" : "back";
+  const fromW = S.lastQuick == null ? 0 : (S.lastQuick + 1) / qs.length;
+  S.lastQuick = i;
+  return h("section", { class: ["wizard", dir], onKeydown: (e) => { if (e.key === "Enter" && e.target.tagName === "INPUT") { e.target.blur(); next(); } } },
     h("div", { class: "progress", role: "progressbar", "aria-valuemin": 0, "aria-valuemax": qs.length, "aria-valuenow": i + 1 },
-      h("span", { class: "bar" }, h("span", { class: "fill", "data-w": (i + 1) / qs.length })),
+      h("span", { class: "bar" }, h("span", { class: "fill", "data-w": (i + 1) / qs.length, "data-from": fromW })),
       h("span", { class: "muted" }, `Question ${i + 1} of ${qs.length}`)),
     h("h1", { tabindex: -1 }, q.prompt),
     q.help ? h("p", { class: "help" }, q.help) : null,
@@ -233,7 +343,9 @@ function resultsView() {
 
   const hero = h("section", { class: "hero" },
     h("p", { class: "eyebrow" }, "Earliest you could stop working"),
-    h("h1", { tabindex: -1 }, reached ? `Age ${age1(r.earliestAge)}` : `Not before ${r.inputs.planUntilAge}`),
+    h("h1", { tabindex: -1, class: "big-age" }, reached
+      ? [h("span", { class: "unit" }, "Age "), h("span", { "data-count": Number(age1(r.earliestAge)), "data-dec": 1 }, age1(r.earliestAge))]
+      : `Not before ${r.inputs.planUntilAge}`),
     reached ? h("p", { class: "sub" }, `Around ${monthAtAge(bym, r.earliestAge)}. `,
       r.range.from != null && r.range.to != null && r.range.to - r.range.from >= 0.2
         ? `Likely between ${age1(r.range.from)} and ${age1(r.range.to)}, allowing for how exact your answers are.`
@@ -612,8 +724,14 @@ const askPassphrase = (msg, allowEmpty = false) => dialog((close) => {
 });
 
 // Progress bars and meters take their width from data-w (CSP forbids inline style attributes).
+// They start from data-from (or 0) and grow to the value, so bars fill in as a page appears.
+const clamp01 = (x) => `${Math.max(0, Math.min(1, +x || 0)) * 100}%`;
 new MutationObserver(() => {
-  for (const el of app.querySelectorAll("[data-w]")) el.style.width = `${Math.max(0, Math.min(1, +el.dataset.w)) * 100}%`;
+  const fresh = [...app.querySelectorAll("[data-w]:not([data-done])")];
+  for (const el of fresh) { el.dataset.done = "1"; el.style.width = clamp01(el.dataset.from); }
+  if (fresh.length) requestAnimationFrame(() => requestAnimationFrame(() => {
+    for (const el of fresh) el.style.width = clamp01(el.dataset.w);
+  }));
 }).observe(app, { childList: true, subtree: true });
 
 // ---------------- boot ----------------
