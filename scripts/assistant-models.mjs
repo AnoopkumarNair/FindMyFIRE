@@ -88,9 +88,20 @@ async function fetchModel(o) {
   for (const p of wanted) {
     const res = await fetch(`${HF}/${o.repo}/resolve/${sha}/${p}`);
     if (!res.ok) throw new Error(`${p}: HTTP ${res.status}`);
-    const buf = Buffer.from(await res.arrayBuffer());
+    let buf = Buffer.from(await res.arrayBuffer());
     const lfs = tree.find((x) => x.path === p)?.lfs?.oid;
     if (lfs && createHash("sha256").update(buf).digest("hex") !== lfs) throw new Error(`${p}: doesn't match Hugging Face's own checksum`);
+    // Some repos ship the chat template only as chat_template.jinja, which this runtime doesn't
+    // read; fold it into tokenizer_config.json (after the checksum check above).
+    if (p === "tokenizer_config.json" && paths.includes("chat_template.jinja")) {
+      const cfg = JSON.parse(buf.toString("utf8"));
+      if (!cfg.chat_template) {
+        const tpl = await fetch(`${HF}/${o.repo}/resolve/${sha}/chat_template.jinja`).then((r) => r.text());
+        cfg.chat_template = tpl;
+        buf = Buffer.from(JSON.stringify(cfg, null, 2));
+        console.log("  (tokenizer_config.json: chat template added from chat_template.jinja)");
+      }
+    }
     await mkdir(dirname(join(out, p)), { recursive: true });
     await writeFile(join(out, p), buf);
     const pieces = [];

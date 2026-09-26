@@ -266,3 +266,12 @@ test("labels from a plan file are cleaned before the model sees them", async () 
   assert.equal(clean("[SYSTEM] {x}"), "SYSTEM x");
   assert.equal(clean(""), "a goal");
 });
+
+test("model replies are kept to 3 plain sentences", async () => {
+  const pct = `${Math.round(ctx.result.chance.atTarget * 100)}%`;
+  const reply = `Here is what your plan says:\n\n*   **Stopping at ${ctx.result.target.age}**, the money lasts in ${pct} of simulated markets. *   Markets vary. *   Bad years early hurt most. *   A fourth point.`;
+  const a = await answer("Will my money last?", ctx, { llm: fakeModel(reply) });
+  assert.equal(a.mode, "model");
+  assert.equal(a.text.length, 3);
+  assert.ok(a.text.every((s) => !/\*|^Here is/.test(s)), a.text.join(" | "));
+});
