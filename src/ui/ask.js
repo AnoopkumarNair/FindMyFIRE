@@ -97,7 +97,7 @@ function answerBlock(entry, opts) {
       can ? h("button", { type: "button", class: "btn small primary", onClick: (e) => { e.target.disabled = true; opts.apply(c.changes); } }, "Apply this to my plan")
         : h("p", { class: "muted small" }, "To keep this, change it in your plan's sections."));
   }
-  return h("div", { class: "ask-a" },
+  return h("div", { class: "ask-a", "data-mode": a.mode, "data-problem": a.problem?.why || null },
     h("h3", {}, a.title),
     a.mode === "model"
       ? [h("p", {}, a.text.join(" ")),
@@ -156,7 +156,7 @@ export function askCard(opts) {
   const form = h("form", { class: "ask-form", onSubmit: (e) => { e.preventDefault(); const q = input.value; input.value = ""; ask(q, opts); } },
     input, h("button", { type: "submit", class: "btn primary" }, "Ask"));
   const soon = Math.max(Math.ceil(r.inputs.age) + 1, r.target.age - 3);
-  const starters = ["Why this age?", "How likely is it to work?", "What if I invest ₹10k more a month?", `What would it take to stop at ${soon}?`, "How does the money come out after FIRE?"];
+  const starters = ["Why this age?", "Will my money last?", "What if I invest ₹10k more a month?", `What would it take to stop at ${soon}?`, "How does the money come out after FIRE?"];
   threadEl = h("div", { class: "ask-thread", "aria-live": "polite" });
   statusEl = engineStatus(ai.current(), opts);
   const el = h("section", { class: "card ask", id: "ask" },

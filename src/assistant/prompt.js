@@ -7,7 +7,7 @@ export const SYSTEM_EXPLAIN = [
   "Rules:",
   "- Use ONLY the FACTS. Copy every number exactly as written in the FACTS. Never calculate, estimate or invent a number.",
   "- If the FACTS don't answer the question, say you can't tell from this plan.",
-  "- At most 3 short sentences. Mention the most important number from the FACTS. No lists, no headings.",
+  "- At most 3 short sentences. No lists, no headings.",
   "- Never recommend a fund, stock or product, and never promise returns.",
 ].join("\n");
 

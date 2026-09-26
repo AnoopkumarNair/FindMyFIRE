@@ -44,7 +44,7 @@ function whyAge(ctx) {
   const L = r.levers;
   if (L && !L.onTrack && L.investMore != null) facts.push(`Investing ${inr(L.investMore)} more a month would reach ${t.age}.`);
   if (L?.onTrack && L.spendAfterFire) facts.push(`You're on track: you could spend up to ${inr(L.spendAfterFire.to)} a month after FIRE (today's money) and still stop at ${t.age}.`);
-  return { title: "Why this age", facts, followUps: ["How likely is it to work?", "What if I invest ₹10k more a month?", "What does the corpus pay for?"] };
+  return { title: "Why this age", facts, followUps: ["Will my money last?", "What if I invest ₹10k more a month?", "What does the corpus pay for?"] };
 }
 
 function chance(ctx) {
@@ -83,7 +83,7 @@ function withdraw(ctx) {
     else facts.push("Under the new tax regime the first year's withdrawal attracts little or no income tax.");
   }
   facts.push(GLOSSARY.buckets.text);
-  return { title: "How the money comes out", facts, followUps: ["What does the corpus pay for?", "How likely is it to work?", "What is an SWP?"] };
+  return { title: "How the money comes out", facts, followUps: ["What does the corpus pay for?", "Will my money last?", "What is an SWP?"] };
 }
 
 function summary(ctx) {
@@ -96,7 +96,7 @@ function summary(ctx) {
   ];
   const next = [...r.confidence.sections].filter((x) => !x.done && x.potential > 0).sort((a, b) => b.potential - a.potential)[0];
   if (next) facts.push(`Filling in "${next.title}" would raise confidence the most.`);
-  return { title: "Where you stand", facts, followUps: ["Why this age?", "How likely is it to work?", `What would it take to stop at ${Math.max(Math.ceil(r.inputs.age) + 1, t.age - 3)}?`] };
+  return { title: "Where you stand", facts, followUps: ["Why this age?", "Will my money last?", `What would it take to stop at ${Math.max(Math.ceil(r.inputs.age) + 1, t.age - 3)}?`] };
 }
 
 function term(ctx, slots) {
@@ -177,7 +177,7 @@ function solveForTool(ctx, slots) {
     if (L.investMore != null && ctx.result.inputs.takeHomeMonthly > 0 && inp.monthlySip + L.investMore > ctx.result.inputs.takeHomeMonthly)
       facts.push(`That investment is more than your take-home pay of ${inr(ctx.result.inputs.takeHomeMonthly)}, so it would take a mix of changes.`);
   }
-  return { title: `Stopping at ${age}`, facts, card: { type: "solve", age }, claims: { onTrack: s.gap >= 0, chance: s.chance }, followUps: ["How likely is it to work?", "What if I spend ₹10k less a month?"] };
+  return { title: `Stopping at ${age}`, facts, card: { type: "solve", age }, claims: { onTrack: s.gap >= 0, chance: s.chance }, followUps: ["Will my money last?", "What if I spend ₹10k less a month?"] };
 }
 
 function outOfScope() {
@@ -190,8 +190,8 @@ function outOfScope() {
 function help() {
   return { title: "What I can help with", facts: [
     "I answer questions about the plan on this page, using the same calculations as the results.",
-    "Try: \"Why this age?\", \"How likely is it to work?\", \"What if I invest ₹10k more a month?\", \"What would it take to stop at 50?\", or \"What is an SWP?\"",
-  ], followUps: ["Why this age?", "How likely is it to work?", "What if I invest ₹10k more a month?"] };
+    "Try: \"Why this age?\", \"Will my money last?\", \"What if I invest ₹10k more a month?\", \"What would it take to stop at 50?\", or \"What is an SWP?\"",
+  ], followUps: ["Why this age?", "Will my money last?", "What if I invest ₹10k more a month?"] };
 }
 
 export const TOOLS = { why_age: whyAge, chance, corpus, withdraw, summary, term, what_if: whatIfTool, solve_for: solveForTool, out_of_scope: outOfScope, help };

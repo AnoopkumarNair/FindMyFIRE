@@ -71,7 +71,7 @@ const HELD_OUT = [
   ["should I put money in gold ETFs", "out_of_scope"], ["recommend a good SIP fund", "out_of_scope"],
   ["hello there", "help"], ["how do I use this", "help"],
 ];
-const EXPLAIN = ["Why this age?", "How likely is it to work?", "What does the corpus pay for?", "How does the money come out after FIRE?",
+const EXPLAIN = ["Why this age?", "Will my money last?", "What does the corpus pay for?", "How does the money come out after FIRE?",
   "What if I invest ₹10k more a month?", "Am I on track?", "What is an SWP?"];
 
 async function routing(set) {

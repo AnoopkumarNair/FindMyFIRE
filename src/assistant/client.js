@@ -22,7 +22,11 @@ function getWorker() {
   if (worker) return worker;
   worker = new Worker(new URL("./worker.js", import.meta.url), { type: "module" });
   worker.onmessage = ({ data: m }) => {
-    if (m.type === "progress") set({ status: "downloading", done: m.done, total: m.total });
+    if (m.type === "progress") {
+      // Remember roughly how far it got, so a refresh shows "resuming at 40%" rather than 0%.
+      if (m.total && Math.floor((20 * m.done) / m.total) !== Math.floor((20 * state.done) / m.total)) keep({ ...load(), done: m.done });
+      set({ status: "downloading", done: m.done, total: m.total });
+    }
     else if (m.type === "downloaded") { keep({ ...load(), status: "downloaded" }); set({ status: "downloaded", done: m.bytes, total: m.bytes }); }
     else if (m.type === "paused") { keep({ ...load(), status: "paused" }); set({ status: "paused" }); }
     else if (m.type === "checked") {
@@ -76,7 +80,7 @@ export async function init() {
   const model = models.find((m) => m.id === saved.modelId) || models[0];
   const pick = saved.variant && model.variants[saved.variant] ? { variant: saved.variant, device: saved.device } : await pickVariant(model);
   if (!pick) { set({ status: "unavailable", model, message: "This browser can't run the model." }); return; }
-  set({ model, variant: pick.variant, device: pick.device, total: variantBytes(model, pick.variant) });
+  set({ model, variant: pick.variant, device: pick.device, total: variantBytes(model, pick.variant), done: saved.modelId === model.id ? saved.done || 0 : 0 });
   if (saved.modelId === model.id && saved.status) getWorker().postMessage({ type: "check", manifestUrl, modelId: model.id, variant: pick.variant });
   else emit();
 }
@@ -95,7 +99,7 @@ async function storageOk(bytes) {
 }
 
 function resume() {
-  keep({ modelId: state.model.id, variant: state.variant, device: state.device, status: "downloading" });
+  keep({ ...load(), modelId: state.model.id, variant: state.variant, device: state.device, status: "downloading" });
   set({ status: "downloading", message: "" });
   getWorker().postMessage({ type: "download", manifestUrl, modelId: state.model.id, variant: state.variant });
 }

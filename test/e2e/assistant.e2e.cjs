@@ -19,6 +19,7 @@ manifest.models = [entry];
 (async () => {
   const server = spawn("node", ["scripts/serve.mjs"], { cwd: root, stdio: "ignore" });
   await new Promise((r) => setTimeout(r, 800));
+  const log = [];
   // A normal (persistent) profile: private-mode contexts get too little storage for a model.
   const profile = require("node:fs").mkdtempSync(path.join(require("node:os").tmpdir(), "fmf-e2e-"));
   const ctx = await chromium.launchPersistentContext(profile, { viewport: { width: 1280, height: 900 } });
@@ -27,7 +28,7 @@ manifest.models = [entry];
   // Slow the model host down a little so the refresh lands mid-download.
   await ctx.route("**/models-dev/**", async (r) => { await new Promise((x) => setTimeout(x, 120)); r.continue(); });
   const page = ctx.pages()[0] || await ctx.newPage();
-  const log = [];
+  ctx.on("weberror", (e) => log.push(`weberror: ${e.error().message}`));
   page.on("console", (m) => (m.type() === "error" || m.type() === "warning") && log.push(`${m.type()}: ${m.text()}`));
   page.on("pageerror", (e) => log.push(`pageerror: ${e.message}`));
   const status = () => page.textContent(".ai-status");
@@ -45,17 +46,21 @@ manifest.models = [entry];
     await page.reload();
     await page.waitForSelector(".ask");
     await page.waitForFunction(() => /Downloading|On-device AI on/.test(document.querySelector(".ai-status")?.textContent || ""), null, { timeout: 60000 });
+    // The first report after a refresh comes once stored pieces are counted.
+    await page.waitForFunction(() => /On-device AI on|[1-9]\d*%/.test(document.querySelector(".ai-status")?.textContent || ""), null, { timeout: 60000 });
     const after = await pct();
     result.resume = { before, after };
     await page.waitForSelector(".ai-status:has-text('On-device AI on')", { timeout: 600000 });
-    for (const q of ["How likely is it to work?", "honestly, is quitting at 50 realistic for me?"]) {
+    for (const q of ["Will my money last?", "honestly, is quitting at 50 realistic for me?"]) {
       const t0 = Date.now();
       const n = await page.locator(".ask-turn").count();
       await page.fill(".ask-form input", q);
       await page.press(".ask-form input", "Enter");
       await page.waitForFunction((k) => document.querySelectorAll(".ask-turn .ask-a:not(.pending)").length > k, n, { timeout: 600000 });
       const last = page.locator(".ask-turn").last();
-      result[q] = { seconds: (Date.now() - t0) / 1000, model: await last.locator(".checked").count() > 0, text: (await last.locator(".ask-a").textContent()).slice(0, 400) };
+      const a = last.locator(".ask-a");
+      result[q] = { seconds: (Date.now() - t0) / 1000, mode: await a.getAttribute("data-mode"), problem: await a.getAttribute("data-problem"),
+        text: (await a.textContent()).slice(0, 300) };
     }
     result.finalStatus = await status();
     await page.locator(".ask").screenshot({ path: path.join(outDir, "assistant.png") });
