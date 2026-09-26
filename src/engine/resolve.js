@@ -122,7 +122,7 @@ export function resolveInputs(user, pack, today = new Date()) {
         excludedCorpus += h.value;
         excluded.push({ label: h.label || inst.label, value: h.value, instrumentId: h.instrumentId });
         if (inst.unlock && h.countInFire !== false) locked.push({
-          label: h.label || inst.label, value: h.value, rate: inst.defaultReturn ?? 0.08, unlock: inst.unlock,
+          label: h.label || inst.label, from: "your Investments list", value: h.value, rate: inst.defaultReturn ?? 0.08, unlock: inst.unlock,
           yearlyContribution: 12 * ((h.monthlyContribution || 0) + (h.employerMonthlyContribution || 0)) + (h.annualContribution || 0),
         });
       }
@@ -146,7 +146,7 @@ export function resolveInputs(user, pack, today = new Date()) {
     if (q.npsBalance > 0 && npsInst?.unlock) {
       excludedCorpus += q.npsBalance;
       excluded.push({ label: npsInst.label, value: q.npsBalance, instrumentId: "nps_tier1" });
-      locked.push({ label: npsInst.label, value: q.npsBalance, rate: npsInst.defaultReturn ?? 0.09, unlock: npsInst.unlock,
+      locked.push({ label: npsInst.label, from: "your answer to the NPS question", value: q.npsBalance, rate: npsInst.defaultReturn ?? 0.09, unlock: npsInst.unlock,
         yearlyContribution: 12 * (q.npsMonthly || 0) });
     }
     monthlySip = q.monthlySip ?? 0;
@@ -234,6 +234,7 @@ export function resolveInputs(user, pack, today = new Date()) {
     let v = l.value;
     for (let y = 0; y < years; y++) v = (v + (y < payingYears ? l.yearlyContribution : 0)) * (1 + l.rate);
     const lump = v * (l.unlock.lumpSumShare ?? 1);
+    l.atUnlock = { total: v, lump, pensionMonthly: l.unlock.annuityShare ? (v * l.unlock.annuityShare * (l.unlock.annuityRate ?? 0.06)) / 12 : 0 };
     inflows.push({ label: `${l.label} (unlocks at ${l.unlock.age})`, atAge: l.unlock.age, net: lump, source: "estimate" });
     if (l.unlock.annuityShare)
       incomesAfterFire.push({ taxShare: 1, label: `${l.label} pension`, monthly: (v * l.unlock.annuityShare * (l.unlock.annuityRate ?? 0.06)) / 12,

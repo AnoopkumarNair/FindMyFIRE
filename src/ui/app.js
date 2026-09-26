@@ -636,7 +636,10 @@ function actionPlanCard(r) {
   const HC = S.pack.healthCover;
   const fireAge = t.age, prep = Math.max(Math.ceil(i.age), fireAge - 3);
   const steps = [];
-  const step = (when, title, ...detail) => steps.push(h("li", {}, h("span", { class: "when" }, when), h("div", {}, h("strong", {}, title), detail.length ? h("p", { class: "small" }, ...detail) : null)));
+  // Steps are shown in date order: "This year" first, then by age, then "Every year after".
+  const order = (when) => (/^This year/.test(when) ? 0 : /^Every/.test(when) ? 999 : Number((when.match(/\d+/) || [500])[0]));
+  const step = (when, title, ...detail) => steps.push({ at: order(when), n: steps.length,
+    el: h("li", {}, h("span", { class: "when" }, when), h("div", {}, h("strong", {}, title), detail.length ? h("p", { class: "small" }, ...detail) : null)) });
 
   const now = i.monthlySip, pf = i.epfMonthly;
   const pfNote = pf ? ` (plus ${inr(pf)} going into PF)` : "";
@@ -647,31 +650,48 @@ function actionPlanCard(r) {
       : `You're on track${pfNote}. `,
     `Raise it ${pct(r.params.stepUp, 0)} every year, e.g. with each raise. Until ${prep}, keep about ${S.pack.assetClasses.map((a) => `${Math.round(a.targetBeforeFire * 100)}% ${a.label.toLowerCase()}`).filter((x) => !x.startsWith("0%")).join(", ")}.`);
   const efTarget = A["emergency.months"] * (r.derived.monthlyExpenses + r.derived.monthlyEmi);
-  step("This year", `Keep ${inrShort(efTarget)} as an emergency fund`,
-    `${A["emergency.months"]} months of spending and EMIs, in a sweep FD or liquid fund, outside your FIRE investments.`,
-    i.detailed.holdings ? ` You have ${inrShort(i.emergencyFund)}.` : "");
+  const efShort = Math.max(0, efTarget - (i.emergencyFund || 0));
+  step("This year", i.detailed.holdings ? `Keep ${inrShort(efTarget)} as an emergency fund` : `Hold ${inrShort(Math.min(efTarget, i.emergencyFund || 0))} of your savings as an emergency fund`,
+    `${A["emergency.months"]} months of spending and EMIs, in a sweep FD or liquid fund. `,
+    i.detailed.holdings
+      ? `You've marked ${inrShort(i.emergencyFund || 0)} as emergency money${efShort > 0 ? `, so build ${inrShort(efShort)} more before raising investments.` : "."}`
+      : efShort > 0 ? `Your savings don't cover it yet, so this plan counts none of them towards FIRE; build ${inrShort(efShort)} more first.`
+      : "This plan already keeps it out of your FIRE savings.");
+  // Only advise buying cover when we know there isn't enough; otherwise say what to check.
+  const coverKnown = u.insurance?.healthCover != null || (u.sectionsDone || []).includes("protection");
   if (HC && !(u.insurance?.healthCover >= HC.recommendedCover))
-    step("This year", `Buy your own family health cover of ${inrShort(HC.recommendedCover)} or more`,
-      `Employer cover ends when you stop working, and cover is much harder to get later or with an illness. Roughly ${inr(w?.health?.premiumNow ?? 0)} a year at your age.`);
+    step("This year", coverKnown ? `Raise your own family health cover to ${inrShort(HC.recommendedCover)} or more` : `Check you have your own family health cover of ${inrShort(HC.recommendedCover)} or more`,
+      coverKnown ? `You have ${inrShort(u.insurance?.healthCover || 0)} of your own. ` : "Cover through your employer doesn't count: it ends when you stop working. ",
+      `Cover is much harder to get later or with an illness. Roughly ${inr(w?.health?.premiumNow ?? 0)} a year at your age. `,
+      coverKnown ? "" : "Add what you have under Insurance & health cover to make this step specific.");
   for (const x of i.properties || []) if (x.sale) step(`At ${Math.floor(x.sale.atAge)}`, `Sell ${x.label}`,
     `Expect about ${inrShort(x.sale.net)} after costs and tax. Put it straight into the cash and debt buckets, not a lump-sum equity bet.`);
-  for (const l of i.locked || []) step(`At ${l.unlock.age}`, `${l.label} unlocks`, l.unlock.note || "");
+  // Only money the person entered; the amounts are this plan's own projections.
+  for (const l of i.locked || []) step(`At ${l.unlock.age}`, `${l.label} unlocks`,
+    `From ${l.from || "your plan"}: ${inrShort(l.value)} today. `,
+    l.atUnlock ? `By ${l.unlock.age} the plan expects about ${inrShort(l.atUnlock.total)}: ${inrShort(l.atUnlock.lump)} to take out${l.atUnlock.pensionMonthly ? ` and ${inr(l.atUnlock.pensionMonthly)} a month as a pension` : ""}. ` : "",
+    l.unlock.note || "");
+  // The bucket and SWP steps describe stopping at the target; say so when the plan doesn't reach it yet.
+  const ifClosed = t.gap < 0 ? `This assumes you close the gap above; on today's path you'd stop around ${age1(r.earliestAge ?? i.planUntilAge)}. ` : "";
   if (w?.buckets && prep < fireAge)
     step(`From ${prep}`, "Build the buckets over three years",
-      `Move new money and some equity gains into debt and cash so that by ${fireAge} you hold about ${inrShort(w.buckets.cash.amount)} in cash (3 years of spending) and ${inrShort(w.buckets.debt.amount)} in debt (the next 5). This protects you if markets fall just as you stop.`);
+      ifClosed, `Move new money and some equity gains into debt and cash so that by ${fireAge} you hold about ${inrShort(w.buckets.cash.amount)} in cash (3 years of spending) and ${inrShort(w.buckets.debt.amount)} in debt (the next 5). This protects you if markets fall just as you stop.`);
   if (w) step(`At ${fireAge}`, `Start an SWP of ${inr(w.firstMonthly)} a month`,
-    "From the cash bucket (liquid or arbitrage fund). Confirm your health policy is in your own name before leaving your job.");
+    prep < fireAge ? "" : ifClosed, "From the cash bucket (liquid or arbitrage fund). Confirm your health policy is in your own name before leaving your job.");
   step(`Every year after`, "Refill and re-check",
     "Move a year of withdrawals from debt to cash and top up debt from equity, but skip selling equity after a bad year. Raise the SWP with inflation, and re-run this plan.");
 
-  const shown = new Set(["no_health_cover", "emergency_short", "low_confidence"]);
+  // Nudges the steps above already cover.
+  const shown = new Set(["no_health_cover", "emergency_short", "low_confidence", "nps_locked"]);
   const icon = { critical: "⛔", warn: "⚠", info: "ℹ" };
   const extra = [
     ...(r.overlaps || []).map((o) => ({ severity: "warn", section: o.section, message: o.message })),
-    ...r.nudges.filter((n) => !shown.has(n.id)),
+    ...r.nudges.filter((n) => !shown.has(n.id)).map((n) => n.id === "uninvested_surplus" && r.derived.monthlySurplus > 0
+      ? { ...n, message: `About ${inr(r.derived.monthlySurplus)} a month is left after spending, EMIs and what you invest. The plan doesn't count it until you invest it; adding it to your monthly investment brings your FIRE age closer.` }
+      : n),
   ];
   return card("Your plan, step by step",
-    h("ol", { class: "timeline" }, ...steps),
+    h("ol", { class: "timeline" }, ...steps.sort((a, b) => a.at - b.at || a.n - b.n).map((x) => x.el)),
     extra.length ? h("div", { class: "also" }, h("p", { class: "small" }, h("strong", {}, "Also check")),
       h("ul", { class: "nudges" }, ...extra.map((n) => h("li", { class: n.severity },
         h("span", { class: "icon", "aria-hidden": "true" }, icon[n.severity]), h("span", { class: "sr" }, `${n.severity}: `),

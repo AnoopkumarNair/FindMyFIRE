@@ -444,3 +444,12 @@ test("future money that might be entered twice is flagged where it's entered", a
   const pf = run({ inflows: [{ id: "x", templateId: "inflow.other", label: "PF withdrawal", amount: 1500000, on: "2036-01", source: "estimate" }] });
   assert.ok(pf.some((o) => o.section === "inflows"), "PF entered as money coming in");
 });
+
+test("locked money says where it came from and what it pays at unlock; none when there's none", async () => {
+  const { resolveInputs } = await import("../src/engine/index.js");
+  const none = resolveInputs({ ...quickBase, quick: { ...quickBase.quick, npsBalance: 0 } }, pk(), day);
+  assert.equal(none.locked.length, 0, "no NPS, no NPS step");
+  const nps = resolveInputs({ ...quickBase, quick: { ...quickBase.quick, npsBalance: 800000, npsMonthly: 10000 } }, pk(), day).locked[0];
+  assert.match(nps.from, /NPS question/);
+  assert.ok(nps.atUnlock.total > 800000 && Math.abs(nps.atUnlock.lump - 0.6 * nps.atUnlock.total) < 1 && nps.atUnlock.pensionMonthly > 0);
+});
