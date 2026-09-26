@@ -65,9 +65,19 @@ function getWorker() {
 // A browser tab on a phone can't hold a model this big in memory (a 3.1 GB model crashed an
 // Android phone's tab while loading). Bigger models are for laptops and desktops.
 export const PHONE_MAX_BYTES = 1.6e9;
-const phoneLike = () => navigator.userAgentData?.mobile ?? /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent);
-const tooBigHere = (bytes) => phoneLike() && bytes > PHONE_MAX_BYTES;
-const TOO_BIG = (bytes) => `The AI model (${Math.round(bytes / 1e8) / 10} GB) is too big to run in a phone's browser. It works on laptops and desktops; plain answers work everywhere.`;
+/** "phone", "tablet" or "computer", from what the browser says about itself. */
+export function deviceKind(nav = navigator) {
+  const ua = nav.userAgent || "";
+  // iPadOS reports itself as a Mac; a touch screen gives it away.
+  if (/iPad|Tablet|PlayBook|Silk/i.test(ua) || (/Macintosh/.test(ua) && nav.maxTouchPoints > 1) || (/Android/i.test(ua) && !/Mobile/i.test(ua))) return "tablet";
+  if (nav.userAgentData?.mobile || /iPhone|iPod|Android|Mobile/i.test(ua)) return "phone";
+  return "computer";
+}
+const GB = (bytes) => `${Math.round(bytes / 1e8) / 10} GB`;
+const tooBigHere = (bytes) => deviceKind() !== "computer" && bytes > PHONE_MAX_BYTES;
+const TOO_BIG = (bytes) => `The AI assistant needs a laptop or desktop: its ${GB(bytes)} model is too big for a phone or tablet browser. Your answers here come straight from your plan, with the same numbers.`;
+const NO_GPU = "Your answers come straight from your plan. The optional AI needs a browser with WebGPU, such as a recent Chrome, Edge or Safari on a laptop or desktop.";
+const smallest = (model) => Math.min(...Object.keys(model.variants).map((v) => variantBytes(model, v)));
 
 /** Which build of a model suits this device: GPU (with or without 16-bit floats), else CPU. */
 async function pickVariant(model) {
@@ -90,13 +100,14 @@ export async function init() {
   if (!models.length) { set({ status: "unavailable", message: "The AI model hasn't been published yet." }); return; }
   const saved = load();
   const model = models.find((m) => m.id === saved.modelId) || models[0];
+  const had = saved.modelId === model.id && saved.status;
+  // Phones and tablets first: they get the same message whatever their browser supports.
+  if (tooBigHere(smallest(model))) { set({ model, total: smallest(model), status: had ? "toobig" : "unavailable", message: TOO_BIG(smallest(model)) }); return; }
   const pick = saved.variant && model.variants[saved.variant] ? { variant: saved.variant, device: saved.device } : await pickVariant(model);
-  if (!pick) { set({ status: "unavailable", model, message: "This browser can't run the model." }); return; }
+  if (!pick) { set({ status: "unavailable", model, message: NO_GPU }); return; }
   const total = variantBytes(model, pick.variant);
   set({ model, variant: pick.variant, device: pick.device, total, done: saved.modelId === model.id ? saved.done || 0 : 0 });
-  const had = saved.modelId === model.id && saved.status;
   // Loading started last visit and never finished: the tab was killed (out of memory). Don't try again by itself.
-  if (tooBigHere(total)) { set({ status: had ? "toobig" : "unavailable", message: TOO_BIG(total) }); return; }
   if (had && saved.loadingSince) { set({ status: "crashed", message: "Loading the AI closed this page last time, most likely because this device ran out of memory." }); return; }
   if (had) getWorker().postMessage({ type: "check", manifestUrl, modelId: model.id, variant: pick.variant });
   else emit();
@@ -125,7 +136,7 @@ function resume() {
 export async function start(modelId) {
   const model = models().find((m) => m.id === modelId) || state.model;
   const pick = await pickVariant(model);
-  if (!pick) { set({ status: "unavailable", message: "This browser can't run the model." }); return; }
+  if (!pick) { set({ status: "unavailable", message: NO_GPU }); return; }
   const total = variantBytes(model, pick.variant);
   set({ model, variant: pick.variant, device: pick.device, total });
   if (tooBigHere(total)) { set({ status: "unavailable", message: TOO_BIG(total) }); return; }

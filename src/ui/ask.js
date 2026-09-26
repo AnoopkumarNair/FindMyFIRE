@@ -32,7 +32,7 @@ function engineStatus(s, opts = statusOpts) {
   let body;
   switch (s.status) {
     case "unavailable":
-      body = [h("span", { class: "muted" }, `Plain answers from your plan. ${s.message || ""}`)];
+      body = [h("span", { class: "muted" }, s.message || "Plain answers from your plan.")];
       break;
     case "none":
       body = [h("span", {}, h("strong", {}, "Want to ask in your own words? "), `Add the on-device AI, in beta (${size}, one-time).`),
