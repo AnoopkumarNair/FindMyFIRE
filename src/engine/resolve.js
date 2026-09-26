@@ -139,6 +139,14 @@ export function resolveInputs(user, pack, today = new Date()) {
       emergencyFund = Math.min(q.totalSavings, need);
       fireCorpus = q.totalSavings - emergencyFund;
     } else fireCorpus = q.investedCorpus ?? 0; // older plan files: already excluded the emergency fund
+    // NPS from the quick questions: locked until it unlocks (60), then a lump sum plus a pension.
+    const npsInst = insts.nps_tier1;
+    if (q.npsBalance > 0 && npsInst?.unlock) {
+      excludedCorpus += q.npsBalance;
+      excluded.push({ label: npsInst.label, value: q.npsBalance, instrumentId: "nps_tier1" });
+      locked.push({ label: npsInst.label, value: q.npsBalance, rate: npsInst.defaultReturn ?? 0.09, unlock: npsInst.unlock,
+        yearlyContribution: 12 * (q.npsMonthly || 0) });
+    }
     monthlySip = q.monthlySip ?? 0;
     epfMonthly = q.epfMonthly ?? 0;
   }

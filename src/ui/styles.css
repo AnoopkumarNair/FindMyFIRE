@@ -807,3 +807,11 @@ body::before { inset: -12%; animation: dawn-drift 34s ease-in-out infinite alter
 .results .hero { isolation: isolate; }
 .results .hero > .embers { z-index: -1; }
 @media (prefers-reduced-motion: reduce) { body::before { transform: none !important; } }
+/* AI line at the top of the Ask box: offers before the first question, a small tag once on. */
+.ask .ai-status { margin: 0.2rem 0 0.4rem; padding: 0.55rem 0.8rem; border: 1px dashed var(--border); border-radius: var(--radius-sm); }
+.ask .ai-status.quiet { display: none; }
+.ask .ai-status.on { border: 0; padding: 0; justify-content: flex-end; }
+.ai-on summary { cursor: pointer; list-style: none; font-size: 0.8rem; font-weight: 700; color: var(--accent-ink);
+  background: var(--accent-soft); border-radius: 999px; padding: 0.2rem 0.65rem; display: inline-block; }
+.ai-on summary::-webkit-details-marker { display: none; }
+.ai-on[open] { display: flex; flex-wrap: wrap; align-items: center; gap: 0.4rem; }

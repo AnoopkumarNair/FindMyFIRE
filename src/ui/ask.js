@@ -55,8 +55,11 @@ function engineStatus(s, opts = statusOpts) {
       break;
     case "downloaded":
     case "ready":
-      body = [h("span", {}, h("span", { class: "spark", "aria-hidden": "true" }, "✦ "), `On-device AI on (beta) · ${label} · runs on this device's ${s.device}`),
-        btn(`Remove (frees ${size})`, () => opts.confirmRemove(s))];
+      // Just a small tag once it's on; removing it sits behind a disclosure.
+      body = [h("details", { class: "ai-on" },
+        h("summary", {}, h("span", { class: "spark", "aria-hidden": "true" }, "✦ "), "AI on (beta)"),
+        h("span", { class: "muted small" }, ` ${label}, running on this device's ${s.device}. `),
+        btn(`Remove (frees ${size})`, () => opts.confirmRemove(s)))];
       break;
     case "crashed":
       body = [h("span", { class: "warn-text" }, `${s.message} Plain answers keep working.`),
@@ -71,7 +74,9 @@ function engineStatus(s, opts = statusOpts) {
     default:
       body = [];
   }
-  return h("div", { class: "ai-status" }, ...body);
+  // The offer to add AI (or why it isn't available) only matters before the first question.
+  const quiet = (s.status === "none" || s.status === "unavailable") && thread.length > 0;
+  return h("div", { class: ["ai-status", quiet && "quiet", (s.status === "downloaded" || s.status === "ready") && "on"] }, ...body);
 }
 let statusOpts = null;
 
@@ -114,7 +119,7 @@ function answerBlock(entry, opts) {
         ? "The AI's wording didn't pass the number check, so here are the plain facts."
         : "The AI couldn't answer this time, so here are the plain facts.") : null],
     cardEl,
-    a.followUps?.length ? h("div", { class: "chips follow" }, ...a.followUps.map((q) => h("button", { type: "button", class: "chip", onClick: () => ask(q, opts) }, q))) : null,
+    a.followUps?.length ? h("div", { class: "chips follow" }, ...a.followUps.map((q) => h("button", { type: "button", class: "chip", onMousedown: (e) => e.preventDefault(), onClick: () => ask(q, opts) }, q))) : null,
     entry.stats ? h("p", { class: "muted tiny" }, `Written by the on-device AI in ${(entry.stats.ms / 1000).toFixed(1)} s.`) : null);
 }
 
@@ -122,6 +127,7 @@ let threadEl = null;
 let inputEl = null; // the question box: focus always returns here
 function drawThread(opts) {
   if (!threadEl?.isConnected) return;
+  if (statusEl?.isConnected) statusEl.replaceWith(statusEl = engineStatus(ai.current()));
   const fresh = thread.some((e) => !e.drawn);
   threadEl.replaceChildren(...thread.slice(-6).map((e) => h("div", { class: ["ask-turn", !e.drawn && "new"] }, h("p", { class: "ask-q" }, e.q), answerBlock(e, opts))));
   for (const e of thread) e.drawn = true;
@@ -131,6 +137,7 @@ function drawThread(opts) {
 async function ask(q, opts) {
   q = q.trim();
   if (!q || running) return;
+  if (inputEl?.isConnected) inputEl.focus({ preventScroll: true }); // suggestions never keep focus
   const entry = { q, answer: null, sentences: [] };
   thread.push(entry);
   const useAi = ai.usable();
@@ -172,10 +179,10 @@ export function askCard(opts) {
   const el = h("section", { class: "card ask", id: "ask" },
     h("h2", {}, "Ask about your plan"),
     h("p", { class: "muted small" }, "Answers use the same calculations as this page. What you type stays on this device."),
+    statusEl,
     form,
-    h("div", { class: "chips starters" }, ...starters.map((q) => h("button", { type: "button", class: "chip", onClick: () => ask(q, opts) }, q))),
-    threadEl,
-    statusEl);
+    h("div", { class: "chips starters" }, ...starters.map((q) => h("button", { type: "button", class: "chip", onMousedown: (e) => e.preventDefault(), onClick: () => ask(q, opts) }, q))),
+    threadEl);
   queueMicrotask(() => drawThread(opts));
   return el;
 }

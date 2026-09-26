@@ -125,7 +125,8 @@ function route() {
 }
 
 // ---------------- welcome ----------------
-const quickCount = () => S.pack.questionFlow.quick.questions.length;
+// Questions most people see (follow-ups like NPS contributions only appear when they apply).
+const quickCount = () => S.pack.questionFlow.quick.questions.filter((q) => evaluate(q.showIf, {})).length;
 function welcomeView() {
   const working = S.user?.profile?.birthYearMonth ? S.user : null;
   const n = quickCount();

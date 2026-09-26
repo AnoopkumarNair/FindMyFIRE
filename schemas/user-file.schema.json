@@ -214,6 +214,16 @@
           "type": "number",
           "minimum": 0,
           "description": "Everything saved and invested, bank balances included. The app keeps an emergency fund aside from it."
+        },
+        "npsBalance": {
+          "type": "number",
+          "minimum": 0,
+          "description": "NPS Tier-1 balance (own + employer). Locked until 60."
+        },
+        "npsMonthly": {
+          "type": "number",
+          "minimum": 0,
+          "description": "Monthly NPS contribution, own + employer."
         }
       }
     },

@@ -356,3 +356,19 @@ test("one total-savings answer: the emergency fund is set aside first, the rest 
   const old = at({ investedCorpus: 2000000 });             // older files already left it out
   assert.equal(old.fireCorpus, 2000000);
 });
+
+test("NPS from the quick questions is locked until 60, then pays a lump sum and a pension", async () => {
+  const { resolveInputs, evaluatePlan } = await import("../src/engine/index.js");
+  const pack = JSON.parse(readFileSync(new URL("../rules/in.2026.1.json", import.meta.url)));
+  const today = new Date("2026-09-26");
+  const u = { schemaVersion: "1.0.0", profile: { birthYearMonth: "1990-01" }, plan: { fireTargetAge: 50 },
+    quick: { takeHomeMonthly: 200000, monthlyExpenses: 80000, emiMonthly: 0, totalSavings: 3000000, monthlySip: 40000, epfMonthly: 15000 } };
+  const withNps = { ...u, quick: { ...u.quick, npsBalance: 800000, npsMonthly: 10000 } };
+  const a = resolveInputs(u, pack, today), b = resolveInputs(withNps, pack, today);
+  assert.equal(b.fireCorpus, a.fireCorpus, "NPS isn't spendable before 60");
+  assert.ok(b.inflows.some((x) => x.atAge === 60 && x.net > 800000), "lump sum at 60");
+  assert.ok(b.incomesAfterFire.some((x) => /pension/.test(x.label) && x.fromAge === 60), "pension from 60");
+  const ea = evaluatePlan(u, pack, { today }).earliestAge, eb = evaluatePlan(withNps, pack, { today }).earliestAge;
+  assert.ok(eb <= ea, "money arriving at 60 can only help");
+  assert.equal(evaluatePlan(withNps, pack, { today }).balance.today.locked, 800000, "shown as locked in Where you stand");
+});

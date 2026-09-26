@@ -1557,7 +1557,7 @@
           "input": "currency",
           "bind": "/quick/totalSavings",
           "impact": "high",
-          "help": "Add it all up: bank balances, FDs, mutual funds, stocks, PPF, gold and your PF balance. Leave out your home and NPS if you'll stop before 60. Don't set anything aside: the app keeps about 6 months of expenses as your emergency fund for you."
+          "help": "Add it all up: bank balances, FDs, mutual funds, stocks (US and other foreign shares too), vested RSUs or ESOP shares you can sell, PPF, gold and your PF balance. Leave out your home and NPS (that's the next question). Don't set anything aside: the app keeps about 6 months of expenses as your emergency fund for you. Shares that haven't vested yet can be added later under Money coming in."
         },
         {
           "id": "q.sip",
@@ -1565,7 +1565,7 @@
           "input": "currency",
           "bind": "/quick/monthlySip",
           "impact": "high",
-          "help": "Money that leaves your bank account: SIPs, PPF, RDs, VPF, your own NPS. Don't include your PF deduction here; that's the next question.",
+          "help": "Money that leaves your bank account: SIPs, stocks, PPF, RDs, VPF. Don't include your PF deduction or NPS here; they have their own questions.",
           "impactHint": "Only money you invest yourself. Your employer's share comes next."
         },
         {
@@ -1582,6 +1582,29 @@
           "impact": "medium",
           "help": "From your payslip: your PF deduction plus your employer's PF contribution. It's taken out before your salary reaches you, so it isn't part of your take-home. Enter 0 if you don't have PF.",
           "impactHint": "Employer money is still your money: it grows in your PF and counts toward FIRE."
+        },
+        {
+          "id": "q.nps_balance",
+          "prompt": "How much is in your NPS today?",
+          "input": "currency",
+          "bind": "/quick/npsBalance",
+          "impact": "medium",
+          "min": 0,
+          "help": "Your NPS Tier-1 balance, including anything your employer put in (corporate NPS). Enter 0 if you don't have NPS. It's locked until 60: the plan counts it then, 60% as a lump sum and 40% as a monthly pension."
+        },
+        {
+          "id": "q.nps_monthly",
+          "prompt": "How much goes into your NPS each month?",
+          "input": "currency",
+          "bind": "/quick/npsMonthly",
+          "impact": "low",
+          "min": 0,
+          "help": "Your own NPS contribution plus your employer's (it's on your payslip as employer NPS contribution, under section 80CCD(2)). Enter 0 if contributions have stopped.",
+          "showIf": {
+            "ref": "/quick/npsBalance",
+            "op": "gt",
+            "value": 0
+          }
         }
       ]
     },
