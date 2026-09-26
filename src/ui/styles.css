@@ -834,3 +834,21 @@ body::before { inset: -12%; animation: dawn-drift 34s ease-in-out infinite alter
 .refine-link strong { color: var(--accent); }
 .refine-link:hover strong { text-decoration: underline; }
 .refine-list .small { margin: 0.25rem 0 0; }
+
+/* Phones: no sideways scrolling inside cards. Two-column tables wrap; wider ones stack each
+   row into a small card with every value labelled by its column. */
+@media (max-width: 640px) {
+  .table-wrap > table, .table-wrap > table.breakdown { min-width: 0; }
+  table th, table td { overflow-wrap: anywhere; }
+  table.stackable thead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+  table.stackable, table.stackable tbody, table.stackable tr, table.stackable th, table.stackable td { display: block; width: auto; }
+  table.stackable tr { border: 1px solid var(--border); border-radius: 12px; padding: 0.55rem 0.8rem; margin-bottom: 0.6rem; background: var(--raised); }
+  table.stackable tr > * { border: 0; padding: 0.2rem 0; text-align: left; }
+  table.stackable tr > :first-child { font-weight: 700; padding-bottom: 0.35rem; }
+  table.stackable td[data-label] { display: flex; justify-content: space-between; align-items: baseline; gap: 0.8rem; text-align: right; }
+  table.stackable td[data-label]::before { content: attr(data-label); font-weight: 500; color: var(--muted); text-align: left; flex: 0 1 55%; }
+  table.stackable td[data-label] > small { display: block; }
+  table.stackable tr > :first-child[data-label]::before { display: none; }
+  table.stackable tr > :first-child[data-label] { display: block; text-align: left; }
+  table.stackable tr > .num-head[data-label]::before { display: inline; content: attr(data-label) " "; color: inherit; font-weight: 700; }
+}

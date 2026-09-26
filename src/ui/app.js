@@ -942,7 +942,26 @@ const askPassphrase = (msg, allowEmpty = false) => dialog((close) => {
 // Progress bars and meters take their width from data-w (CSP forbids inline style attributes).
 // They start from data-from (or 0) and grow to the value, so bars fill in as a page appears.
 const clamp01 = (x) => `${Math.max(0, Math.min(1, +x || 0)) * 100}%`;
+// On phones, tables with three or more columns stack each row into a small card. Every cell
+// gets its column's heading as a label (data-label), which the CSS shows in stacked mode.
+function labelTables() {
+  for (const t of app.querySelectorAll("table:not([data-labelled])")) {
+    t.dataset.labelled = "1";
+    const heads = [...(t.tHead?.rows[0]?.cells || [])].map((c) => c.textContent.trim());
+    if (heads.length < 3) continue;
+    t.classList.add("stackable");
+    for (const row of t.tBodies[0]?.rows || [])
+      [...row.cells].forEach((c, i) => {
+        if (!heads[i]) return;
+        c.dataset.label = heads[i];
+        // A row whose heading is just a number ("69") reads as "Age 69" when stacked.
+        if (i === 0 && /^[\d.,\s]+$/.test(c.textContent.trim())) c.classList.add("num-head");
+      });
+  }
+}
+
 new MutationObserver(() => {
+  labelTables();
   const fresh = [...app.querySelectorAll("[data-w]:not([data-done])")];
   for (const el of fresh) { el.dataset.done = "1"; el.style.width = clamp01(el.dataset.from); }
   if (fresh.length) requestAnimationFrame(() => requestAnimationFrame(() => {
