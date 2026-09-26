@@ -41,8 +41,10 @@ function contradicts(sentence, claims = {}) {
   if (claims.onTrack === false && /\b(on track|ahead of|enough (money|savings)|comfortably)\b/.test(t) && !negated) return "says on track";
   if (claims.onTrack === false && /^(yes|yep|absolutely|definitely)\b/.test(t.trim())) return "says yes to a shortfall";
   // "Achievable with a little effort" when the plan is short: only fine with a condition attached.
-  if (claims.onTrack === false && /\b(achievable|doable|within reach|realistic|feasible|attainable|easily|(a )?good (decision|idea|plan|choice)|safe to (quit|stop|retire))\b/.test(t) && !negated &&
+  if (claims.onTrack === false && /\b(achievable|doable|within reach|realistic|feasible|attainable|easily)\b/.test(t) && !negated &&
       !/\b(if you|only if|by investing|by spending|by cutting|would need|need to|needs|provided)\b/.test(t)) return "says achievable";
+  // Endorsing the plan as it stands, whatever follows: "a good decision if you're looking to…".
+  if (claims.onTrack === false && /\b(good|great|wise|sound|smart) (decision|idea|plan|choice|move)\b|\bsafe to (quit|stop|retire)\b/.test(t) && !negated) return "endorses a short plan";
   if (claims.onTrack === true && /\b(shortfall|not on track|off track|behind)\b/.test(t) && !/\bno shortfall\b/.test(t)) return "says off track";
   if (claims.chance != null && claims.chance < 0.5 &&
       /\b(high|good|strong|excellent|great)\b.{0,20}\b(chance|chances|likelihood|probability|odds)\b|\b(chances?|likelihood|probability|odds)\b.{0,15}\b(high|good|strong)\b/.test(t)) return "says the chance is high";
