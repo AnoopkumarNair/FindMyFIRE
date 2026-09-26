@@ -114,7 +114,9 @@ async function fetchModel(o) {
   const entry = {
     id: o.id, label: o.label || o.id, name: o.name || o.repo, path: modelPath,
     repo: o.repo, revision: sha, license,
-    chat: /qwen3/i.test(o.repo) ? { enable_thinking: false } : {},
+    // Thinking off for every model: Qwen3/3.5 think by default, Gemma 4 only when asked, and
+    // templates without the switch simply ignore it. Replies must be the answer, not reasoning.
+    chat: { enable_thinking: false },
     variants,
   };
   await writeFile(join(o.out, `${o.id}.entry.json`), JSON.stringify(entry, null, 2));

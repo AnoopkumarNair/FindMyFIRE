@@ -59,6 +59,10 @@ export async function answer(question, ctx, { llm = null, onUpdate = () => {}, o
       // Plain prose only: no markdown, no "Here is the explanation:" openers.
       const s = raw.replace(/\*\*|__|`/g, "").replace(/^\s*(?:[*\-•]|\d+\.)\s+/, "").trim();
       if (!s || /:$/.test(s)) continue;
+      // Reasoning that leaked out (a thinking block whose markers were stripped) is never an answer.
+      if (/^(thought|thinking|<\/?think>|let me think|okay,? (so|let's)|first,? i (need|will))\b/i.test(s)) {
+        problem = { sentence: s, why: "model wrote its reasoning" }; ctrl.abort(); return;
+      }
       const why = checkSentence(s, allowed, claims);
       if (why) { problem = { sentence: s, why }; ctrl.abort(); return; }
       shown.push(s);

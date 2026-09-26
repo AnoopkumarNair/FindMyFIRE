@@ -278,3 +278,12 @@ test("model replies are kept to 3 plain sentences", async () => {
   assert.equal(a.text.length, 3);
   assert.ok(a.text.every((s) => !/\*|^Here is/.test(s)), a.text.join(" | "));
 });
+
+test("reasoning that leaks into a reply is never shown", async () => {
+  for (const reply of ["thought\nThe user wants to know about chances. Let me look at the facts. The chance is 11%.",
+    "Okay, so the user is asking about the chance. It is 11%.", "<think>checking</think> The chance is 11%."]) {
+    const a = await answer("Will my money last?", ctx, { llm: fakeModel(reply) });
+    assert.equal(a.mode, "facts", reply);
+    assert.match(a.problem.why, /reasoning/);
+  }
+});
