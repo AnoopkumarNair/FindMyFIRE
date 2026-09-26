@@ -493,7 +493,7 @@
         "asOf",
         "comment"
       ],
-      "help": "Mixed equity/debt. Mark as counting toward FIRE only if your FIRE age is 60+.",
+      "help": "Locked until 60: it isn't spent before then. At 60 the plan counts 60% as a lump sum and 40% as a monthly pension. Include your employer's contributions (corporate NPS).",
       "verify": true,
       "unlock": {
         "age": 60,
@@ -830,7 +830,7 @@
         "asOf",
         "comment"
       ],
-      "help": "Count it only if you will actually sell it or rely on its rent (add rent under Incomes)."
+      "help": "Add property under Property instead, with its rent and any sale."
     },
     {
       "id": "savings_cash",
@@ -1566,30 +1566,32 @@
         },
         {
           "id": "q.take_home",
-          "prompt": "Monthly take-home pay (household)?",
+          "prompt": "How much take-home pay reaches your bank account each month?",
           "input": "currency",
           "bind": "/quick/takeHomeMonthly",
           "impact": "medium",
           "impactHint": "Used to spot money left over each month that isn't invested yet.",
-          "help": "What reaches your bank account each month, after income tax and PF are deducted. Include your spouse's if you share expenses."
+          "help": "After income tax and PF are deducted. Include your spouse's pay if you share expenses. A rough number is fine."
         },
         {
           "id": "q.expenses",
-          "prompt": "Monthly household spending, excluding EMIs and investments?",
+          "prompt": "How much does your household spend in a month?",
           "input": "currency",
           "bind": "/quick/monthlyExpenses",
           "allowDontKnow": true,
           "impact": "high",
-          "impactHint": "The single biggest driver: ±10% here moves the corpus needed by ±10%."
+          "impactHint": "The single biggest driver: ±10% here moves the corpus needed by ±10%.",
+          "help": "Everything you live on: rent, groceries, bills, school fees, help, fuel, eating out, insurance premiums. Leave out loan EMIs and money you invest; they're asked separately."
         },
         {
           "id": "q.emi",
-          "prompt": "Total monthly EMIs?",
+          "prompt": "How much do you pay in loan EMIs each month?",
           "input": "currency",
           "bind": "/quick/emiMonthly",
           "allowDontKnow": false,
           "impact": "low",
-          "help": "Assumed to end before FIRE unless you add loan details later."
+          "help": "Home, car, personal and education loans together. The plan assumes they end before you stop working; add loan details later if they don't.",
+          "noneLabel": "No loans"
         },
         {
           "id": "q.corpus",
@@ -1597,7 +1599,7 @@
           "input": "currency",
           "bind": "/quick/totalSavings",
           "impact": "high",
-          "help": "Add it all up: bank balances, FDs, mutual funds, stocks (US and other foreign shares too), vested RSUs or ESOP shares you can sell, PPF, gold and your PF balance. Leave out your home and NPS (that's the next question). Don't set anything aside: the app keeps about 6 months of expenses as your emergency fund for you. Shares that haven't vested yet can be added later under Money coming in."
+          "help": "Add it all up: bank balances, FDs, mutual funds, stocks (US and other foreign shares too), vested RSUs or ESOP shares you can sell, PPF, gold and your PF balance. Leave out your home and NPS (NPS has its own question). Don't set anything aside for emergencies: the plan keeps 6 months of spending and EMIs aside for you."
         },
         {
           "id": "q.sip",
@@ -1606,7 +1608,8 @@
           "bind": "/quick/monthlySip",
           "impact": "high",
           "help": "Money that leaves your bank account: SIPs, stocks, PPF, RDs, VPF. Don't include your PF deduction or NPS here; they have their own questions.",
-          "impactHint": "Only money you invest yourself. Your employer's share comes next."
+          "impactHint": "Only money you invest yourself. Your employer's share comes next.",
+          "noneLabel": "I don't invest yet"
         },
         {
           "id": "q.epf",
@@ -1621,54 +1624,67 @@
           },
           "impact": "medium",
           "help": "From your payslip: your PF deduction plus your employer's PF contribution. It's taken out before your salary reaches you, so it isn't part of your take-home. Enter 0 if you don't have PF.",
-          "impactHint": "Employer money is still your money: it grows in your PF and counts toward FIRE."
+          "impactHint": "Employer money is still your money: it grows in your PF and counts toward FIRE.",
+          "noneLabel": "No PF"
         },
         {
-          "id": "q.nps_balance",
-          "prompt": "How much is in your NPS today?",
-          "input": "currency",
-          "bind": "/quick/npsBalance",
+          "id": "q.nps",
+          "prompt": "Do you have NPS?",
+          "input": "group",
           "impact": "medium",
-          "min": 0,
-          "help": "Your NPS Tier-1 balance, including anything your employer put in (corporate NPS). Enter 0 if you don't have NPS. It's locked until 60: the plan counts it then, 60% as a lump sum and 40% as a monthly pension."
-        },
-        {
-          "id": "q.nps_monthly",
-          "prompt": "How much goes into your NPS each month?",
-          "input": "currency",
-          "bind": "/quick/npsMonthly",
-          "impact": "low",
-          "min": 0,
-          "help": "Your own NPS contribution plus your employer's (it's on your payslip as employer NPS contribution, under section 80CCD(2)). Enter 0 if contributions have stopped.",
-          "showIf": {
-            "ref": "/quick/npsBalance",
-            "op": "gt",
-            "value": 0
-          }
+          "noneLabel": "I don't have NPS",
+          "help": "Your NPS Tier-1 balance, and what goes in each month: yours plus your employer's (corporate NPS, on your payslip). It's locked until 60: the plan counts it then, 60% as a lump sum and 40% as a monthly pension.",
+          "fields": [
+            {
+              "id": "q.nps_balance",
+              "prompt": "Balance today",
+              "input": "currency",
+              "bind": "/quick/npsBalance",
+              "min": 0
+            },
+            {
+              "id": "q.nps_monthly",
+              "prompt": "Going in each month",
+              "input": "currency",
+              "bind": "/quick/npsMonthly",
+              "min": 0,
+              "showIf": {
+                "ref": "/quick/npsBalance",
+                "op": "gt",
+                "value": 0
+              }
+            }
+          ]
         },
         {
           "id": "q.income_after",
-          "prompt": "After you stop working, will any money keep coming in each month?",
-          "input": "currency",
-          "bind": "/quick/incomeAfterFireMonthly",
+          "prompt": "After you stop working, will money keep coming in?",
+          "input": "group",
           "impact": "medium",
-          "min": 0,
-          "help": "In today's money, after tax: a spouse who keeps working, a pension, rent from a property you'll keep, part-time or consulting work. Enter 0 if none. If a pension starts later, or you have several, add them under Income for exact start and end ages."
-        },
-        {
-          "id": "q.income_after_until",
-          "prompt": "Until what age (yours) will it keep coming?",
-          "input": "integer",
-          "bind": "/quick/incomeAfterFireUntilAge",
-          "impact": "low",
-          "min": 30,
-          "max": 110,
-          "help": "For a spouse's salary, the age you'll be when they stop working. For a pension that lasts for life, your plan-until age.",
-          "showIf": {
-            "ref": "/quick/incomeAfterFireMonthly",
-            "op": "gt",
-            "value": 0
-          }
+          "noneLabel": "Nothing",
+          "help": "In today's money: a spouse who keeps working, a pension, rent from a property you'll keep, part-time or consulting work. For a spouse, the age you'll be when they stop. Several sources, or one starting later? Add them under Income sources afterwards.",
+          "fields": [
+            {
+              "id": "q.income_after_monthly",
+              "prompt": "Each month (after tax)",
+              "input": "currency",
+              "bind": "/quick/incomeAfterFireMonthly",
+              "min": 0
+            },
+            {
+              "id": "q.income_after_until",
+              "prompt": "Until your age",
+              "input": "integer",
+              "bind": "/quick/incomeAfterFireUntilAge",
+              "min": 30,
+              "max": 110,
+              "showIf": {
+                "ref": "/quick/incomeAfterFireMonthly",
+                "op": "gt",
+                "value": 0
+              }
+            }
+          ]
         }
       ]
     },
@@ -1699,9 +1715,12 @@
         "weight": 20,
         "intro": "One row per account or fund. Mark what you can actually use at your FIRE age.",
         "replacesQuick": [
+          "/quick/totalSavings",
           "/quick/investedCorpus",
           "/quick/monthlySip",
-          "/quick/epfMonthly"
+          "/quick/epfMonthly",
+          "/quick/npsBalance",
+          "/quick/npsMonthly"
         ],
         "questions": [
           {
@@ -1769,18 +1788,8 @@
             "id": "r.spouse",
             "prompt": "Do you have a spouse/partner?",
             "input": "boolean",
-            "bind": "/profile/hasSpouse"
-          },
-          {
-            "id": "r.spouse_earns",
-            "prompt": "Does your spouse earn?",
-            "input": "boolean",
-            "bind": "/profile/spouseEarns",
-            "showIf": {
-              "ref": "/profile/hasSpouse",
-              "op": "eq",
-              "value": true
-            }
+            "bind": "/profile/hasSpouse",
+            "help": "If your spouse earns, add their pay under Income sources."
           },
           {
             "id": "r.children",
@@ -1794,7 +1803,8 @@
             "input": "integer",
             "bind": "/profile/parentsSupported",
             "min": 0,
-            "max": 4
+            "max": 4,
+            "help": "Parents who rely on your income. Their costs go under Expenses → Family."
           },
           {
             "id": "r.employment",
@@ -1827,7 +1837,8 @@
         "title": "Income sources",
         "weight": 5,
         "replacesQuick": [
-          "/quick/takeHomeMonthly"
+          "/quick/takeHomeMonthly",
+          "/quick/incomeAfterFireMonthly"
         ],
         "questions": [
           {
@@ -1914,24 +1925,6 @@
             "input": "percent",
             "bind": "/plan/postFireSpending",
             "help": "For example 85% if you'll move to a cheaper city, 110% if you'll travel more. Leave blank for 100%. Applies on top of the per-category changes in Expenses."
-          },
-          {
-            "id": "r.part_time",
-            "prompt": "Part-time / consulting income after FIRE (monthly, today's ₹)",
-            "input": "currency",
-            "bind": "/plan/partTimeIncomeMonthly",
-            "help": "Barista FIRE. Leave 0 for full FIRE."
-          },
-          {
-            "id": "r.part_time_until",
-            "prompt": "Part-time income until age",
-            "input": "integer",
-            "bind": "/plan/partTimeUntilAge",
-            "showIf": {
-              "ref": "/plan/partTimeIncomeMonthly",
-              "op": "gt",
-              "value": 0
-            }
           },
           {
             "id": "r.step_up",
@@ -2126,6 +2119,11 @@
               {
                 "ref": "/profile/children",
                 "op": "nonEmpty"
+              },
+              {
+                "ref": "/profile/parentsSupported",
+                "op": "gt",
+                "value": 0
               }
             ]
           },

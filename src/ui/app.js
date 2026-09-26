@@ -321,10 +321,12 @@ function quickView(i) {
     save();
   };
   const validOne = (f) => {
+    // A follow-up box ("each month" once there's a balance) only needs an answer when it applies.
+    if (!evaluate(f.showIf, u)) return null;
     const v = getPointer(u, f.bind);
     const who = fields.length > 1 ? `${f.prompt}: ` : "";
     if (f.input === "multiselect") return v?.length ? null : "Pick at least one.";
-    if (v == null || v === "") return f.defaultFrom ? null : fields.length > 1 ? `${who}please fill this in.` : "Please answer, or use a rough number.";
+    if (v == null || v === "") return f.defaultFrom ? null : fields.length > 1 ? `${who}${f.input === "currency" ? "enter an amount (0 if none)" : "please fill this in"}.` : q.noneLabel ? `Enter an amount, or press "${q.noneLabel}".` : "Please answer, or use a rough number.";
     if (f.input === "yearMonth" || f.input === "age") {
       const a = ageAt(v, new Date());
       if (f.input === "age") return a < f.min || a >= f.max + 1 ? `${who}enter an age from ${f.min} to ${f.max}.` : null;
@@ -346,7 +348,8 @@ function quickView(i) {
     const e = valid();
     if (e) { err.textContent = e; return; }
     for (const f of fields) {
-      if (f.defaultFrom && getPointer(u, f.bind) == null) {
+      if (!evaluate(f.showIf, u)) setPointer(u, f.bind, undefined);
+      else if (f.defaultFrom && getPointer(u, f.bind) == null) {
         // Skipped: keep the rules-pack default and mark it as such (lowers confidence a little).
         setPointer(u, f.bind, defaultOf(f));
         prov[f.bind] = "default";
@@ -363,14 +366,15 @@ function quickView(i) {
   const defaultOf = (x) => S.pack.assumptions.find((a) => a.id === x.defaultFrom)?.value;
   const controlFor = (f, extra = {}) => {
     const value = getPointer(u, f.bind);
+    // No grey "0" in an empty money box: it looks answered when it isn't. "None" buttons answer 0.
     const opts = { autofocus: f === fields[0], options: f.options, min: f.min, max: f.max, exclusive: ["none"],
-      placeholder: f.defaultFrom ? String(defaultOf(f)) : undefined, ...extra };
+      placeholder: f.defaultFrom ? String(defaultOf(f)) : f.input === "currency" ? "" : undefined, ...extra };
     return f.input === "age"
       ? control("integer", value ? Math.floor(ageAt(value, new Date())) : undefined, (a) => setter(f)(a == null ? undefined : birthMonthForAge(a, value)), opts)
       : control(f.input === "integer" ? "integer" : f.input, value, setter(f), opts);
   };
   const ctl = fields.length === 1 ? controlFor(q)
-    : h("div", { class: "field-group" }, ...fields.map((f) => {
+    : h("div", { class: ["field-group", `cols-${fields.length}`] }, ...fields.map((f) => {
       const id = `f-${f.id.replace(/\W/g, "-")}`, hid = `${id}-help`;
       return h("div", { class: "group-field" },
         h("label", { for: id }, f.prompt),
@@ -411,6 +415,14 @@ function quickView(i) {
     err,
     h("div", { class: "wizard-nav" },
       i > 0 ? h("a", { href: `#/quick/${i - 1}`, class: "btn ghost" }, "Back") : h("span"),
+      q.noneLabel ? h("button", { type: "button", class: "btn ghost", onClick: () => {
+        // "No loans", "I don't have NPS": every box is 0 (or not applicable), stated not guessed.
+        for (const f of fields) {
+          setPointer(u, f.bind, f.input === "currency" ? 0 : undefined);
+          if (f.input === "currency") prov[f.bind] = "exact";
+        }
+        persist(); next();
+      } }, q.noneLabel) : null,
       q.allowDontKnow && DONT_KNOW[q.bind] ? h("button", { type: "button", class: "btn ghost", onClick: () => {
         setPointer(u, q.bind, DONT_KNOW[q.bind](u)); prov[q.bind] = "default"; persist(); next();
       } }, "I don't know") : null,

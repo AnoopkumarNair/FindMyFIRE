@@ -939,6 +939,10 @@
             "$ref": "#/$defs/question"
           },
           "description": "For input 'group': several short questions answered on one screen."
+        },
+        "noneLabel": {
+          "type": "string",
+          "description": "Wizard button that answers 0 (or nothing) for every field and moves on."
         }
       },
       "allOf": [

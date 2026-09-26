@@ -303,7 +303,9 @@ export function resolveInputs(user, pack, today = new Date()) {
     postFireSpending: plan.postFireSpending ?? 1,
     otherAssetsValue: (user.otherAssets || []).reduce((s, a) => s + a.value, 0),
     loansOutstanding: (user.liabilities || []).reduce((s, l) => s + l.outstanding, 0),
-    partTime: plan.partTimeIncomeMonthly > 0
+    // Older plan files asked for part-time income separately; it's now part of income after
+    // FIRE, so it only counts when nothing else is entered there (never twice).
+    partTime: plan.partTimeIncomeMonthly > 0 && !incomesAfterFire.length
       ? { monthly: plan.partTimeIncomeMonthly, untilAge: plan.partTimeUntilAge ?? 60, assumed: false }
       : null,
   };

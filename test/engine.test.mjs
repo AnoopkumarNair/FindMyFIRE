@@ -387,6 +387,17 @@ test("quick 'income after FIRE' lowers the corpus needed, and only until the age
   assert.ok(forLife < toSixty, "income for life helps more than income to 60");
 });
 
+test("part-time income from an older plan file is never counted on top of income after FIRE", async () => {
+  const { evaluatePlan, resolveInputs } = await import("../src/engine/index.js");
+  const u = (q, plan) => ({ ...quickBase, plan: { ...quickBase.plan, ...plan }, quick: { ...quickBase.quick, ...q } });
+  const oldPartTime = { partTimeIncomeMonthly: 40000, partTimeUntilAge: 60 };
+  assert.ok(resolveInputs(u({}, oldPartTime), pk(), day).partTime, "on its own, an old part-time answer still counts");
+  const both = u({ incomeAfterFireMonthly: 40000, incomeAfterFireUntilAge: 60 }, oldPartTime);
+  assert.equal(resolveInputs(both, pk(), day).partTime, null, "not added a second time");
+  const once = u({ incomeAfterFireMonthly: 40000, incomeAfterFireUntilAge: 60 }, {});
+  assert.equal(evaluatePlan(both, pk(), { today: day }).target.required, evaluatePlan(once, pk(), { today: day }).target.required);
+});
+
 test("a spouse's salary isn't taxed as yours; a pension is; a pension counts only from its start age", async () => {
   const { evaluatePlan } = await import("../src/engine/index.js");
   const done = { sectionsDone: ["income"] };
