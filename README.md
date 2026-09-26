@@ -198,7 +198,7 @@ Downloads are resumable: pieces are stored as they arrive (Cache Storage), and a
 2. It evaluates it through this same pipeline on CPU, and runs a browser check: download, refresh, resume, answer.
 3. With *publish* ticked, it uploads the files to R2, commits `models.json`, and redeploys.
 
-One-time setup:
+One-time setup (step by step in [docs/hosting-the-ai-model.md](docs/hosting-the-ai-model.md)):
 - Create an R2 bucket.
 - Attach the custom domain `models.byteheaven.in` to it.
 - Add a CORS rule on the bucket:
