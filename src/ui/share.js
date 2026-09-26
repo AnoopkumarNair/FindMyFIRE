@@ -4,7 +4,8 @@ import { h } from "./dom.js";
 import { inrShort, age1 } from "./format.js";
 
 const W = 1080, H = 1350;
-const SITE = "anoopkumarnair.github.io/FindMyFIRE";
+// Whatever address the app is served from (github.io today, a custom domain later).
+const SITE = (location.host + location.pathname).replace(/\/(index\.html)?$/, "") || "FindMyFIRE";
 
 async function fontsReady() {
   try {

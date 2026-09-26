@@ -55,7 +55,7 @@
     {
       "name": "monthlySurplus",
       "label": "Uninvested monthly surplus",
-      "description": "takeHome − expenses − EMIs − monthly investing. With quick answers, investing includes EPF, which is already outside take-home, so this can understate the surplus."
+      "description": "takeHome − expenses − EMIs − money invested from take-home. PF isn't subtracted: it never reaches take-home."
     }
   ],
   "assumptions": [
@@ -1493,14 +1493,14 @@
       "detailed": "sum(holdings, monthlyContribution + annualContribution/12) excluding EPF/VPF",
       "quick": "/quick/monthlySip",
       "fallback": 0,
-      "note": "The quick answer includes EPF; detailed holdings split it out."
+      "note": "Quick answer: money invested from take-home pay. PF (own + employer) is asked separately."
     },
     {
       "quantity": "epfMonthly",
       "detailed": "sum(holdings where instrument in [epf,vpf], monthlyContribution + employerMonthlyContribution)",
       "quick": "/quick/epfMonthly",
       "fallback": 0,
-      "note": "No longer asked in the quick pass (folded into monthlySip); kept for older files."
+      "note": "Quick answer: PF deduction + employer PF from the payslip."
     }
   ],
   "questionFlow": {
@@ -1508,7 +1508,7 @@
       "id": "quick",
       "title": "Quick estimate",
       "weight": 0,
-      "intro": "Eight questions, about two minutes. You'll get a first FIRE age with a confidence score; refine any section afterwards.",
+      "intro": "Nine questions, about two minutes. You'll get a first FIRE age with a confidence score; refine any section afterwards.",
       "questions": [
         {
           "id": "q.birth",
@@ -1543,11 +1543,12 @@
         },
         {
           "id": "q.take_home",
-          "prompt": "Monthly take-home income (household)?",
+          "prompt": "Monthly take-home pay (household)?",
           "input": "currency",
           "bind": "/quick/takeHomeMonthly",
           "impact": "medium",
-          "impactHint": "Used to spot money left over each month that isn't invested yet."
+          "impactHint": "Used to spot money left over each month that isn't invested yet.",
+          "help": "What reaches your bank account each month, after income tax and PF are deducted. Include your spouse's if you share expenses."
         },
         {
           "id": "q.expenses",
@@ -1573,15 +1574,31 @@
           "input": "currency",
           "bind": "/quick/investedCorpus",
           "impact": "high",
-          "help": "Mutual funds, stocks, EPF, PPF, FDs, gold. Leave out your home, and NPS Tier-1 if you plan to stop before 60 (it's locked until then)."
+          "help": "Mutual funds, stocks, PPF, FDs, gold, and your PF balance (EPFO passbook or the UMANG app). Leave out your home, and NPS Tier-1 if you plan to stop before 60 (it's locked until then)."
         },
         {
           "id": "q.sip",
-          "prompt": "How much do you invest every month in total?",
+          "prompt": "How much do you invest each month from your take-home pay?",
           "input": "currency",
           "bind": "/quick/monthlySip",
           "impact": "high",
-          "help": "SIPs, PPF, RDs, and EPF/VPF (your share plus your employer's, from your payslip). Leave out loan EMIs, insurance premiums, and NPS Tier-1 if you plan to stop before 60."
+          "help": "Money that leaves your bank account: SIPs, PPF, RDs, VPF, your own NPS. Don't include your PF deduction here; that's the next question.",
+          "impactHint": "Only money you invest yourself. Your employer's share comes next."
+        },
+        {
+          "id": "q.epf",
+          "prompt": "How much goes into your PF each month?",
+          "input": "currency",
+          "bind": "/quick/epfMonthly",
+          "allowDontKnow": true,
+          "showIf": {
+            "ref": "/profile/employment",
+            "op": "ne",
+            "value": "selfEmployed"
+          },
+          "impact": "medium",
+          "help": "From your payslip: your PF deduction plus your employer's PF contribution. It's taken out before your salary reaches you, so it isn't part of your take-home. Enter 0 if you don't have PF.",
+          "impactHint": "Employer money is still your money: it grows in your PF and counts toward FIRE."
         }
       ]
     },
@@ -1613,7 +1630,8 @@
         "intro": "One row per account or fund. Mark what you can actually use at your FIRE age.",
         "replacesQuick": [
           "/quick/investedCorpus",
-          "/quick/monthlySip"
+          "/quick/monthlySip",
+          "/quick/epfMonthly"
         ],
         "questions": [
           {

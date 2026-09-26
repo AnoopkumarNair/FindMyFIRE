@@ -110,12 +110,12 @@ function expensesEditor(ctx) {
       control("select", e?.frequency || c.frequency, (v) => { ensure().frequency = v || c.frequency; save(); },
         { placeholder: false, options: [{ value: "monthly", label: "per month" }, { value: "annual", label: "per year" }] }),
       control("source", e?.source, (v) => { ensure().source = v; save(); }),
-      endable ? control("integer", e?.endsAtAge, (v) => { ensure().endsAtAge = v; save(); }, { placeholder: "stops at your age…" }) : h("span", {}));
+      control("integer", e?.endsAtAge, (v) => { ensure().endsAtAge = v; save(); }, { placeholder: endable ? "stops at age (auto)" : "stops at age" }));
   };
 
   return h("div", {},
     h("p", { class: "total" }, "Total: ", total, quickNote),
-    h("p", { class: "muted small" }, "Leave a category blank if it doesn't apply."),
+    h("p", { class: "muted small" }, "Leave a category blank if it doesn't apply. Don't include loan EMIs (add them under Loans) or money you invest. If a cost will stop, such as an insurance premium or school fees, set the age it stops."),
     ...groups.map((g) => h("details", { class: "group", open: true },
       h("summary", {}, g.id.replace(/_/g, " ").replace(/^\w/, (s) => s.toUpperCase())),
       ...g.cats.flatMap((c) => {
@@ -139,7 +139,8 @@ function holdingsEditor(ctx) {
   const items = (user.holdings ||= []);
   const insts = Object.fromEntries(pack.instruments.map((i) => [i.id, i]));
   const groups = pack.assetClasses.map((a) => ({ label: a.label,
-    options: pack.instruments.filter((i) => i.assetClass === a.id).map((i) => ({ value: i.id, label: i.label })) }));
+    // Property has its own section (value, rent, costs, sale), so it isn't offered here.
+    options: pack.instruments.filter((i) => i.assetClass === a.id && i.id !== "property_investment").map((i) => ({ value: i.id, label: i.label })) }));
   const age = resolveInputs(user, pack).age;
   const picker = control("select", "", (v) => {
     if (!v) return;
@@ -228,7 +229,7 @@ function inflowsEditor(ctx) {
       on: `${t.id === "inflow.gratuity" ? fireYear : new Date().getFullYear() + 1}-04`,
       taxRate: t.defaultTaxRate || undefined, growthRate: t.defaultGrowthRate, source: "estimate" });
     ctx.redraw();
-  }, { options: templates.map((t) => ({ value: t.id, label: t.label })), placeholder: "+ Add money coming in…" });
+  }, { options: templates.filter((t) => t.id !== "inflow.property_sale").map((t) => ({ value: t.id, label: t.label })), placeholder: "+ Add money coming in…" });
 
   // What each row adds up to, in the year(s) received, after tax.
   const summary = (x) => {
@@ -323,7 +324,7 @@ function incomesEditor(ctx) {
   const items = (user.incomes ||= []);
   const types = [["salary", "Salary"], ["business", "Business / professional"], ["rental", "Rent"], ["interest", "Interest / dividends"], ["pension", "Pension"], ["other", "Other"]];
   return h("div", {},
-    h("p", { class: "muted small" }, "Take-home amounts. Mark income that continues after you stop working (rent, pension); it reduces what you draw from the corpus."),
+    h("p", { class: "muted small" }, "Take-home amounts, after tax and PF. Mark income that continues after you stop working (a pension, a spouse who keeps working); it reduces what you draw from the corpus. Rent from a property goes under Property, not here."),
     listEditor(ctx, {
       items, empty: "No income sources yet.",
       create: h("button", { type: "button", class: "btn small", onClick: () => {

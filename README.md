@@ -98,6 +98,18 @@ The deploy workflow runs `scripts/fetch-market-data.mjs` at every deploy and wee
 - The browser only ever loads this file from the app's own site. It never calls outside APIs, so the "send nothing anywhere" policy still holds.
 - The data is a reference, never applied automatically. Projections cover about five years; a plan runs 40+. Healthcare and education inflation have no reliable free public feed yet, so they stay as assumptions.
 
+### Counting each rupee once
+
+The same money can be entered in two places, so the engine applies fixed rules and reports each one on the results page and in the section concerned:
+
+- Rent under **Income** is ignored when a property under **Property** has rent.
+- A property sale under **Money coming in** is ignored when a sale is planned under **Property**.
+- An endowment policy counted in **Investments** isn't added again when its payout is under **Money coming in**.
+- Investment property isn't offered under Investments; it belongs under Property.
+- A finished detailed section that adds up to less than 75% of the quick answer it replaces is flagged, since something is usually missing.
+
+`test/engine.test.mjs` checks that the same household entered through quick answers and through detailed sections gives an identical result. It also checks that each rule above holds, and that the "what the corpus pays for" breakdown adds up to the corpus needed.
+
 ## Keeping it honest
 
 - `npm test` validates every rules pack and example against the schemas. It then checks cross-references that schemas can't express:

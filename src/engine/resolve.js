@@ -88,6 +88,13 @@ export function resolveInputs(user, pack, today = new Date()) {
     ? emis.filter((e) => e.endsAtAge > age).reduce((s, e) => s + e.monthly, 0)
     : q.emiMonthly ?? 0;
 
+  // ---- the same money entered in two places is counted once (and reported) ----
+  const overlaps = [];
+  const props = user.properties || [];
+  const hasRentedProperty = props.some((x) => x.monthlyRent > 0);
+  const hasSale = props.some((x) => x.plan === "sell");
+  const payoutInflow = (user.inflows || []).some((x) => x.templateId === "inflow.insurance_payout");
+
   // ---- holdings ----
   let fireCorpus, emergencyFund = 0, excludedCorpus = 0, monthlySip, epfMonthly;
   const excluded = [];
@@ -96,7 +103,15 @@ export function resolveInputs(user, pack, today = new Date()) {
     fireCorpus = 0; monthlySip = 0; epfMonthly = 0;
     for (const h of user.holdings) {
       const inst = insts[h.instrumentId] || {};
-      const counts = !h.isEmergencyFund && (h.countInFire ?? inst.countInFireByDefault ?? true);
+      let counts = !h.isEmergencyFund && (h.countInFire ?? inst.countInFireByDefault ?? true);
+      if (props.length && h.instrumentId === "property_investment") {
+        overlaps.push({ section: "holdings", message: `"${h.label || inst.label}" is listed under Investments and you also have properties under Property. It's counted only under Property.` });
+        continue;
+      }
+      if (counts && h.instrumentId === "insurance_traditional" && payoutInflow) {
+        counts = false;
+        overlaps.push({ section: "holdings", message: `"${h.label || inst.label}" is counted through its payout under Money coming in, so its surrender value isn't added again.` });
+      }
       if (h.isEmergencyFund) emergencyFund += h.value;
       else if (counts) fireCorpus += h.value;
       else {
@@ -124,7 +139,13 @@ export function resolveInputs(user, pack, today = new Date()) {
     ? user.incomes.filter((i) => i.type === "salary" || i.type === "business").reduce((s, i) => s + i.monthly, 0)
     : q.takeHomeMonthly ?? 0;
   const incomesAfterFire = detailed.income
-    ? user.incomes.filter((i) => i.continuesAfterFire).map((i) => ({
+    ? user.incomes.filter((i) => {
+        if (i.continuesAfterFire && i.type === "rental" && hasRentedProperty) {
+          overlaps.push({ section: "income", message: `Rent "${i.label || "rental income"}" under Income is ignored because rent is already entered under Property.` });
+          return false;
+        }
+        return i.continuesAfterFire;
+      }).map((i) => ({
         label: i.label || i.type, monthly: i.monthly, growth: i.annualGrowth ?? 0, endsAtAge: i.endsAtAge ?? null,
       }))
     : [];
@@ -145,6 +166,10 @@ export function resolveInputs(user, pack, today = new Date()) {
   // Lump sums received, expanded to one event per payment, in nominal rupees after tax.
   const inflows = [];
   for (const x of user.inflows || []) {
+    if (x.templateId === "inflow.property_sale" && hasSale) {
+      overlaps.push({ section: "inflows", message: `"${x.label}" under Money coming in is ignored because a sale is planned under Property. If it's a different property, add it under Property instead.` });
+      continue;
+    }
     const start = ageOnMonth(user.profile.birthYearMonth, x.on);
     for (let k = 0; k < (x.years || 1); k++) {
       const atAge = start + k;
@@ -207,9 +232,22 @@ export function resolveInputs(user, pack, today = new Date()) {
     ? { tax: pack.incomeTax, gainShare: A["tax.equityGainShare"] ?? 0.5, interestPerRupee: 3 * (ret.cash ?? 0.05) + 5 * (ret.debt ?? 0.07) }
     : null;
 
+  // A finished detailed section replaces the quick answer. Flag big drops: usually something's missing.
+  const drop = (section, what, detailedValue, quickValue) => {
+    if (quickValue > 0 && detailedValue < 0.75 * quickValue)
+      overlaps.push({ section, kind: "drop", message: `Your ${what} add up to ${Math.round(detailedValue).toLocaleString("en-IN")} but your quick answer was ${Math.round(quickValue).toLocaleString("en-IN")}. The quick answer is no longer used; add anything missing.` });
+  };
+  if (detailed.expenses) drop("expenses", "expenses", expenses.reduce((a, e) => a + e.monthly, 0), q.monthlyExpenses);
+  if (detailed.holdings) {
+    drop("holdings", "investments", fireCorpus + excludedCorpus + emergencyFund, q.investedCorpus);
+    drop("holdings", "monthly investments (incl. PF)", monthlySip + epfMonthly, (q.monthlySip || 0) + (q.epfMonthly || 0));
+  }
+  if (detailed.income) drop("income", "take-home incomes", takeHomeMonthly, q.takeHomeMonthly);
+
   return {
     age,
     birthYear,
+    overlaps,
     fireTargetAge: plan.fireTargetAge,
     planUntilAge: A["plan.untilAge"],
     assumptions: A,

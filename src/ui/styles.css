@@ -44,6 +44,9 @@
   --series-1: #2a78d6;
   --series-2: #eb6834;
   --series-3: #1baf7a;
+  --series-4: #eda100;
+  --series-5: #e87ba4;
+  --series-6: #008300;
   --good: #15803d;
   --good-bg: #e7f6ec;
   --warn: #92400e;
@@ -82,6 +85,9 @@
     --series-1: #3987e5;
     --series-2: #d95926;
     --series-3: #199e70;
+    --series-4: #c98500;
+    --series-5: #d55181;
+    --series-6: #008300;
     --good: #4ade80;
     --good-bg: #0f2a1d;
     --warn: #fbbf24;
@@ -599,3 +605,19 @@ main.enter .q-art .art { animation: pop 0.5s var(--ease) both, bob 4s 0.5s ease-
   .step-art { width: 3.2rem; height: 3.2rem; }
   .feature .ficon { width: 3rem; height: 3rem; }
 }
+
+/* ---------- what the corpus pays for ---------- */
+.stack-bar { display: flex; gap: 3px; height: 18px; border-radius: 9px; overflow: hidden; margin: 0.8rem 0 0.6rem; }
+.stack-seg { display: block; width: 0; min-width: 3px; transition: width 1s var(--ease); }
+.stack-seg.s1, .key-block.s1 { background: var(--series-1); }
+.stack-seg.s2, .key-block.s2 { background: var(--series-2); }
+.stack-seg.s3, .key-block.s3 { background: var(--series-3); }
+.stack-seg.s4, .key-block.s4 { background: var(--series-4); }
+.stack-seg.s5, .key-block.s5 { background: var(--series-5); }
+.stack-seg.s6, .key-block.s6 { background: var(--series-6); }
+table.breakdown th { font-weight: 600; }
+table.breakdown th .key-block { display: inline-block; margin-right: 0.5rem; vertical-align: -1px; }
+table.breakdown tr.minus th, table.breakdown tr.minus td { color: var(--good); font-weight: 500; }
+table.breakdown .total-row th, table.breakdown .total-row td { font-weight: 700; border-top: 2px solid var(--axis); font-family: var(--font-display); font-size: 1.1rem; }
+.table-wrap > table.breakdown { min-width: 420px; }
+.overlap-warn { background: var(--warn-bg); color: var(--warn); border-radius: 12px; padding: 0.7rem 0.9rem; font-weight: 500; }

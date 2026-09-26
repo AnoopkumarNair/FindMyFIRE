@@ -70,20 +70,25 @@ export function accumulate(inp, p, years, tier = {}) {
 export function withdrawalParts(inp, p, tier, T) {
   const ageT = p.age + T;
   const active = (end) => end == null || ageT < end;
-  let spend = 0;
+  let living = 0, health = 0;
   for (const e of inp.expenses) {
     if (!active(e.endsAtAge) || (tier.essentialsOnly && !e.essential)) continue;
-    spend += 12 * e.monthly * e.postFireFactor * (1 + p.infl[e.inflation]) ** T;
+    const x = 12 * e.monthly * e.postFireFactor * (1 + p.infl[e.inflation]) ** T;
+    if (e.inflation === "health") health += x; else living += x;
   }
-  spend *= (tier.multiplier ?? 1) * p.expenseScale * (inp.postFireSpending ?? 1);
+  const scale = (tier.multiplier ?? 1) * p.expenseScale * (inp.postFireSpending ?? 1);
+  living *= scale; health *= scale;
+  let spend = living + health;
   let healthPremium = 0;
   if (inp.health) {
     const grow = (1 + p.infl.health) ** T;
     healthPremium = Math.max(0, premiumAt(inp.health.table, ageT) * inp.health.scale * grow - inp.health.existingYearly * grow);
     spend += healthPremium;
   }
-  for (const l of inp.emis) if (active(l.endsAtAge)) spend += 12 * l.monthly;
-  for (const g of inp.goals) if (goalIndex(g, p) === T && goalIncluded(g, tier)) spend += goalCost(g, p);
+  let emi = 0, goals = 0;
+  for (const l of inp.emis) if (active(l.endsAtAge)) emi += 12 * l.monthly;
+  for (const g of inp.goals) if (goalIndex(g, p) === T && goalIncluded(g, tier)) goals += goalCost(g, p);
+  spend += emi + goals;
 
   let income = 0, slabIncome = 0;
   for (const i of inp.incomesAfterFire)
@@ -106,7 +111,7 @@ export function withdrawalParts(inp, p, tier, T) {
   const deflate = (1 + p.infl.general) ** T; // slabs assumed to rise with inflation
   const gross = inp.taxCtx ? grossUp(need / deflate, slabIncome / deflate, inp.taxCtx) * deflate : need;
   const inflow = inflowAt(inp, p, T);
-  return { spend, healthPremium, income, need, tax: gross - need, gross, inflow, withdrawal: gross - inflow };
+  return { spend, living, health, healthPremium, emi, goals, income, need, tax: gross - need, gross, inflow, withdrawal: gross - inflow };
 }
 
 /**

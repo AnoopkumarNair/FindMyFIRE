@@ -9,7 +9,7 @@ import { openShareDialog } from "./share.js";
 import * as store from "./store.js";
 import { evaluatePlan, evaluate, getPointer, setPointer, ageAt } from "../engine/index.js";
 
-const APP_VERSION = "0.6.0";
+const APP_VERSION = "0.7.0";
 // Replaced with the commit id at deploy time; also appended to every file URL so browsers
 // fetch the new version right after a deploy instead of reusing a cached copy.
 const BUILD = "dev";
@@ -42,12 +42,7 @@ function recompute() {
 /** Bring older plan files up to date with the current questions. */
 function migrate(u) {
   if (!u?.quick) return u;
-  // The quick pass used to ask for EPF separately; it's now part of "monthly investing".
-  if (u.quick.epfMonthly) {
-    u.quick.monthlySip = (u.quick.monthlySip || 0) + u.quick.epfMonthly;
-    if (u.provenance) delete u.provenance["/quick/epfMonthly"];
-  }
-  delete u.quick.epfMonthly;
+  // (v0.3–0.6 folded PF into "monthly investing"; PF is its own question again, so nothing to do.)
   return u;
 }
 
@@ -251,6 +246,8 @@ function birthMonthForAge(age, current) {
 const DONT_KNOW = {
   // Defaults when someone taps "I don't know". Marked as 'default' so confidence drops.
   "/quick/monthlyExpenses": (u) => Math.round(Math.max(0, (u.quick.takeHomeMonthly || 0) * 0.6 - (u.quick.emiMonthly || 0)) / 1000) * 1000,
+  // PF is roughly 12% of basic from you and 12% from your employer; basic is often ~40–50% of take-home.
+  "/quick/epfMonthly": (u) => Math.round(((u.quick.takeHomeMonthly || 0) * 0.12) / 100) * 100,
 };
 
 function quickView(i) {
@@ -371,7 +368,7 @@ function resultsView() {
       : t.firstYearWithdrawal > 0
       ? `First-year withdrawal ${inrShort(t.firstYearWithdrawal)} (${pct(t.firstYearWithdrawal / t.required, 2)} of the corpus)`
       : "Money coming in covers the first year's spending"),
-    kpi(`Projected at ${t.age}`, inrShort(t.projected), `From ${inrShort(r.inputs.fireCorpus)} today + ${inr(r.inputs.monthlySip + r.inputs.epfMonthly)}/month invested`),
+    kpi(`Projected at ${t.age}`, inrShort(t.projected), `From ${inrShort(r.inputs.fireCorpus)} today, plus ${inr(r.inputs.monthlySip)}/month you invest${r.inputs.epfMonthly ? ` and ${inr(r.inputs.epfMonthly)} into PF` : ""}`),
     kpi(t.gap >= 0 ? "Surplus at target" : "Shortfall at target", inrShort(Math.abs(t.gap)), t.gap >= 0 ? "Ahead of plan" : "Gap to close", t.gap >= 0 ? "good" : "warn"),
     kpi(`Chance it lasts to ${r.inputs.planUntilAge}`, `${Math.round(r.chance.atTarget * 100)}%`,
       `If you stop at ${t.age}, across 1,000 simulated market histories.`, r.chance.atTarget >= 0.75 ? "good" : "warn"));
@@ -388,6 +385,7 @@ function resultsView() {
         : h("p", { class: "muted" }, `Retiring at ${t.age} on the current path, the money lasts past ${r.inputs.planUntilAge}.`)),
     balanceCard(r),
     scenariosCard(r),
+    breakdownCard(r),
     swpCard(r),
     assumptionsSummary(r),
     snapshotsCard());
@@ -406,7 +404,7 @@ function chanceStrip(r) {
 }
 
 function leversCard(r) {
-  const L = r.levers, t = r.target, now = r.inputs.monthlySip + r.inputs.epfMonthly;
+  const L = r.levers, t = r.target, now = r.inputs.monthlySip;
   if (!L) return null;
   if (L.onTrack) {
     return card("You have room",
@@ -416,7 +414,7 @@ function leversCard(r) {
   }
   const items = [
     L.investMore != null && h("li", {}, h("strong", {}, `Invest ${inr(L.investMore)} more a month`),
-      ` (${inr(now + L.investMore)} in total), increasing ${pct(r.params.stepUp, 0)} each year.`),
+      ` from your pay (${inr(now + L.investMore)} in total, not counting PF), increasing ${pct(r.params.stepUp, 0)} each year.`),
     L.spendAfterFire && h("li", {}, h("strong", {}, `Plan to live on ${inr(L.spendAfterFire.to)} a month`),
       ` after FIRE (today's money) instead of ${inr(L.spendAfterFire.from)}. A cheaper city, or no rent or EMIs by then, can do this.`),
     L.retireAt != null && h("li", {}, h("strong", {}, `Stop at ${age1(L.retireAt)}`), ` instead of ${t.age}. For a 9 in 10 chance, ${age1(r.chance.confidentAge)}.`),
@@ -488,12 +486,13 @@ function actionPlanCard(r) {
   const steps = [];
   const step = (when, title, ...detail) => steps.push(h("li", {}, h("span", { class: "when" }, when), h("div", {}, h("strong", {}, title), detail.length ? h("p", { class: "small" }, ...detail) : null)));
 
-  const now = i.monthlySip + i.epfMonthly;
+  const now = i.monthlySip, pf = i.epfMonthly;
+  const pfNote = pf ? ` (plus ${inr(pf)} going into PF)` : "";
   const reachable = t.gap < 0 && t.requiredMonthlySip != null && t.requiredMonthlySip <= 1.5 * now;
-  step("This year", reachable ? `Invest ${inr(t.requiredMonthlySip)} a month` : `Keep investing ${inr(now)} a month`,
-    reachable ? `That's what reaching ${fireAge} takes (you invest ${inr(now)} now). `
-      : t.gap < 0 ? `On its own this gets you to about ${age1(r.earliestAge)} (3 in 4 chance by ${age1(r.chance.likelyAge)}). To get closer to ${fireAge}, combine the options above. `
-      : "You're on track. ",
+  step("This year", reachable ? `Invest ${inr(t.requiredMonthlySip)} a month from your pay` : `Keep investing ${inr(now)} a month from your pay`,
+    reachable ? `That's what reaching ${fireAge} takes (you invest ${inr(now)} now${pfNote}). `
+      : t.gap < 0 ? `With your PF${pf ? ` (${inr(pf)} a month)` : ""}, this gets you to about ${age1(r.earliestAge)} (3 in 4 chance by ${age1(r.chance.likelyAge)}). To get closer to ${fireAge}, combine the options above. `
+      : `You're on track${pfNote}. `,
     `Raise it ${pct(r.params.stepUp, 0)} every year, e.g. with each raise. Until ${prep}, keep about ${S.pack.assetClasses.map((a) => `${Math.round(a.targetBeforeFire * 100)}% ${a.label.toLowerCase()}`).filter((x) => !x.startsWith("0%")).join(", ")}.`);
   const efTarget = A["emergency.months"] * (r.derived.monthlyExpenses + r.derived.monthlyEmi);
   step("This year", `Keep ${inrShort(efTarget)} as an emergency fund`,
@@ -515,7 +514,10 @@ function actionPlanCard(r) {
 
   const shown = new Set(["no_health_cover", "emergency_short", "low_confidence"]);
   const icon = { critical: "⛔", warn: "⚠", info: "ℹ" };
-  const extra = r.nudges.filter((n) => !shown.has(n.id));
+  const extra = [
+    ...(r.overlaps || []).map((o) => ({ severity: "warn", section: o.section, message: o.message })),
+    ...r.nudges.filter((n) => !shown.has(n.id)),
+  ];
   return card("Your plan, step by step",
     h("ol", { class: "timeline" }, ...steps),
     extra.length ? h("div", { class: "also" }, h("p", { class: "small" }, h("strong", {}, "Also check")),
@@ -535,6 +537,34 @@ function scenariosCard(r) {
         h("td", { class: "num" }, inrShort(s.required)),
         h("td", { class: ["num", s.earliestAge == null || s.earliestAge > r.earliestAge + 0.05 ? "worse" : s.earliestAge < r.earliestAge - 0.05 ? "better" : ""] },
           s.earliestAge == null ? "not reached" : age1(s.earliestAge))))))));
+}
+
+/** What the corpus needed at the target age pays for, so nothing hides inside one number. */
+function breakdownCard(r) {
+  const b = r.breakdown, t = r.target;
+  if (!b || !(b.costs > 0)) return null;
+  const rows = [
+    ["Living costs", b.living, "Everything except healthcare, adjusted for life after FIRE.", "s1"],
+    ["Healthcare", b.health, `Doctor visits, medicines: ${pct(r.params.infl.health, 0)} a year inflation.`, "s2"],
+    ["Health insurance", b.healthPremium, r.swp?.health?.estimated ? "Estimated family floater after employer cover ends. Enter your quote under Insurance." : "Your quote, rising with age and medical inflation.", "s3"],
+    ["Tax on withdrawals", b.tax, "Worked out each year under the new regime.", "s4"],
+    ["Loan EMIs after FIRE", b.emi, "EMIs still running after you stop.", "s5"],
+    ["Goals after FIRE", b.goals, "Big one-off costs due after you stop.", "s6"],
+  ].filter((x) => x[1] > 0.5);
+  const minus = [
+    ["Rent, pension and other income", Math.min(b.income, b.costs)],
+    ["Money coming in (lump sums)", b.inflow],
+  ].filter((x) => x[1] > 0.5);
+  const total = rows.reduce((a, x) => a + x[1], 0);
+  return card(`What the ${inrShort(t.required)} pays for`,
+    h("p", { class: "muted small" }, `Everything you'd spend from ${t.age} to ${r.inputs.planUntilAge}, valued at ${t.age}. If something looks too big, that's the number to question.`),
+    h("div", { class: "stack-bar", role: "img", "aria-label": rows.map((x) => `${x[0]} ${inrShort(x[1])}`).join(", ") },
+      ...rows.map((x) => h("span", { class: ["stack-seg", x[3]], "data-w": x[1] / total, title: `${x[0]}: ${inrShort(x[1])}` }))),
+    h("div", { class: "table-wrap" }, h("table", { class: "breakdown" }, h("tbody", {},
+      ...rows.map((x) => h("tr", {}, h("th", { scope: "row" }, h("span", { class: ["key-block", x[3]] }), x[0], h("small", { class: "help" }, x[2])),
+        h("td", { class: "num" }, inrShort(x[1])), h("td", { class: "num muted" }, pct(x[1] / total, 0)))),
+      ...minus.map((x) => h("tr", { class: "minus" }, h("th", { scope: "row" }, x[0]), h("td", { class: "num" }, `−${inrShort(x[1])}`), h("td", {}))),
+      h("tr", { class: "total-row" }, h("th", { scope: "row" }, `Corpus needed at ${t.age}`), h("td", { class: "num" }, inrShort(t.required)), h("td", {}))))));
 }
 
 function swpCard(r) {
@@ -627,6 +657,7 @@ function refineView(id) {
     h("h1", { tabindex: -1 }, section.title),
     section.intro ? h("p", { class: "lede" }, section.intro) : null,
     replaces,
+    ...((S.result?.overlaps || []).filter((o) => o.section === id).map((o) => h("p", { class: "overlap-warn", role: "note" }, "⚠ ", o.message))),
     sectionEditor(section, ctx),
     h("div", { class: "refine-foot" },
       done

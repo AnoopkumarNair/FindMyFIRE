@@ -279,3 +279,61 @@ test("repeating goals expand until the chosen age", () => {
   assert.deepEqual(ages, [48, 56, 64, 72]);
   assert.ok(evaluatePlan(u, pack, { today }).earliestAge > evaluatePlan(sheetLike(), pack, { today }).earliestAge);
 });
+
+// ---- one rupee, counted once ----
+const household = () => ({ schemaVersion: 1, app: { rulesPack: "in", rulesPackVersion: "2026.1" }, provenance: {},
+  profile: { birthYearMonth: "1981-09" }, plan: { fireTargetAge: 50, planUntilAge: 90 } });
+const quickHH = () => ({ ...household(), sectionsDone: [],
+  quick: { takeHomeMonthly: 312617, monthlyExpenses: 150000, emiMonthly: 72000, investedCorpus: 16239063, monthlySip: 51000, epfMonthly: 41698 } });
+const detailedHH = () => ({ ...household(), quick: {}, sectionsDone: ["expenses", "holdings", "income", "loans"],
+  expenses: [{ id: "e1", categoryId: "other.misc", amount: 135000, frequency: "monthly", source: "exact" },
+             { id: "e2", categoryId: "health.out_of_pocket", amount: 15000, frequency: "monthly", source: "exact" }],
+  holdings: [{ id: "h1", instrumentId: "mf_equity_index", value: 16239063, monthlyContribution: 51000, asOf: "2026-09-01", source: "exact" },
+             { id: "h2", instrumentId: "epf", value: 0, monthlyContribution: 20849, employerMonthlyContribution: 20849, asOf: "2026-09-01", source: "exact" }],
+  incomes: [{ id: "i1", type: "salary", monthly: 312617, source: "exact" }],
+  liabilities: [{ id: "l1", type: "home", outstanding: 3000000, emi: 72000, endsOn: "2031-01", source: "exact" }] });
+const ev = (u) => evaluatePlan(u, pack, { today });
+
+test("the same household entered quick or detailed gives the same answer", () => {
+  const a = ev(quickHH()), b = ev(detailedHH());
+  assert.ok(Math.abs(a.earliestAge - b.earliestAge) < 1e-9);
+  assert.ok(Math.abs(a.target.required - b.target.required) < 1);
+  assert.equal(a.derived.monthlySurplus, b.derived.monthlySurplus);
+  assert.equal(a.derived.monthlySurplus, 312617 - 150000 - 72000 - 51000, "PF is not taken out of take-home again");
+});
+
+test("rent entered under Income and Property counts once", () => {
+  const onlyProperty = detailedHH();
+  onlyProperty.properties = [{ id: "p", kind: "secondHome", label: "Flat", value: 8000000, monthlyRent: 25000, plan: "keep", source: "exact" }];
+  const both = structuredClone(onlyProperty);
+  both.incomes.push({ id: "i2", type: "rental", monthly: 25000, continuesAfterFire: true, source: "exact" });
+  const r = ev(both);
+  assert.equal(r.target.required, ev(onlyProperty).target.required);
+  assert.ok(r.overlaps.some((o) => o.section === "income"));
+});
+
+test("a sale entered under Property and Money coming in counts once", () => {
+  const onlyProperty = detailedHH();
+  onlyProperty.properties = [{ id: "p", kind: "secondHome", label: "Flat", value: 15000000, plan: "sell", sellOn: "2031-09", source: "exact" }];
+  const both = structuredClone(onlyProperty);
+  both.inflows = [{ id: "m", templateId: "inflow.property_sale", label: "Flat sale", amount: 15000000, on: "2031-09", source: "exact" }];
+  assert.equal(ev(both).earliestAge, ev(onlyProperty).earliestAge);
+});
+
+test("an endowment policy counted in Investments and paid out under Money coming in counts once", () => {
+  const u = detailedHH();
+  u.holdings.push({ id: "h3", instrumentId: "insurance_traditional", value: 880000, countInFire: true, asOf: "2026-09-01", source: "exact" });
+  u.inflows = [{ id: "m", templateId: "inflow.insurance_payout", label: "LIC", amount: 1031250, on: "2031-09", source: "exact" }];
+  assert.equal(resolveInputs(u, pack, today).fireCorpus, 16239063);
+});
+
+test("a finished section that drops most of the quick answer is flagged", () => {
+  const u = { ...quickHH(), sectionsDone: ["holdings"],
+    holdings: [{ id: "h1", instrumentId: "mf_equity_index", value: 5000000, monthlyContribution: 51000, asOf: "2026-09-01", source: "exact" }] };
+  assert.ok(ev(u).overlaps.some((o) => o.kind === "drop" && o.section === "holdings"));
+});
+
+test("breakdown of the corpus needed adds up to it", () => {
+  const r = ev(quickHH());
+  assert.ok(Math.abs(r.breakdown.net - r.target.required) / r.target.required < 0.01);
+});

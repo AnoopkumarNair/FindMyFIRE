@@ -102,6 +102,20 @@ export function evaluatePlan(user, pack, { today = new Date() } = {}) {
   const depletedRow = drawRows.find((r) => r.end <= 0);
   const retirementSchedule = drawRows.map((r) => ({ ...r, age: inp.age + tFire + r.k, year: year0 + tFire + r.k }));
 
+  // ---- what the corpus needed pays for: each part's present value at the target age ----
+  const breakdown = (() => {
+    const keys = ["living", "health", "healthPremium", "emi", "goals", "tax", "income", "inflow"];
+    const pv = Object.fromEntries(keys.map((k) => [k, 0]));
+    const years = Math.floor(p.planUntilAge - (inp.age + tFire)) + 1;
+    for (let k = 0; k < years; k++) {
+      const parts = withdrawalParts(inp, p, {}, tFire + k), d = (1 + p.rPost) ** k;
+      for (const key of keys) pv[key] += parts[key] / d;
+    }
+    // Income can only cover spending, never more (the rest isn't saved in this model).
+    const costs = pv.living + pv.health + pv.healthPremium + pv.emi + pv.goals + pv.tax;
+    return { ...pv, costs, net: costs - Math.min(pv.income, costs) - pv.inflow, years };
+  })();
+
   // ---- how the money comes out: an SWP from the corpus needed at the target age ----
   const swp = swpPlan(inp, p, pack, tFire, year0);
 
@@ -151,6 +165,8 @@ export function evaluatePlan(user, pack, { today = new Date() } = {}) {
     timeline,
     retirementSchedule,
     swp,
+    breakdown,
+    overlaps: inp.overlaps,
     chance,
     levers: levers(inp, p, base),
     balance,
