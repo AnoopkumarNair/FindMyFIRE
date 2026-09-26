@@ -9,7 +9,7 @@ import { openShareDialog } from "./share.js";
 import { askCard, aiChip } from "./ask.js";
 import * as ai from "../assistant/client.js";
 import * as store from "./store.js";
-import { evaluatePlan, evaluate, getPointer, setPointer, ageAt } from "../engine/index.js";
+import { evaluatePlan, evaluate, getPointer, setPointer, ageAt, snapshotOf, withSnapshot, progress } from "../engine/index.js";
 
 const APP_VERSION = "0.10.0";
 // Replaced with the commit id at deploy time; also appended to every file URL so browsers
@@ -795,15 +795,25 @@ function assumptionsSummary(r) {
 }
 
 function snapshotsCard() {
-  const snaps = S.user.snapshots || [];
+  const rows = progress(S.user.snapshots || []);
+  const signed = (x, fmt) => (x == null ? "" : x === 0 ? "no change" : `${x > 0 ? "+" : "−"}${fmt(Math.abs(x))}`);
+  const cell = (value, change, fmt, better) => h("td", { class: "num" }, value,
+    change != null && change !== 0 ? h("small", { class: ["help", better(change) ? "better" : "worse"] }, signed(change, fmt)) : null);
+  const last = rows.at(-1);
   return card("Check-ins",
-    h("p", { class: "muted small" }, "Record a check-in every few months to see progress over time. It's saved in your plan file, on your device."),
-    snaps.length ? h("div", { class: "table-wrap" }, h("table", {},
-      h("thead", {}, h("tr", {}, h("th", {}, "Date"), h("th", { class: "num" }, "FIRE corpus"), h("th", { class: "num" }, "Net worth"), h("th", { class: "num" }, "Earliest age"), h("th", { class: "num" }, "Confidence"))),
-      h("tbody", {}, ...snaps.map((s) => h("tr", {}, h("td", {}, s.date), h("td", { class: "num" }, inrShort(s.fireCorpus)),
-        h("td", { class: "num" }, inrShort(s.netWorth)), h("td", { class: "num" }, age1(s.earliestFireAge)), h("td", { class: "num" }, s.confidence ?? "—"))))))
+    h("p", { class: "muted small" }, "Every few months, update what changed (your savings total or Investments, spending, loans), then record a check-in. Each row shows the change since the one before. It's saved in your plan file, on your device."),
+    rows.length ? h("div", { class: "table-wrap" }, h("table", {},
+      h("thead", {}, h("tr", {}, h("th", {}, "Date"), h("th", { class: "num" }, "FIRE savings"), h("th", { class: "num" }, "Net worth"),
+        h("th", { class: "num" }, "Earliest age"), h("th", { class: "num" }, "Chance it lasts"))),
+      h("tbody", {}, ...rows.map((s) => h("tr", {},
+        h("td", {}, s.date, s.change?.answersChanged ? h("small", { class: "help" }, "answers changed too") : null),
+        cell(inrShort(s.fireCorpus), s.change?.fireCorpus, inrShort, (d) => d > 0),
+        cell(inrShort(s.netWorth), s.change?.netWorth, inrShort, (d) => d > 0),
+        cell(s.earliestFireAge == null ? "—" : age1(s.earliestFireAge), s.change?.earliestFireAge, (x) => `${x} yr`, (d) => d < 0),
+        cell(s.chance == null ? "—" : `${s.chance}%`, s.change?.chance, (x) => `${x} pts`, (d) => d > 0))))))
       : null,
-    h("button", { type: "button", class: "btn", onClick: recordCheckIn }, "Record today's check-in"));
+    last?.change?.answersChanged ? h("p", { class: "muted small" }, "“Answers changed too” means you added detail or changed a target since the last check-in, so part of the difference comes from that, not from progress.") : null,
+    h("button", { type: "button", class: "btn", onClick: recordCheckIn }, rows.some((x) => x.date === new Date().toISOString().slice(0, 10)) ? "Update today's check-in" : "Record today's check-in"));
 }
 
 // ---------------- refine ----------------
@@ -875,15 +885,8 @@ async function setPassphrase() {
 }
 
 function recordCheckIn() {
-  const r = S.result;
-  if (!r) return;
-  const u = S.user, i = r.inputs;
-  const other = (u.otherAssets || []).reduce((s, a) => s + a.value, 0);
-  const debt = (u.liabilities || []).reduce((s, l) => s + l.outstanding, 0);
-  const snap = { date: new Date().toISOString().slice(0, 10), fireCorpus: Math.round(i.fireCorpus),
-    netWorth: Math.round(i.fireCorpus + i.emergencyFund + i.excludedCorpus + other - debt),
-    earliestFireAge: r.earliestAge == null ? null : +r.earliestAge.toFixed(1), confidence: r.confidence.score };
-  u.snapshots = [...(u.snapshots || []).filter((s) => s.date !== snap.date), snap];
+  if (!S.result) return;
+  S.user.snapshots = withSnapshot(S.user.snapshots, snapshotOf(S.result, new Date().toISOString().slice(0, 10)));
   persist();
   location.hash = "#/results";
   route();

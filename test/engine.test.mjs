@@ -453,3 +453,31 @@ test("locked money says where it came from and what it pays at unlock; none when
   assert.match(nps.from, /NPS question/);
   assert.ok(nps.atUnlock.total > 800000 && Math.abs(nps.atUnlock.lump - 0.6 * nps.atUnlock.total) < 1 && nps.atUnlock.pensionMonthly > 0);
 });
+
+// ---- check-ins ----
+test("a check-in records the same net worth as 'Where you stand today', and one per day", async () => {
+  const { evaluatePlan, snapshotOf, withSnapshot } = await import("../src/engine/index.js");
+  const flat = { id: "p", label: "Flat", value: 8000000, plan: "keep", source: "exact" };
+  const r = evaluatePlan({ ...quickBase, properties: [flat] }, pk(), { today: day });
+  const s = snapshotOf(r, "2026-09-26");
+  assert.equal(s.netWorth, Math.round(r.balance.today.netWorth), "property included, like the results card");
+  assert.ok(s.netWorth >= s.fireCorpus + 8000000 - 1);
+  let list = withSnapshot([], s);
+  list = withSnapshot(list, { ...s, fireCorpus: s.fireCorpus + 1 });
+  assert.equal(list.length, 1, "recording again the same day replaces it");
+  list = withSnapshot(list, { ...s, date: "2026-03-01" });
+  assert.deepEqual(list.map((x) => x.date), ["2026-03-01", "2026-09-26"], "kept in date order");
+});
+
+test("check-ins show the change since the previous one, and flag when the answers changed", async () => {
+  const { progress } = await import("../src/engine/index.js");
+  const a = { date: "2026-01-01", fireCorpus: 10000000, netWorth: 15000000, earliestFireAge: 55, chance: 40, confidence: 30, targetAge: 50 };
+  const b = { ...a, date: "2026-07-01", fireCorpus: 11000000, netWorth: 16500000, earliestFireAge: 54.2, chance: 48, confidence: 31 };
+  const c = { ...b, date: "2026-12-01", confidence: 60 };
+  const [p0, p1, p2] = progress([c, a, b]);
+  assert.equal(p0.change, null, "the first check-in has nothing to compare with");
+  assert.deepEqual({ ...p1.change }, { days: 181, fireCorpus: 1000000, netWorth: 1500000, earliestFireAge: -0.8, chance: 8, answersChanged: false });
+  assert.equal(p2.change.answersChanged, true, "a jump in accuracy means the answers changed, not only the money");
+  const old = progress([{ date: "2025-01-01", fireCorpus: 1, netWorth: 1 }, { date: "2025-06-01", fireCorpus: 2, netWorth: 3 }]);
+  assert.equal(old[1].change.chance, null, "older check-ins without every field still work");
+});

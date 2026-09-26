@@ -397,6 +397,8 @@ tbody tr:hover { background: color-mix(in srgb, var(--accent-soft) 60%, transpar
 .num { text-align: right; white-space: nowrap; }
 td.worse { color: var(--critical); font-weight: 600; }
 td.better { color: var(--good); font-weight: 600; }
+small.worse { color: var(--critical); display: block; }
+small.better { color: var(--good); display: block; }
 table.dense { font-size: 0.85rem; }
 table.dense td, table.dense th { padding: 0.35rem 0.5rem; }
 tr.depleted td { color: var(--critical); }

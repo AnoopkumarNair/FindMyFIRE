@@ -10,6 +10,7 @@ import { chanceByFireYear, levers } from "./risk.js";
 export { fv, pmt, nper, pvDue } from "./finance.js";
 export { evaluate, getPointer, setPointer } from "./conditions.js";
 export { resolveInputs, assumptionValues, ageAt } from "./resolve.js";
+export { snapshotOf, withSnapshot, progress } from "./checkin.js";
 export { makeParams, accumulate, analyse, drawdown, withdrawalsFrom, withdrawalParts, requiredAt } from "./project.js";
 export { slabTax, yearTax } from "./tax.js";
 export { chanceByFireYear, levers } from "./risk.js";

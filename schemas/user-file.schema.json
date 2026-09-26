@@ -801,7 +801,7 @@
       }
     },
     "snapshots": {
-      "description": "Replaces Historical_Logs: one row per check-in.",
+      "description": "One row per check-in: the plan's headline numbers that day.",
       "type": "array",
       "items": {
         "type": "object",
@@ -834,6 +834,20 @@
           },
           "note": {
             "type": "string"
+          },
+          "required": {
+            "type": "number",
+            "minimum": 0,
+            "description": "Corpus needed at the target age, that day."
+          },
+          "targetAge": {
+            "type": "number"
+          },
+          "chance": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 100,
+            "description": "Chance the money lasts, in percent."
           }
         }
       }
