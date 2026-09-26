@@ -6,10 +6,12 @@ import { sectionEditor } from "./editors.js";
 import { marketNote } from "./market.js";
 import { art, questionArt } from "./art.js";
 import { openShareDialog } from "./share.js";
+import { askCard, aiChip } from "./ask.js";
+import * as ai from "../assistant/client.js";
 import * as store from "./store.js";
 import { evaluatePlan, evaluate, getPointer, setPointer, ageAt } from "../engine/index.js";
 
-const APP_VERSION = "0.9.0";
+const APP_VERSION = "0.10.0";
 // Replaced with the commit id at deploy time; also appended to every file URL so browsers
 // fetch the new version right after a deploy instead of reusing a cached copy.
 const BUILD = "dev";
@@ -79,8 +81,10 @@ function header() {
       h("summary", { "aria-label": "Private: how your data is handled" }, h("span", { "aria-hidden": "true" }, "🔒"), h("span", { class: "lbl" }, "Private")),
       h("div", { class: "menu-body private-body" },
         h("strong", {}, "Your numbers stay on this device"),
-        h("p", {}, "Everything is calculated in your browser. Nothing you enter is sent to any server, and there's no account or tracking. Your plan is saved in this browser, or in a file you download."))),
+        h("p", {}, "Everything is calculated in your browser. Nothing you enter is sent to any server, and there's no account or tracking. Your plan is saved in this browser, or in a file you download."),
+        h("p", {}, "The optional AI assistant runs on this device too. Downloading it sends nothing about you."))),
     h("nav", {},
+      aiChip(),
       hasPlan ? h("a", { href: "#/results", class: "btn ghost" }, icon("chart"), h("span", { class: "lbl" }, "Results")) : null,
       hasPlan ? h("button", { type: "button", class: "btn", onClick: saveFile, "aria-label": "Save file" }, icon("save"), h("span", { class: "lbl" }, "Save")) : null,
       h("button", { type: "button", class: "btn ghost", onClick: () => fileInput.click(), "aria-label": "Open file" }, icon("open"), h("span", { class: "lbl" }, "Open")),
@@ -380,6 +384,7 @@ function resultsView() {
 
   return h("div", { class: "results" },
     hero, kpis,
+    askCard(askOptions),
     confidenceCard(r),
     leversCard(r),
     actionPlanCard(r),
@@ -395,6 +400,47 @@ function resultsView() {
     assumptionsSummary(r),
     snapshotsCard());
 }
+
+// ---------------- ask about your plan ----------------
+const detailedIn = (id) => (S.user.sectionsDone || []).includes(id);
+const askOptions = {
+  getCtx: () => ({ user: S.user, pack: S.pack, result: S.result, today: new Date() }),
+  /** Only changes that map cleanly onto the plan can be applied from an answer. */
+  canApply: (ch) => Object.keys(ch).every((k) =>
+    k === "fireAge" || k === "dropGoalIds" || k === "returnDelta" || k === "inflationDelta" ||
+    ((k === "sipDelta" || k === "sipTotal") && !detailedIn("holdings")) ||
+    (k === "expenseDelta" && !detailedIn("expenses"))),
+  apply(ch) {
+    const u = S.user, p = S.result.params, o = (u.assumptionOverrides ||= {});
+    const round = (x) => Math.max(0, Math.round(x));
+    if (ch.fireAge != null) u.plan.fireTargetAge = ch.fireAge;
+    if (ch.dropGoalIds?.length) u.goals = (u.goals || []).filter((g) => !ch.dropGoalIds.includes(g.id));
+    if (ch.returnDelta) { o["return.beforeFire"] = +(p.rPre + ch.returnDelta).toFixed(4); o["return.afterFire"] = +(p.rPost + ch.returnDelta).toFixed(4); }
+    if (ch.inflationDelta) o["inflation.general"] = +(p.infl.general + ch.inflationDelta).toFixed(4);
+    if (ch.sipTotal != null) u.quick.monthlySip = round(ch.sipTotal);
+    else if (ch.sipDelta) u.quick.monthlySip = round((u.quick.monthlySip || 0) + ch.sipDelta);
+    if (ch.expenseDelta) u.quick.monthlyExpenses = round((u.quick.monthlyExpenses || 0) + ch.expenseDelta);
+    redraw();
+  },
+  confirmDownload: async (s) => {
+    const ok = await dialog((close) => [
+      h("h2", {}, "Add the on-device AI?"),
+      h("ul", { class: "ticks" },
+        h("li", {}, h("span", { class: "tick" }, "✓"), h("span", {}, `A one-time download of about ${Math.round(s.total / 1e6)} MB. Wi-Fi recommended.`)),
+        h("li", {}, h("span", { class: "tick" }, "✓"), h("span", {}, "It runs inside this browser. Your questions and numbers never leave this device.")),
+        h("li", {}, h("span", { class: "tick" }, "✓"), h("span", {}, "Ask in your own words and get conversational answers. Every number still comes from the planner and is checked before it's shown.")),
+        h("li", {}, h("span", { class: "tick" }, "✓"), h("span", {}, "It downloads in the background while you use the app, and carries on after a refresh.")),
+        h("li", {}, h("span", { class: "tick" }, "✓"), h("span", {}, `Runs on this device's ${s.device === "GPU" ? "graphics chip" : "processor (slower; a recent laptop or phone works best)"}. Remove it any time to free the space.`))),
+      h("p", { class: "muted small" }, `${s.model.label} model: ${s.model.name} (${s.model.license}), checked piece by piece against checksums published with this app.`),
+      h("div", { class: "dialog-actions" },
+        h("button", { type: "button", class: "btn ghost", onClick: () => close(false) }, "Not now"),
+        h("button", { type: "button", class: "btn primary", onClick: () => close(true) }, "Download"))]);
+    if (ok) ai.start(s.model.id);
+  },
+  confirmRemove: async (s) => {
+    if (await confirmBox(`Remove the AI model from this browser? It frees about ${Math.round(s.total / 1e6)} MB. Plain answers keep working.`)) ai.remove();
+  },
+};
 
 /** Steady-market age vs. what 1,000 simulated market histories say. */
 function chanceStrip(r) {
@@ -818,6 +864,7 @@ async function boot() {
   recompute();
   window.addEventListener("hashchange", route);
   route();
+  ai.init(); // resumes an AI download the user started before a refresh
 }
 
 boot();

@@ -141,10 +141,63 @@ The same money can be entered in two places, so the engine applies fixed rules a
 - The share card (`src/ui/share.js`) is drawn on a canvas on the user's device and handed to the share sheet or downloaded. Amounts appear only if ticked.
 - All motion respects `prefers-reduced-motion`.
 
+## Ask about your plan (optional on-device AI)
+
+The results page has an **Ask about your plan** box. It works in two modes:
+
+- **Plain answers (always on, no download).**
+  - Rules in `src/assistant/router.js` sort the question into one of a fixed set of intents: why this age, chance, corpus, withdrawals, what-if, "retire at X", summary, a term, out of scope, or help.
+  - The matching tool in `src/assistant/facts.js` runs the plan engine (`whatIf` / `solveFor` in `src/engine/whatif.js`) and returns finished sentences.
+- **On-device AI (the user downloads it).** A small open model runs inside the browser (WebGPU, or CPU if there's no GPU) via [Transformers.js](https://github.com/huggingface/transformers.js) and ONNX Runtime Web. It has only two jobs:
+  1. It picks an intent label when the rules aren't sure. It can only choose from the fixed list.
+  2. It rewords the engine's facts conversationally.
+
+  It never calculates anything.
+
+How wrong numbers are kept off the screen (`src/assistant/guard.js`):
+- Each sentence the model writes is shown only if every number in it matches one the engine produced, or one the user typed.
+- Promises ("guaranteed"), product picks ("buy … fund") and links are blocked.
+- The first sentence that fails stops the reply, and the plain facts are shown instead.
+- Model answers carry "The numbers behind this" with the engine's facts.
+- Known limit: a reply that swaps two real numbers (says ₹3.16 Cr where ₹2.92 Cr belongs) passes the number check. That's why the facts are always one tap away.
+
+Security:
+- The model and runtime are fetched only on request.
+- Runtime: vendored from npm by `scripts/vendor-ai.mjs`, pinned with SHA-512.
+- Model: hosted on our own R2 bucket, `models.byteheaven.in`.
+  - Model files live under `<id>/<commit>/`, so a published URL never changes.
+  - `src/assistant/models.json` pins every 8 MB piece's SHA-256. The browser checks each piece before storing it, and a piece that fails is thrown away.
+- The worker (`src/assistant/worker.js`):
+  - refuses any request that isn't to this site or the model host;
+  - serves the model to the runtime from verified storage, so the runtime itself makes no network requests.
+- Model output only ever becomes text nodes; it can't run code or change the plan. What-ifs are applied only when the user clicks **Apply**.
+
+Downloads are resumable: pieces are stored as they arrive (Cache Storage), and a refresh or dropped connection carries on from the last stored piece.
+
+**Publishing a model** (Actions → *Publish AI model*):
+1. The workflow fetches the model from Hugging Face at its current commit and hashes it.
+2. It evaluates it through this same pipeline on CPU, and runs a browser check: download, refresh, resume, answer.
+3. With *publish* ticked, it uploads the files to R2, commits `models.json`, and redeploys.
+
+One-time setup:
+- Create an R2 bucket.
+- Attach the custom domain `models.byteheaven.in` to it.
+- Add a CORS rule on the bucket:
+  - origins `https://fire.byteheaven.in` and `http://localhost:8080`;
+  - methods `GET` and `HEAD`;
+  - header `Range`;
+  - expose headers `Content-Length`, `Content-Range` and `ETag`.
+- Create an R2 API token with Object Read & Write on that bucket.
+- Add these repository secrets: `R2_ACCOUNT_ID`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, `R2_BUCKET`.
+
+Locally:
+- `npm run vendor` fetches the runtime into `vendor/` (git-ignored).
+- `test/e2e/assistant.e2e.cjs` runs the browser check against a model in `models-dev/`.
+
 ## Privacy rules for the app
 
 - Static hosting only.
-- A Content-Security-Policy with `connect-src 'self'`, so the page cannot send data anywhere.
+- A Content-Security-Policy with `connect-src 'self' https://models.byteheaven.in`. The page can talk only to itself and to the host of the optional AI model, which receives plain file downloads and nothing about the user.
 - No analytics or third-party scripts.
 - Working copy in the browser's localStorage, autosaved. Explicit Save / Open for the JSON file.
 - Optional passphrase encryption of the file (WebCrypto AES-GCM).

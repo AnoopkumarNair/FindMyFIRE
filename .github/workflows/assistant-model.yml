@@ -1,0 +1,109 @@
+name: Publish AI model
+
+# Run by hand (Actions → Publish AI model → Run workflow).
+# 1. Fetches the model from Hugging Face at its current commit and hashes every 8 MB piece.
+# 2. Evaluates it through the app's own answer pipeline (CPU), and in a real browser
+#    (download, refresh mid-way, resume, answer). Results appear in the run's summary.
+# 3. Only if "publish" is ticked: uploads it to the R2 bucket and adds it to the app's model list.
+#
+# Publishing needs these repository secrets: R2_ACCOUNT_ID, R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY, R2_BUCKET.
+
+on:
+  workflow_dispatch:
+    inputs:
+      repo:
+        description: Hugging Face model (ONNX, openly licensed)
+        default: onnx-community/Qwen3-0.6B-ONNX
+      id:
+        description: Short id used in URLs
+        default: qwen3-0.6b
+      label:
+        description: Name shown to users
+        default: Lite
+      name:
+        description: Model name shown in the download dialog
+        default: Qwen3 0.6B
+      browser:
+        description: Also run the browser check (slower)
+        type: boolean
+        default: true
+      publish:
+        description: Upload to R2 and add to the app
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+jobs:
+  model:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    permissions:
+      contents: write   # to commit src/assistant/models.json when publishing
+      actions: write    # to start the site deploy afterwards
+    env:
+      ID: ${{ inputs.id }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm install --no-save @huggingface/transformers@4.3.0 playwright@1.56.1
+      - name: Fetch the model and hash every piece
+        run: node scripts/assistant-models.mjs fetch --repo "${{ inputs.repo }}" --id "$ID" --label "${{ inputs.label }}" --name "${{ inputs.name }}" --out models-dev
+      - name: Evaluate on CPU with the app's answer pipeline
+        run: |
+          node scripts/assistant-eval.mjs "models-dev/$ID.entry.json" models-dev | tee eval.md
+          cat eval.md >> "$GITHUB_STEP_SUMMARY"
+      - name: Browser check (download, refresh, resume, answer)
+        if: inputs.browser
+        continue-on-error: true
+        run: |
+          npx playwright install --with-deps chromium
+          npm run vendor
+          node test/e2e/assistant.e2e.cjs "models-dev/$ID.entry.json" e2e-out | tee e2e.json
+          { echo '### Browser check'; echo '```json'; cat e2e.json; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: assistant-${{ inputs.id }}
+          path: |
+            eval.md
+            e2e.json
+            e2e-out/
+            models-dev/*.entry.json
+      - name: Upload to R2
+        if: inputs.publish
+        env:
+          R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
+          AWS_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          R2_BUCKET: ${{ secrets.R2_BUCKET }}
+          AWS_DEFAULT_REGION: auto
+          # R2 doesn't accept the newer default checksum headers from the AWS CLI.
+          AWS_REQUEST_CHECKSUM_CALCULATION: WHEN_REQUIRED
+          AWS_RESPONSE_CHECKSUM_VALIDATION: WHEN_REQUIRED
+        run: |
+          for v in R2_ACCOUNT_ID AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY R2_BUCKET; do
+            [ -n "${!v}" ] || { echo "::error::Secret for $v is not set"; exit 1; }
+          done
+          P=$(node -e "console.log(require('./models-dev/$ID.entry.json').path)")
+          aws s3 cp "models-dev/$P/" "s3://$R2_BUCKET/$P/" --recursive \
+            --endpoint-url "https://$R2_ACCOUNT_ID.r2.cloudflarestorage.com" \
+            --cache-control "public, max-age=31536000, immutable"
+      - name: Add the model to the app and redeploy
+        if: inputs.publish
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          node scripts/assistant-models.mjs merge "models-dev/$ID.entry.json"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/assistant/models.json
+          git commit -m "Publish AI model $ID (${{ inputs.repo }})"
+          git push origin HEAD:${{ github.ref_name }}
+          # Pushes made with this token don't start other workflows, so start the deploy directly.
+          gh workflow run pages.yml --ref "${{ github.ref_name }}"

@@ -45,17 +45,20 @@ jobs:
           mkdir _site
           cp -r index.html src rules schemas examples _site/
           touch _site/.nojekyll
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Add the on-device AI runtime (exact versions, checksum-verified)
+        run: node scripts/vendor-ai.mjs && cp -r vendor _site/
       - name: Stamp build id on file URLs (so browsers don't serve a stale cached copy)
         run: |
           V="${GITHUB_SHA::7}"
           sed -i "s/const BUILD = \"dev\";/const BUILD = \"$V\";/" _site/src/ui/app.js
           grep -q "const BUILD = \"$V\"" _site/src/ui/app.js
           find _site/src -name '*.js' -exec sed -i -E "s#(from \"\.{1,2}/[^\"?]+\.js)\"#\1?v=$V\"#g" {} +
+          find _site/src -name '*.js' -exec sed -i -E "s#(new URL\(\"\./[^\"?]+\.(js|json))\"#\1?v=$V\"#g" {} +
           sed -i -E "s#(src/ui/[a-z]+\.(js|css))\"#\1?v=$V\"#g" _site/index.html
           grep -c "?v=$V" _site/index.html
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 22
       - name: Fetch public inflation data (best effort; the app works without it)
         continue-on-error: true
         run: node scripts/fetch-market-data.mjs _site/market/india.json

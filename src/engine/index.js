@@ -211,3 +211,4 @@ function swpPlan(inp, p, pack, tFire, year0) {
     rows,
   };
 }
+export { whatIf, solveFor, WHATIF_KEYS } from "./whatif.js";

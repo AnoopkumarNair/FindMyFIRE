@@ -7,3 +7,5 @@ node_modules/
 findmyfire-plan-*.json
 _site/
 market/
+vendor/
+models-dev/

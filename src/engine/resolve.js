@@ -158,7 +158,7 @@ export function resolveInputs(user, pack, today = new Date()) {
   const goals = [];
   for (const g of user.goals || []) {
     const tpl = pack.goalTemplates.find((t) => t.id === g.templateId) || {};
-    const one = { label: g.label, atAge: g.atAge, costToday: g.costToday, priority: g.priority || "must",
+    const one = { goalId: g.id, label: g.label, atAge: g.atAge, costToday: g.costToday, priority: g.priority || "must",
       inflationRate: g.inflationRate ?? tpl.defaultInflationRate ?? A["inflation.general"] };
     if (!g.repeatEveryYears) { goals.push(one); continue; }
     const last = g.untilAge ?? A["plan.untilAge"];

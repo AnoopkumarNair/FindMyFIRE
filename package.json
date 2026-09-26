@@ -6,7 +6,8 @@
   "description": "Local-first FIRE planner for India: rules pack, engine and browser app",
   "scripts": {
     "test": "node scripts/validate.mjs && node --test test/*.test.mjs",
-    "serve": "node scripts/serve.mjs"
+    "serve": "node scripts/serve.mjs",
+    "vendor": "node scripts/vendor-ai.mjs"
   },
   "devDependencies": {
     "ajv": "^8.17.1",
