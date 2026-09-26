@@ -177,6 +177,7 @@ test("the checker catches the mistakes small models actually made", () => {
     "With steady markets, the chances are high.",
     "At 50, your financial goals are achievable with a little effort.",
     "This could shorten your timeline by one year.",
+    "Quitting at 50 could be a good decision if you're looking to build a solid foundation.",
     "You would need to wait eleven more years.",
   ];
   for (const s of bad) assert.notEqual(checkSentence(s, allowed, claims), null, s);

@@ -1,8 +1,25 @@
 # Hosting the on-device AI model
 
-The app (fire.byteheaven.in) stays on GitHub Pages. Only the AI model files (~3.1 GB for Gemma 4 E2B) live on Cloudflare R2, served at `https://models.byteheaven.in/`. The page's security policy already allows that address and nothing else.
+The app (fire.byteheaven.in) stays on GitHub Pages. The AI model files (~3.1 GB for Gemma 4 E2B) need a host that allows large files and cross-site downloads. There are two options.
 
-You do steps 1–5 once. After that, publishing or swapping a model is step 6 alone.
+## Option A: straight from Hugging Face (free, nothing to set up) — default
+
+Browsers download the model from its publisher's Hugging Face repo, pinned to one exact commit. That URL never changes.
+- **Costs:** nothing. No card, no bucket, no secrets.
+- **Safety:** every 8 MB piece is still checked against the SHA-256 hashes in `src/assistant/models.json`, which lives in this repo. A changed file on Hugging Face would be refused.
+- **Privacy:** Hugging Face sees the downloader's IP address, as any website does. It learns nothing about their plan; the questions and answers stay on the device.
+- **Risk:** if the publisher deleted the repo, downloads would stop. The app then keeps working with plain answers until you publish another model or switch to option B.
+
+To publish:
+1. Open **Actions → Publish AI model → Run workflow**, on branch `main`.
+2. Keep the Gemma 4 E2B defaults and **host: huggingface**.
+3. Leave **cpu** and **browser** unticked, tick **publish**, and click **Run**.
+
+It takes about 15–20 minutes. It fetches and hashes the files, evaluates the model (report under the run's *Summary*), commits the model list and redeploys. Then check it on the site, as in step 7 below.
+
+## Option B: your own Cloudflare R2 bucket (models.byteheaven.in)
+
+Use this if you want the files on your own domain. R2 needs a payment method on file, even within its free tier. Steps 1–5 are one-time; then publish with **host: r2**.
 
 ## 1. Create the R2 bucket
 1. In the Cloudflare dashboard, open **R2 Object Storage** in the left menu.
@@ -60,7 +77,7 @@ The workflow also commits the updated model list to `main`. Check these two sett
 
 ## 6. Publish the model
 1. Open **Actions → Publish AI model → Run workflow**, on branch `main`.
-2. Leave the defaults:
+2. Choose **host: r2**, and leave the other defaults:
    - repo `onnx-community/gemma-4-E2B-it-ONNX`
    - id `gemma4-e2b`
    - label `Standard`
