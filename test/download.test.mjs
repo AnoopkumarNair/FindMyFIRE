@@ -77,3 +77,14 @@ test("a host that ignores byte ranges is refused rather than downloading the who
   const cache = new MemCache();
   await assert.rejects(download({ manifest, model, variant: "wasm", cache, fetch: server({ ignoreRange: true }).fetch, retries: 0 }), /HTTP 200/);
 });
+
+test("a model can be served from its publisher's Hugging Face repo at a pinned commit", async () => {
+  const { modelBase } = await import("../src/assistant/download.js");
+  assert.equal(modelBase(manifest, model), "https://models.example/tiny/");
+  const hf = { ...model, base: "https://huggingface.co/org/tiny/resolve/abc123/" };
+  assert.equal(modelBase(manifest, hf), "https://huggingface.co/org/tiny/resolve/abc123/");
+  const cache = new MemCache(), seen = [];
+  const fetch = async (url, init) => { seen.push(url); return server().fetch(url.replace(hf.base, "https://models.example/tiny/"), init); };
+  await download({ manifest, model: hf, variant: "wasm", cache, fetch });
+  assert.ok(seen.every((u) => u.startsWith(hf.base)));
+});

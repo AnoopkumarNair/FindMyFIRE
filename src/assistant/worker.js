@@ -7,6 +7,7 @@
 import { CACHE_NAME, download, isComplete, storedFile, variantBytes, prune } from "./download.js";
 
 const MODEL_HOST = "https://fmf-model.invalid/";
+const HF_CDN = ["https://cdn-lfs.hf.co", "https://cdn-lfs-us-1.hf.co", "https://cas-bridge.xethub.hf.co"];
 const VENDOR = new URL("../../vendor/", import.meta.url).href;
 let manifest = null, allowedOrigins = [self.location.origin];
 
@@ -24,7 +25,11 @@ let T = null, loaded = null, stopper = null;
 async function getManifest(url) {
   if (!manifest) {
     manifest = await (await fetch(url, { cache: "no-store" })).json();
-    allowedOrigins = [self.location.origin, new URL(manifest.base, self.location.href).origin];
+    // This site, plus the hosts the model list names (our own host, or Hugging Face for models
+    // served from their publisher's repo). Hugging Face answers from its CDN via a redirect.
+    const hosts = [manifest.base, ...manifest.models.map((m) => m.base).filter(Boolean)].map((u) => new URL(u, self.location.href).origin);
+    if (hosts.some((h) => h === "https://huggingface.co")) hosts.push(...HF_CDN);
+    allowedOrigins = [...new Set([self.location.origin, ...hosts])];
   }
   return manifest;
 }

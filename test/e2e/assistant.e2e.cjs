@@ -26,7 +26,9 @@ manifest.models = [entry];
   const browser = { close: () => ctx.close() };
   await ctx.route("**/src/assistant/models.json*", (r) => r.fulfill({ contentType: "application/json", body: JSON.stringify(manifest) }));
   // Slow the model host down a little so the refresh lands mid-download.
-  await ctx.route("**/models-dev/**", async (r) => { await new Promise((x) => setTimeout(x, 120)); r.continue(); });
+  const slow = async (r) => { await new Promise((x) => setTimeout(x, 120)); r.continue(); };
+  await ctx.route("**/models-dev/**", slow);
+  await ctx.route("https://huggingface.co/**", slow);
   const page = ctx.pages()[0] || await ctx.newPage();
   ctx.on("weberror", (e) => log.push(`weberror: ${e.error().message}`));
   page.on("console", (m) => (m.type() === "error" || m.type() === "warning") && log.push(`${m.type()}: ${m.text()}`));

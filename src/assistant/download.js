@@ -13,6 +13,12 @@ export const CACHE_NAME = "fmf-assistant-v1";
  */
 export const pieceKey = (modelId, file, i) => `https://fmf-model.invalid/${modelId}/${file.path}?piece=${i}&sha256=${file.sha256[i]}`;
 
+/**
+ * Where a model's files are downloaded from: its own `base` (e.g. the publisher's Hugging Face
+ * repo, pinned to one commit), or `<manifest base>/<path>/` on our own host.
+ */
+export const modelBase = (manifest, model) => (model.base ? model.base : new URL(`${model.path}/`, manifest.base).href);
+
 export const variantFiles = (model, variant) => model.variants[variant]?.files || [];
 export const variantBytes = (model, variant) => variantFiles(model, variant).reduce((s, f) => s + f.size, 0);
 
@@ -41,7 +47,7 @@ const sleep = (ms, signal) => new Promise((res, rej) => {
  */
 export async function download({ manifest, model, variant, cache, fetch, onProgress = () => {}, signal, concurrency = 3, retries = 4 }) {
   const chunkSize = manifest.chunkSize;
-  const base = new URL(`${model.path}/`, manifest.base).href;
+  const base = modelBase(manifest, model);
   const files = variantFiles(model, variant);
   if (!files.length) throw new Error(`No files for ${model.id} (${variant})`);
   const total = files.reduce((s, f) => s + f.size, 0);

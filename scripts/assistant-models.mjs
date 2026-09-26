@@ -3,7 +3,7 @@
 // this entry, so what users run is exactly what was reviewed here.
 //
 //   node scripts/assistant-models.mjs fetch --repo onnx-community/Qwen3-0.6B-ONNX --id qwen3-0.6b \
-//        --label Lite --name "Qwen3 0.6B" --out models-dev [--cpu yes]
+//        --label Lite --name "Qwen3 0.6B" --out models-dev [--cpu yes] [--host huggingface]
 //   node scripts/assistant-models.mjs merge models-dev/qwen3-0.6b.entry.json   # into src/assistant/models.json
 
 import { mkdir, writeFile, readFile } from "node:fs/promises";
@@ -99,6 +99,7 @@ async function fetchModel(o) {
         const tpl = await fetch(`${HF}/${o.repo}/resolve/${sha}/chat_template.jinja`).then((r) => r.text());
         cfg.chat_template = tpl;
         buf = Buffer.from(JSON.stringify(cfg, null, 2));
+        if (o.host === "huggingface") throw new Error("This model needs a patched tokenizer_config.json, so it can't be served straight from Hugging Face. Publish it to R2 instead.");
         console.log("  (tokenizer_config.json: chat template added from chat_template.jinja)");
       }
     }
@@ -113,6 +114,9 @@ async function fetchModel(o) {
 
   const entry = {
     id: o.id, label: o.label || o.id, name: o.name || o.repo, path: modelPath,
+    // --host huggingface: browsers download straight from the publisher's repo at this exact commit
+    // (free, no bucket). Our piece hashes still decide what's accepted.
+    ...(o.host === "huggingface" ? { base: `${HF}/${o.repo}/resolve/${sha}/`, host: "Hugging Face" } : {}),
     repo: o.repo, revision: sha, license,
     // Thinking off for every model: Qwen3/3.5 think by default, Gemma 4 only when asked, and
     // templates without the switch simply ignore it. Replies must be the answer, not reasoning.

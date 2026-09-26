@@ -6,7 +6,9 @@ name: Publish AI model
 #    (download, refresh mid-way, resume, answer). Results appear in the run's summary.
 # 3. Only if "publish" is ticked: uploads it to the R2 bucket and adds it to the app's model list.
 #
-# Publishing needs these repository secrets: R2_ACCOUNT_ID, R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY, R2_BUCKET.
+# Host "huggingface" (default): browsers download from the model's own Hugging Face repo at the
+# pinned commit; nothing to upload, no secrets. Host "r2" needs these repository secrets:
+# R2_ACCOUNT_ID, R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY, R2_BUCKET.
 
 on:
   workflow_dispatch:
@@ -23,6 +25,11 @@ on:
       name:
         description: Model name shown in the download dialog
         default: Gemma 4 E2B
+      host:
+        description: Where browsers download it from (huggingface is free, no setup; r2 needs the R2 secrets)
+        type: choice
+        options: [huggingface, r2]
+        default: huggingface
       cpu:
         description: Also offer it on devices without WebGPU (small models only; slow)
         type: boolean
@@ -57,7 +64,7 @@ jobs:
       - run: npm ci
       - run: npm install --no-save @huggingface/transformers@4.3.0 playwright@1.56.1
       - name: Fetch the model and hash every piece
-        run: node scripts/assistant-models.mjs fetch --repo "${{ inputs.repo }}" --id "$ID" --label "${{ inputs.label }}" --name "${{ inputs.name }}" --out models-dev --cpu "${{ inputs.cpu && 'yes' || 'no' }}"
+        run: node scripts/assistant-models.mjs fetch --repo "${{ inputs.repo }}" --id "$ID" --label "${{ inputs.label }}" --name "${{ inputs.name }}" --out models-dev --cpu "${{ inputs.cpu && 'yes' || 'no' }}" --host "${{ inputs.host }}"
       - name: Evaluate on CPU with the app's answer pipeline
         run: |
           node scripts/assistant-eval.mjs "models-dev/$ID.entry.json" models-dev | tee eval.md
@@ -80,7 +87,7 @@ jobs:
             e2e-out/
             models-dev/*.entry.json
       - name: Upload to R2
-        if: inputs.publish
+        if: inputs.publish && inputs.host == 'r2'
         env:
           R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
           AWS_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
