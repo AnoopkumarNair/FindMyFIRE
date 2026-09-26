@@ -432,7 +432,10 @@ const askOptions = {
         h("li", {}, h("span", { class: "tick" }, "!"), h("span", {}, "It's a small model and still in beta: its wording can be off, so trust the numbers and the facts under each answer.")),
         h("li", {}, h("span", { class: "tick" }, "✓"), h("span", {}, "It downloads in the background while you use the app, and carries on after a refresh.")),
         h("li", {}, h("span", { class: "tick" }, "✓"), h("span", {}, `Runs on this device's ${s.device === "GPU" ? "graphics chip" : "processor (slower; a recent laptop or phone works best)"}. Remove it any time to free the space.`))),
-      h("p", { class: "muted small" }, `${s.model.label} model: ${s.model.name} (${s.model.license}), checked piece by piece against checksums published with this app.`),
+      navigator.deviceMemory && navigator.deviceMemory < 6
+        ? h("p", { class: "warn-text" }, "⚠ This device reports less than 6 GB of memory. The AI may be slow or fail to start; plain answers will keep working.")
+        : null,
+      h("p", { class: "muted small" }, `${s.model.name} (${s.model.license}), checked piece by piece against checksums published with this app. Works best on a laptop or a recent phone with 8 GB of memory.`),
       h("div", { class: "dialog-actions" },
         h("button", { type: "button", class: "btn ghost", onClick: () => close(false) }, "Not now"),
         h("button", { type: "button", class: "btn primary", onClick: () => close(true) }, "Download"))]);

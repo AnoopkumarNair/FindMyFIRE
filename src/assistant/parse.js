@@ -8,6 +8,11 @@ const num = (s) => Number(String(s).replace(/,/g, ""));
 const MONEY = /(?:(₹|rs\.?|inr)\s*)?(\d[\d,]*(?:\.\d+)?)\s*(k|thousand|lakhs?|lacs?|l|crores?|cr)?\b/gi;
 const PERCENT = /(\d+(?:\.\d+)?)\s*(?:%|percent\b|per cent\b)/gi;
 
+const ONES = ["zero", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine", "ten", "eleven", "twelve",
+  "thirteen", "fourteen", "fifteen", "sixteen", "seventeen", "eighteen", "nineteen"];
+const TENS = { twenty: 20, thirty: 30, forty: 40, fifty: 50, sixty: 60, seventy: 70, eighty: 80, ninety: 90 };
+const WORD_NUMBER = new RegExp(`\\b(?:(${Object.keys(TENS).join("|")})(?:[- ](${ONES.slice(1, 10).join("|")}))?|(${ONES.join("|")}))\\b`, "gi");
+
 /**
  * Every number in a piece of text, classified.
  * money: rupees · percent: e.g. 8.5 · plain: anything else (ages, years, counts).
@@ -29,6 +34,15 @@ export function numbersIn(text) {
     const value = num(digits) * (unit ? UNIT[unit.toLowerCase()] : 1);
     if (cur || unit) out.push({ kind: "money", value, raw: m[0].trim() });
     else out.push({ kind: "plain", value, raw: m[0].trim() });
+  }
+  // Numbers written as words ("forty years", "one year sooner"). Odds like "one in four" are
+  // left out: they're ratios, not quantities.
+  const W = `(?:${[...ONES, ...Object.keys(TENS)].join("|")}|\\d+)`;
+  const noOdds = s.replace(new RegExp(`\\b${W}\\s+(?:in|out of)\\s+${W}\\b`, "gi"), " ");
+  for (const m of noOdds.matchAll(WORD_NUMBER)) {
+    const [, tens, unit, small] = m;
+    const value = small ? ONES.indexOf(small.toLowerCase()) : TENS[tens.toLowerCase()] + (unit ? ONES.indexOf(unit.toLowerCase()) : 0);
+    out.push({ kind: "plain", value, raw: m[0] });
   }
   return out;
 }

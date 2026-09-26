@@ -13,16 +13,16 @@ on:
     inputs:
       repo:
         description: Hugging Face model (ONNX, openly licensed)
-        default: onnx-community/Qwen3-0.6B-ONNX
+        default: onnx-community/gemma-4-E2B-it-ONNX
       id:
         description: Short id used in URLs
-        default: qwen3-0.6b
+        default: gemma4-e2b
       label:
         description: Name shown to users
-        default: Lite
+        default: Standard
       name:
         description: Model name shown in the download dialog
-        default: Qwen3 0.6B
+        default: Gemma 4 E2B
       cpu:
         description: Also offer it on devices without WebGPU (small models only; slow)
         type: boolean

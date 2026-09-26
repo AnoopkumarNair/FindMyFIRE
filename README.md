@@ -161,15 +161,24 @@ How wrong numbers are kept off the screen (`src/assistant/guard.js`):
 - Model answers carry "The numbers behind this" with the engine's facts.
 - Known limit: a reply that swaps two real numbers (says ₹3.16 Cr where ₹2.92 Cr belongs) passes the number check. That's why the facts are always one tap away.
 
-What the first evaluation showed (September 2026, same pipeline, CPU runner):
+Model choice (September 2026). Every candidate ran through the same answer pipeline, questions and checker (`scripts/assistant-eval.mjs`). Candidates were found by searching Hugging Face for text-generation models with in-browser (ONNX) builds.
 
-| | Qwen3 0.6B | Qwen3 1.7B |
-|---|---|---|
-| Download on WebGPU (q4f16) | 579 MB | 1,435 MB |
-| New phrasings understood (rules alone: 11/20) | – | 15/20 |
-| Replies with a wrong claim the number check missed | several ("you're in your 50s", "Yes, on track") | a few, mostly vague rather than wrong |
+| Model | Download | New phrasings (rules alone 11/20) | Replies passing the checker | Wording on reading |
+|---|---|---|---|---|
+| **Gemma 4 E2B** (chosen) | 3.1 GB | 17/20 | 14/14 | correct and concise |
+| Gemma 4 E2B, mobile build | 2.3 GB | 17/20 | 12/14 | vague; one wrong figure in words |
+| Qwen3.5 2B | 1.4 GB | 17/20 | 10/14 | several wrong statements passed |
+| Qwen3 1.7B | 1.4 GB | 15/20 | 13/14 | vague |
+| Qwen3.5 0.8B, Qwen3 0.6B, Llama 3.2 1B | 0.6–1 GB | – | 7–9/14 | wrong claims, made-up numbers |
 
-These misses are now test cases, and the checker rejects them: claims about age, being on track, chance and "achievable". The AI is labelled beta, and CPU-only devices aren't offered the bigger model (runner CPU: 3–4 tokens/s).
+One model serves phones and laptops. It is text-only: only the embedding and decoder parts of multimodal models are downloaded.
+
+Mistakes seen in these runs are now test cases, and the checker rejects them:
+- claims about age, being on track, chance and "achievable";
+- numbers written as words;
+- replies longer than 3 sentences, and markdown.
+
+Devices without WebGPU aren't offered the model; runner CPUs manage only 2–7 tokens/s.
 
 Security:
 - The model and runtime are fetched only on request.
