@@ -472,8 +472,9 @@ function resultsView() {
 
   return h("div", { class: "results" },
     hero, kpis,
-    askCard(askOptions),
+    // Refining comes before asking: more detail makes both the result and the answers better.
     confidenceCard(r),
+    askCard(askOptions),
     leversCard(r),
     actionPlanCard(r),
     card("How your corpus grows and lasts",
@@ -604,20 +605,27 @@ function nextSection(r, skip) {
 
 function confidenceCard(r) {
   const c = r.confidence;
-  const next = nextSection(r);
-  const rest = [...c.sections].sort((a, b) => b.potential - a.potential);
+  const done = c.sections.filter((x) => x.done).length;
+  const todo = [...c.sections].filter((x) => !x.done && x.potential > 0).sort((a, b) => b.potential - a.potential);
+  const quickCountNow = S.pack.questionFlow.quick.questions.filter((q) => evaluate(q.showIf, S.user)).length;
+  const row = (x) => h("li", {},
+    h("a", { href: `#/refine/${x.id}`, class: "refine-link" }, h("strong", {}, x.title), h("span", { class: "badge" }, `+${x.potential} accuracy`)),
+    x.benefit ? h("p", { class: "muted small" }, x.benefit) : null);
   return h("section", { class: "card next-step" },
+    h("h2", {}, todo.length ? "Make this result more accurate" : "Your plan is complete"),
     h("div", { class: "meter-row" },
       h("strong", {}, `Accuracy ${c.score}/100 · ${c.band.label}`),
       h("div", { class: "meter", role: "meter", "aria-valuemin": 0, "aria-valuemax": 100, "aria-valuenow": c.score, "aria-label": "Accuracy" },
         h("span", { class: "fill", "data-w": c.score / 100 }))),
-    next
-      ? h("p", {}, "This is based on quick answers. The most useful next step: ",
-          h("a", { href: `#/refine/${next.id}`, class: "btn primary small" }, `${next.title} →`),
-          h("span", { class: "muted" }, ` up to +${next.potential}`))
-      : h("p", {}, "✓ Every section is done. Revisit once a year, or when something big changes."),
-    h("details", {}, h("summary", {}, "All sections (optional)"),
-      h("div", { class: "sections" }, ...rest.map((x) => h("a", { href: `#/refine/${x.id}`, class: ["section-link", x.done && "done"] },
+    todo.length
+      ? [h("p", {}, done
+          ? `Built from your quick answers plus ${done} detailed section${done > 1 ? "s" : ""}. `
+          : `Built from ${quickCountNow} quick answers, so treat it as a first estimate. `,
+          "Each section below replaces a quick guess with your real numbers. Your FIRE age, the money needed and the chance it lasts all get more precise, and the answers below use the extra detail too."),
+        h("ol", { class: "refine-list" }, ...todo.slice(0, 3).map(row))]
+      : h("p", {}, "✓ Every section is filled in. Revisit once a year, or when something big changes."),
+    h("details", {}, h("summary", {}, "All sections"),
+      h("div", { class: "sections" }, ...[...c.sections].sort((a, b) => b.potential - a.potential).map((x) => h("a", { href: `#/refine/${x.id}`, class: ["section-link", x.done && "done"] },
         h("span", {}, x.title),
         x.done ? h("span", { class: "badge good" }, "✓ Done") : x.potential > 0 ? h("span", { class: "badge" }, `+${x.potential}`) : null)))));
 }

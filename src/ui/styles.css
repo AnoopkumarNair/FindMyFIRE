@@ -825,3 +825,10 @@ body::before { inset: -12%; animation: dawn-drift 34s ease-in-out infinite alter
   background: var(--accent-soft); border-radius: 999px; padding: 0.2rem 0.65rem; display: inline-block; }
 .ai-on summary::-webkit-details-marker { display: none; }
 .ai-on[open] { display: flex; flex-wrap: wrap; align-items: center; gap: 0.4rem; }
+
+.refine-list { list-style: none; padding: 0; margin: 0.8rem 0 0.4rem; display: grid; gap: 0.7rem; }
+.refine-list li { border: 1px solid var(--border); border-radius: 12px; padding: 0.7rem 0.9rem; background: var(--raised); }
+.refine-link { display: flex; justify-content: space-between; align-items: center; gap: 0.6rem; text-decoration: none; color: inherit; }
+.refine-link strong { color: var(--accent); }
+.refine-link:hover strong { text-decoration: underline; }
+.refine-list .small { margin: 0.25rem 0 0; }

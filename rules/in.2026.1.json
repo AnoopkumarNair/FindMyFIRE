@@ -1328,7 +1328,7 @@
     {
       "id": "inflow.insurance_payout",
       "label": "Insurance maturity / survival benefit",
-      "hint": "Endowment, money-back or guaranteed-income plans. Usually tax-free under Sec 10(10D) if premiums stay within the limits; check your policy.",
+      "hint": "Endowment, money-back or guaranteed-income plans. Usually tax-free under Sec 10(10D) if premiums stay within the limits; check your policy. If you add the payout here, don't also count the policy's value in your savings.",
       "defaultTaxRate": 0,
       "asOf": "FY2025-26 rules",
       "verify": true
@@ -1344,14 +1344,14 @@
     },
     {
       "id": "inflow.pf_leave_encashment",
-      "label": "Leave encashment / other exit benefit",
-      "hint": "Paid when you leave your job.",
+      "label": "Leave encashment / notice pay",
+      "hint": "Paid when you leave your job. Don't add PF, NPS or superannuation here: they're already counted.",
       "defaultTaxRate": 0
     },
     {
       "id": "inflow.bonus_esop",
-      "label": "Bonus, ESOP or RSU vesting",
-      "hint": "Enter the amount after tax, or set the tax rate.",
+      "label": "Bonus, or ESOPs/RSUs still to vest",
+      "hint": "Only what hasn't vested yet. Vested shares you can sell go under Investments. Enter the amount after tax, or set the tax rate.",
       "defaultTaxRate": 0.3
     },
     {
@@ -1599,7 +1599,7 @@
           "input": "currency",
           "bind": "/quick/totalSavings",
           "impact": "high",
-          "help": "Add it all up: bank balances, FDs, mutual funds, stocks (US and other foreign shares too), vested RSUs or ESOP shares you can sell, PPF, gold and your PF balance. Leave out your home and NPS (NPS has its own question). Don't set anything aside for emergencies: the plan keeps 6 months of spending and EMIs aside for you."
+          "help": "Add it all up: bank balances, FDs, mutual funds, stocks (US and other foreign shares too), vested RSUs or ESOP shares you can sell, PPF, gold and your PF balance. Leave out your home, NPS (it has its own question) and insurance policies (add their payouts later under Money coming in). Don't set anything aside for emergencies: the plan keeps 6 months of spending and EMIs aside for you."
         },
         {
           "id": "q.sip",
@@ -1662,7 +1662,7 @@
           "input": "group",
           "impact": "medium",
           "noneLabel": "Nothing",
-          "help": "In today's money: a spouse who keeps working, a pension, rent from a property you'll keep, part-time or consulting work. For a spouse, the age you'll be when they stop. Several sources, or one starting later? Add them under Income sources afterwards.",
+          "help": "In today's money: a spouse who keeps working, a pension (not NPS: the plan already turns it into a pension at 60), rent from a property you'll keep, part-time or consulting work. For a spouse, the age you'll be when they stop. Several sources, or one starting later? Add them under Income sources afterwards.",
           "fields": [
             {
               "id": "q.income_after_monthly",
@@ -1707,7 +1707,8 @@
             "impact": "high",
             "impactHint": "Separates essentials from lifestyle spending and applies post-FIRE changes like lower commuting."
           }
-        ]
+        ],
+        "benefit": "Replaces your one spending figure. Healthcare and school fees rise faster than other costs, and some costs stop, so this moves your FIRE age the most."
       },
       {
         "id": "holdings",
@@ -1730,7 +1731,8 @@
             "bind": "/holdings",
             "impact": "high"
           }
-        ]
+        ],
+        "benefit": "Replaces your savings total with each investment. NPS and superannuation count from when they unlock, and your emergency fund is what you actually keep."
       },
       {
         "id": "goals",
@@ -1746,7 +1748,8 @@
             "impact": "high",
             "impactHint": "A ₹25 lakh education goal 12 years out needs about ₹80 lakh at 10% inflation."
           }
-        ]
+        ],
+        "benefit": "Adds big costs your monthly spending leaves out: education, a wedding, a car, a home."
       },
       {
         "id": "inflows",
@@ -1762,7 +1765,8 @@
             "impact": "high",
             "impactHint": "Money received before FIRE is invested; money received later reduces what you need to have saved."
           }
-        ]
+        ],
+        "benefit": "Adds lump sums you expect: gratuity, policy maturities, an inheritance."
       },
       {
         "id": "property",
@@ -1777,7 +1781,8 @@
             "bind": "/properties",
             "impact": "high"
           }
-        ]
+        ],
+        "benefit": "Adds rent, upkeep and any planned sale of a home or plot."
       },
       {
         "id": "family",
@@ -1830,7 +1835,8 @@
               }
             ]
           }
-        ]
+        ],
+        "benefit": "Children's costs stop at the right age, and dependants shape the insurance advice."
       },
       {
         "id": "income",
@@ -1848,7 +1854,8 @@
             "bind": "/incomes",
             "impact": "medium"
           }
-        ]
+        ],
+        "benefit": "Replaces take-home pay and income after FIRE with each source, taxed and timed on its own."
       },
       {
         "id": "loans",
@@ -1866,7 +1873,8 @@
             "impact": "medium",
             "impactHint": "A loan running past your FIRE age becomes a retirement expense."
           }
-        ]
+        ],
+        "benefit": "Replaces your EMI total: each loan ends when it actually ends."
       },
       {
         "id": "protection",
@@ -1905,7 +1913,8 @@
             "input": "integer",
             "bind": "/insurance/termCoverEndsAtAge"
           }
-        ]
+        ],
+        "benefit": "Uses your real health and term cover instead of estimates."
       },
       {
         "id": "retirement",
@@ -1933,7 +1942,8 @@
             "bind": "/plan/sipStepUp",
             "defaultFrom": "sip.stepUp"
           }
-        ]
+        ],
+        "benefit": "How your spending changes after you stop, and how fast your investments step up."
       },
       {
         "id": "assumptions",
@@ -1948,7 +1958,8 @@
             "bind": "/assumptionOverrides",
             "help": "Rendered as a table of rules-pack assumptions with editable overrides."
           }
-        ]
+        ],
+        "benefit": "Your own view on returns and inflation, if you have one."
       }
     ]
   },

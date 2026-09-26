@@ -430,3 +430,17 @@ test("superannuation is locked until 58, then a one-third lump sum and a pension
   assert.ok(lump && pension, "lump sum and pension at 58");
   assert.ok(Math.abs(lump.net / (lump.net + pension.monthly * 12 / 0.06) - 1 / 3) < 0.01, "one-third lump sum");
 });
+
+test("future money that might be entered twice is flagged where it's entered", async () => {
+  const { evaluatePlan } = await import("../src/engine/index.js");
+  const run = (u) => evaluatePlan({ ...quickBase, ...u, quick: { ...quickBase.quick, ...(u.quick || {}) } }, pk(), { today: day }).overlaps || [];
+  const flat = { id: "p", label: "Flat", value: 8000000, monthlyRent: 25000, plan: "keep", source: "exact" };
+  assert.ok(run({ quick: { incomeAfterFireMonthly: 40000 }, properties: [flat] }).some((o) => o.section === "property" && o.kind === "maybe"), "quick income + rent");
+  assert.ok(!run({ properties: [flat] }).some((o) => o.kind === "maybe"), "rent alone is fine");
+  const pension = run({ quick: { npsBalance: 800000 }, sectionsDone: ["income"], incomes: [
+    { id: "s", type: "salary", monthly: 250000, source: "exact" },
+    { id: "n", type: "pension", label: "NPS pension", monthly: 20000, continuesAfterFire: true, fromAge: 60, source: "exact" }] });
+  assert.ok(pension.some((o) => o.section === "income" && /NPS/.test(o.message)), "a pension next to NPS");
+  const pf = run({ inflows: [{ id: "x", templateId: "inflow.other", label: "PF withdrawal", amount: 1500000, on: "2036-01", source: "estimate" }] });
+  assert.ok(pf.some((o) => o.section === "inflows"), "PF entered as money coming in");
+});

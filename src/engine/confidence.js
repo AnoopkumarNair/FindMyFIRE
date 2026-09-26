@@ -41,7 +41,7 @@ export function confidence(user, pack, derived = {}) {
         }
       }
     }
-    sections.push({ id: s.id, title: s.title, weight: s.weight, done: isDone, score: mean(scores) });
+    sections.push({ id: s.id, title: s.title, benefit: s.benefit, weight: s.weight, done: isDone, score: mean(scores) });
   }
   const totalW = sections.reduce((a, s) => a + s.weight, 0) || 1;
   const score = Math.round((100 * sections.reduce((a, s) => a + s.weight * s.score, 0)) / totalW);

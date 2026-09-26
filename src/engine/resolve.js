@@ -181,6 +181,22 @@ export function resolveInputs(user, pack, today = new Date()) {
       : [];
   const plan = user.plan || {};
 
+  // Future money that may be entered twice, where only the person can say whether it's the same
+  // money. The plan can't drop either one safely, so it says so where each is entered.
+  const inrText = (x) => `₹${Math.round(x).toLocaleString("en-IN")}`;
+  const keptRent = props.filter((x) => x.monthlyRent > 0 && x.plan !== "sell");
+  if (!detailed.income && q.incomeAfterFireMonthly > 0 && keptRent.length)
+    overlaps.push({ section: "property", kind: "maybe", message: `Your quick answer says ${inrText(q.incomeAfterFireMonthly)} a month keeps coming in after FIRE, and rent is entered here too. If that answer included this rent, fill in Income sources without the rent, so it's counted once.` });
+  const pensionsFromLocked = locked.filter((l) => l.unlock?.annuityShare > 0);
+  if (detailed.income && pensionsFromLocked.length) {
+    for (const i of user.incomes.filter((x) => x.continuesAfterFire && (x.type === "pension" || x.type === "annuity")))
+      overlaps.push({ section: "income", kind: "maybe", message: `The plan already pays ${pensionsFromLocked.map((l) => `${l.label} as a pension from ${l.unlock.age}`).join(" and ")}. If "${i.label || i.type}" is that same pension, remove it here.` });
+  }
+  const alreadyCounted = /\b(e?pf|provident|vpf|nps|superannuation)\b/i;
+  for (const x of user.inflows || [])
+    if (alreadyCounted.test(x.label || ""))
+      overlaps.push({ section: "inflows", kind: "maybe", message: `"${x.label}": PF, NPS and superannuation are already counted from your savings. Keep this only if it's money not entered anywhere else.` });
+
   // Goals, with repeating ones (a car every 8 years) expanded into one event per occurrence.
   const goals = [];
   for (const g of user.goals || []) {

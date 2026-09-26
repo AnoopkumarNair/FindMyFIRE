@@ -1012,6 +1012,10 @@
             "$ref": "#/$defs/question"
           },
           "minItems": 1
+        },
+        "benefit": {
+          "type": "string",
+          "description": "One line on what completing the section improves, shown on the results page."
         }
       }
     },
