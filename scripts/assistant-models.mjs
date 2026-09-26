@@ -38,7 +38,13 @@ async function json(url) {
 
 async function fetchModel(o) {
   const chunkSize = JSON.parse(await readFile(MANIFEST, "utf8")).chunkSize;
-  const info = await json(`${HF}/api/models/${o.repo}`);
+  let info;
+  try { info = await json(`${HF}/api/models/${o.repo}`); }
+  catch (e) {
+    const q = o.repo.split("/").pop().replace(/-ONNX$/i, "");
+    const near = await json(`${HF}/api/models?search=${encodeURIComponent(q)}&limit=15`).catch(() => []);
+    throw new Error(`${o.repo} not found. Similar: ${near.map((m) => m.id).join(", ") || "none"}`);
+  }
   const sha = o.revision || info.sha;
   const tree = await json(`${HF}/api/models/${o.repo}/tree/${sha}?recursive=true`);
   const paths = tree.filter((x) => x.type === "file").map((x) => x.path);
@@ -46,20 +52,35 @@ async function fetchModel(o) {
   if (info.gated) throw new Error(`${o.repo} is gated; pick an openly licensed model`);
 
   const common = paths.filter((p) => CONFIG_FILES.test(p));
-  const onnxFor = (dtype) => {
-    const base = `onnx/model_${dtype}.onnx`;
+  // Text models ship one "model" graph; multimodal ones (Qwen3.5, Gemma 4) ship embed_tokens +
+  // decoder_model_merged for text, plus vision/audio encoders we never download.
+  const layouts = [["model"], ["embed_tokens", "decoder_model_merged"]];
+  const filesFor = (session, dtype) => {
+    const base = `onnx/${session}_${dtype}.onnx`;
     return paths.includes(base) ? [base, ...paths.filter((p) => p.startsWith(`${base}_data`)).sort()] : null;
   };
   const variants = {}, wanted = new Set(common);
   for (const [name, v] of Object.entries(VARIANTS)) {
     // CPU inference is far too slow for bigger models; offer it only when asked (--cpu yes).
     if (v.device === "wasm" && o.cpu !== "yes") continue;
-    const dtype = v.dtypes.find((d) => onnxFor(d));
-    if (!dtype) continue;
-    variants[name] = { dtype, device: v.device, files: [...common, ...onnxFor(dtype)] };
-    onnxFor(dtype).forEach((p) => wanted.add(p));
+    for (const sessions of layouts) {
+      // Each session takes the first build available in the preference order (embeddings are
+      // sometimes only published in other precisions).
+      const pick = {};
+      for (const sess of sessions) {
+        const d = [...v.dtypes, "fp16", "q8", "int8", "quantized"].find((x) => filesFor(sess, x));
+        if (!d || (sess !== "embed_tokens" && !v.dtypes.includes(d))) { Object.keys(pick).forEach((k) => delete pick[k]); break; }
+        pick[sess] = d;
+      }
+      if (!Object.keys(pick).length) continue;
+      const files = Object.entries(pick).flatMap(([sess, d]) => filesFor(sess, d));
+      const ds = [...new Set(Object.values(pick))];
+      variants[name] = { dtype: ds.length === 1 ? ds[0] : pick, device: v.device, files: [...common, ...files] };
+      files.forEach((p) => wanted.add(p));
+      break;
+    }
   }
-  if (!Object.keys(variants).length) throw new Error(`${o.repo}: no q4f16/q4 ONNX files found`);
+  if (!Object.keys(variants).length) throw new Error(`${o.repo}: no usable q4f16/q4 ONNX files. Has: ${paths.filter((p) => p.startsWith("onnx/")).join(", ")}`);
 
   // Files live under <id>/<commit>/, so a published URL never changes content.
   const modelPath = `${o.id}/${sha.slice(0, 7)}`;
@@ -87,7 +108,7 @@ async function fetchModel(o) {
   };
   await writeFile(join(o.out, `${o.id}.entry.json`), JSON.stringify(entry, null, 2));
   for (const [n, v] of Object.entries(variants))
-    console.log(`${n}: ${v.dtype}, ${(v.files.reduce((s, f) => s + f.size, 0) / 1e6).toFixed(0)} MB`);
+    console.log(`${n}: ${JSON.stringify(v.dtype)}, ${(v.files.reduce((s, f) => s + f.size, 0) / 1e6).toFixed(0)} MB`);
   return entry;
 }
 

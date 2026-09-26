@@ -115,8 +115,8 @@ const tps = sum((x) => x.tokens) / (sum((x) => x.ms) / 1000);
 const bytes = (v) => (v.files.reduce((s, f) => s + f.size, 0) / 1e6).toFixed(0);
 console.log(`## ${entry.name} (${entry.repo}@${entry.revision.slice(0, 7)}, ${entry.license})
 
-Download: ${Object.entries(entry.variants).map(([n, v]) => `${n} ${v.dtype} **${bytes(v)} MB**`).join(" · ")}
-Load on this CPU: ${(loadMs / 1000).toFixed(1)} s · Speed on this CPU (${variant.dtype}): **${tps.toFixed(1)} tokens/s**, first token after ${(sum((x) => x.firstMs) / stats.length / 1000).toFixed(1)} s on average
+Download: ${Object.entries(entry.variants).map(([n, v]) => `${n} ${typeof v.dtype === "string" ? v.dtype : JSON.stringify(v.dtype)} **${bytes(v)} MB**`).join(" · ")}
+Load on this CPU: ${(loadMs / 1000).toFixed(1)} s · Speed on this CPU (${JSON.stringify(variant.dtype)}): **${tps.toFixed(1)} tokens/s**, first token after ${(sum((x) => x.firstMs) / stats.length / 1000).toFixed(1)} s on average
 
 ### Understanding new phrasings the rules were not tuned on (${HELD_OUT.length})
 Rules alone: **${held.rules}/${HELD_OUT.length}** · Rules + model (asked for ${held.asked}): **${held.model}/${HELD_OUT.length}**
