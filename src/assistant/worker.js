@@ -71,7 +71,10 @@ async function load({ manifestUrl, modelId, variant }) {
   const model = modelOf(modelId), v = model.variants[variant];
   if (loaded?.key === `${modelId}/${variant}`) { post({ type: "loaded" }); return; }
   const cache = await caches.open(CACHE_NAME);
-  if (!T) T = await import(`${VENDOR}transformers/transformers.min.js`);
+  if (!T) {
+    try { T = await import(`${VENDOR}transformers/transformers.min.js`); }
+    catch { throw new Error("this site was published without the AI runtime files; the site owner needs to redeploy it"); }
+  }
   const E = T.env;
   E.allowLocalModels = false;
   E.allowRemoteModels = true;

@@ -224,6 +224,15 @@
           "type": "number",
           "minimum": 0,
           "description": "Monthly NPS contribution, own + employer."
+        },
+        "incomeAfterFireMonthly": {
+          "type": "number",
+          "minimum": 0,
+          "description": "Money that keeps coming in after FIRE, per month, after tax, in today's rupees."
+        },
+        "incomeAfterFireUntilAge": {
+          "type": "integer",
+          "description": "Your age when that income stops."
         }
       }
     },
@@ -265,10 +274,13 @@
           "type": {
             "enum": [
               "salary",
+              "spouse_salary",
               "business",
               "rental",
               "interest",
               "pension",
+              "annuity",
+              "part_time",
               "other"
             ]
           },
@@ -287,6 +299,10 @@
           },
           "continuesAfterFire": {
             "type": "boolean"
+          },
+          "fromAge": {
+            "type": "integer",
+            "description": "Your age when this income starts (e.g. a pension from 60). Blank: already coming in."
           }
         }
       }

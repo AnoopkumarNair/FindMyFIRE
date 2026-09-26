@@ -94,7 +94,7 @@ export function withdrawalParts(inp, p, tier, T) {
   for (const i of inp.incomesAfterFire)
     if (active(i.endsAtAge) && (i.fromAge == null || ageT >= i.fromAge)) {
       const x = 12 * i.monthly * (1 + i.growth) ** T;
-      income += x; slabIncome += x;
+      income += x; slabIncome += x * (i.taxShare ?? 1);
     }
   for (const x of inp.properties || [])
     if (x.sellAge == null || ageT < x.sellAge) {

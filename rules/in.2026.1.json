@@ -360,8 +360,8 @@
     {
       "id": "foreign_equity",
       "label": "International funds / foreign stocks",
-      "summary": "Treatment depends on the fund structure and holding period; FoFs investing abroad are generally not equity-oriented.",
-      "slabTaxed": true,
+      "summary": "Foreign shares (US stocks, RSUs of companies listed abroad) held over 24 months: 12.5% on gains, with no ₹1.25 lakh yearly exemption; held less: slab rates. International FoFs' treatment depends on the fund's structure. Sending over ₹10 lakh a year abroad under LRS attracts 20% TCS, which is credited against your tax, so it's a timing cost only.",
+      "slabTaxed": false,
       "taxFree": false,
       "asOf": "FY2025-26 rules (post Union Budget July 2024)",
       "verify": true
@@ -520,6 +520,34 @@
       ]
     },
     {
+      "id": "superannuation",
+      "label": "Superannuation fund (employer)",
+      "assetClass": "debt",
+      "taxTreatment": "nps",
+      "defaultReturn": 0.075,
+      "access": {
+        "type": "age",
+        "age": 58,
+        "note": "Paid on retirement or leaving the employer, as the scheme allows."
+      },
+      "countInFireByDefault": false,
+      "fields": [
+        "value",
+        "employerMonthlyContribution",
+        "asOf",
+        "comment"
+      ],
+      "help": "Your employer's approved superannuation fund (often run by LIC or an insurer). Usually up to one-third can be taken as a tax-free lump sum; the rest buys an annuity that pays a taxable pension.",
+      "verify": true,
+      "unlock": {
+        "age": 58,
+        "lumpSumShare": 0.3333,
+        "annuityShare": 0.6667,
+        "annuityRate": 0.06,
+        "note": "Up to one-third commuted tax-free; the rest buys an annuity. Schemes differ on age and options; check yours."
+      }
+    },
+    {
       "id": "mf_equity_index",
       "label": "Equity index fund / ETF",
       "aliases": [
@@ -603,7 +631,7 @@
     },
     {
       "id": "international_equity",
-      "label": "International funds / US stocks",
+      "label": "International funds / US & foreign stocks",
       "aliases": [
         "US FoF",
         "LRS"
@@ -619,16 +647,17 @@
         "monthlyContribution",
         "asOf",
         "comment"
-      ]
+      ],
+      "help": "Including RSUs or ESOP shares of companies listed abroad. Gains are taxed at 12.5% with no ₹1.25 lakh exemption. Sending more than ₹10 lakh a year abroad attracts 20% TCS, which comes back against your tax."
     },
     {
       "id": "esop_rsu",
-      "label": "ESOPs / RSUs (vested)",
+      "label": "ESOPs / RSUs (vested, Indian-listed)",
       "assetClass": "equity",
       "taxTreatment": "equity_listed",
       "access": {
         "type": "anytime",
-        "note": "Count vested, sellable units only."
+        "note": "Count vested, sellable units only. Shares of a company listed abroad go under International; unvested grants go under Money coming in."
       },
       "countInFireByDefault": true,
       "fields": [
@@ -1434,9 +1463,11 @@
     "cess": 0.04,
     "ltcgEquityRate": 0.125,
     "ltcgEquityExemption": 125000,
-    "note": "Slab income after FIRE: interest and debt-fund gains, rent (after 30% standard deduction), pension. Equity gains are taxed separately at 12.5% above ₹1.25 lakh. The Sec 87A rebate doesn't apply to equity gains. Surcharge above ₹50 lakh income is ignored. Slabs are assumed to rise with inflation.",
+    "note": "Slab income after FIRE: interest and debt-fund gains, rent (after 30% standard deduction), pension. Equity gains are taxed separately at 12.5% above ₹1.25 lakh. The Sec 87A rebate doesn't apply to equity gains. Surcharge above ₹50 lakh income is ignored. Slabs are assumed to rise with inflation. Foreign shares' long-term gains are taxed at 12.5% with no yearly exemption.",
     "asOf": "Union Budget 2025",
-    "verify": true
+    "verify": true,
+    "ltcgForeignRate": 0.125,
+    "ltcgForeignExemption": 0
   },
   "resolution": [
     {
@@ -1602,6 +1633,30 @@
           "help": "Your own NPS contribution plus your employer's (it's on your payslip as employer NPS contribution, under section 80CCD(2)). Enter 0 if contributions have stopped.",
           "showIf": {
             "ref": "/quick/npsBalance",
+            "op": "gt",
+            "value": 0
+          }
+        },
+        {
+          "id": "q.income_after",
+          "prompt": "After you stop working, will any money keep coming in each month?",
+          "input": "currency",
+          "bind": "/quick/incomeAfterFireMonthly",
+          "impact": "medium",
+          "min": 0,
+          "help": "In today's money, after tax: a spouse who keeps working, a pension, rent from a property you'll keep, part-time or consulting work. Enter 0 if none. If a pension starts later, or you have several, add them under Income for exact start and end ages."
+        },
+        {
+          "id": "q.income_after_until",
+          "prompt": "Until what age (yours) will it keep coming?",
+          "input": "integer",
+          "bind": "/quick/incomeAfterFireUntilAge",
+          "impact": "low",
+          "min": 30,
+          "max": 110,
+          "help": "For a spouse's salary, the age you'll be when they stop working. For a pension that lasts for life, your plan-until age.",
+          "showIf": {
+            "ref": "/quick/incomeAfterFireMonthly",
             "op": "gt",
             "value": 0
           }

@@ -176,7 +176,8 @@ function holdingsEditor(ctx) {
         const counts = x.countInFire ?? inst.countInFireByDefault;
         return [
           h("div", { class: "row-head" }, h("strong", {}, inst.label),
-            inst.access?.note ? h("small", { class: "help" }, inst.access.note) : null),
+            inst.access?.note ? h("small", { class: "help" }, inst.access.note) : null,
+            inst.help ? h("small", { class: "help" }, inst.help) : null),
           field("Name (optional)", "text", x.label, (v) => { x.label = v; ctx.save(); }),
           field(x.instrumentId === "insurance_traditional" ? "Surrender value today" : "Current value", "currency", x.value, (v) => { x.value = v || 0; ctx.save(); }),
           has("monthlyContribution") ? field(x.instrumentId === "epf" ? "Your monthly contribution" : "Monthly investment", "currency", x.monthlyContribution, (v) => { x.monthlyContribution = v; ctx.save(); }) : null,
@@ -366,22 +367,36 @@ function propertiesEditor(ctx) {
 function incomesEditor(ctx) {
   const { user } = ctx;
   const items = (user.incomes ||= []);
-  const types = [["salary", "Salary"], ["business", "Business / professional"], ["rental", "Rent"], ["interest", "Interest / dividends"], ["pension", "Pension"], ["other", "Other"]];
+  // Take-home types are entered after tax; income that you'll be taxed on after FIRE is entered before tax.
+  const types = [
+    ["salary", "Your salary", "take-home"], ["spouse_salary", "Spouse's salary", "take-home"],
+    ["business", "Business / professional", "take-home"], ["pension", "Pension", "before tax"],
+    ["annuity", "Annuity", "before tax"], ["part_time", "Part-time or consulting work", "before tax"],
+    ["interest", "Interest / dividends", "before tax"], ["rental", "Rent (not from a listed property)", "before tax"],
+    ["other", "Other", "before tax"]];
+  const meta = Object.fromEntries(types.map(([v, label, basis]) => [v, { label, basis }]));
   return h("div", {},
-    h("p", { class: "muted small" }, "Take-home amounts, after tax and PF. Mark income that continues after you stop working (a pension, a spouse who keeps working); it reduces what you draw from the corpus. Rent from a property goes under Property, not here."),
+    h("p", { class: "muted small" }, "Your salary and a spouse's are take-home amounts. Mark anything that continues after you stop working: a spouse who keeps working, a pension (a government pension usually rises with DA, so set its growth), an annuity, part-time work. It reduces what you draw from the corpus. A spouse's salary is taxed in their name; pensions and part-time income are taxed with your withdrawals. Rent from a property goes under Property."),
     listEditor(ctx, {
       items, empty: "No income sources yet.",
       create: h("button", { type: "button", class: "btn small", onClick: () => {
         items.push({ id: newId("i"), type: "salary", monthly: 0, source: "exact" }); ctx.redraw(); } }, "+ Add income"),
-      render: (x) => [
-        field("Type", "select", x.type, (v) => { x.type = v || "other"; ctx.save(); }, { placeholder: false, options: types.map(([value, label]) => ({ value, label })) }),
-        field("Name (optional)", "text", x.label, (v) => { x.label = v; ctx.save(); }),
-        field("Monthly (take-home)", "currency", x.monthly, (v) => { x.monthly = v || 0; ctx.save(); }),
-        field("Grows each year by", "percent", x.annualGrowth, (v) => { x.annualGrowth = v; ctx.save(); }),
-        field("Continues after FIRE", "boolean", !!x.continuesAfterFire, (v) => { x.continuesAfterFire = v; ctx.save(); }),
-        field("Stops at your age", "integer", x.endsAtAge, (v) => { x.endsAtAge = v; ctx.save(); }),
-        field("How sure?", "source", x.source, (v) => { x.source = v; ctx.save(); }),
-      ],
+      render: (x) => {
+        const m = meta[x.type] || meta.other;
+        const later = ["pension", "annuity", "part_time"].includes(x.type);
+        return [
+          field("Type", "select", x.type, (v) => { x.type = v || "other"; if (["pension", "annuity", "part_time"].includes(x.type)) x.continuesAfterFire = true; ctx.redraw(); },
+            { placeholder: false, options: types.map(([value, label]) => ({ value, label })) }),
+          field("Name (optional)", "text", x.label, (v) => { x.label = v; ctx.save(); }),
+          field(`Monthly (${m.basis}, today's ₹)`, "currency", x.monthly, (v) => { x.monthly = v || 0; ctx.save(); }),
+          field("Grows each year by", "percent", x.annualGrowth, (v) => { x.annualGrowth = v; ctx.save(); }),
+          field("Continues after FIRE", "boolean", !!x.continuesAfterFire, (v) => { x.continuesAfterFire = v; ctx.save(); }),
+          later || x.fromAge != null ? field("Starts at your age", "integer", x.fromAge, (v) => { x.fromAge = v; ctx.save(); },
+            { help: "Leave blank if it's already coming in." }) : null,
+          field(x.type === "spouse_salary" ? "Stops at your age (when they stop working)" : "Stops at your age", "integer", x.endsAtAge, (v) => { x.endsAtAge = v; ctx.save(); }),
+          field("How sure?", "source", x.source, (v) => { x.source = v; ctx.save(); }),
+        ];
+      },
     }));
 }
 

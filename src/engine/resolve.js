@@ -102,6 +102,7 @@ export function resolveInputs(user, pack, today = new Date()) {
   let fireCorpus, emergencyFund = 0, excludedCorpus = 0, monthlySip, epfMonthly;
   const excluded = [];
   const locked = []; // excluded now, but unlocks at an age (e.g. NPS at 60)
+  let foreignValue = 0; // counted holdings taxed as foreign shares
   if (detailed.holdings) {
     fireCorpus = 0; monthlySip = 0; epfMonthly = 0;
     for (const h of user.holdings) {
@@ -126,6 +127,7 @@ export function resolveInputs(user, pack, today = new Date()) {
         });
       }
       if (!counts) continue;
+      if (inst.taxTreatment === "foreign_equity") foreignValue += h.value;
       const contrib = (h.monthlyContribution || 0) + (h.annualContribution || 0) / 12;
       if (h.instrumentId === "epf" || h.instrumentId === "vpf")
         epfMonthly += contrib + (h.employerMonthlyContribution || 0);
@@ -152,8 +154,14 @@ export function resolveInputs(user, pack, today = new Date()) {
   }
 
   // ---- income ----
+  // Take-home types are entered after tax and aren't taxed again; a spouse's salary is taxed in
+  // their name. Pensions, annuities, part-time work and interest are entered before tax and are
+  // taxed with your withdrawals. Rent is 70% taxable (30% standard deduction).
+  const TAX_SHARE = { salary: 0, business: 0, spouse_salary: 0, rental: 0.7, interest: 1, pension: 1, annuity: 1, part_time: 1, other: 1 };
+  const DEFAULT_GROWTH = { salary: A["income.growth"], spouse_salary: A["income.growth"], business: A["income.growth"],
+    part_time: A["inflation.general"], rental: A["inflation.general"], pension: 0, annuity: 0, interest: 0, other: 0 };
   const takeHomeMonthly = detailed.income
-    ? user.incomes.filter((i) => i.type === "salary" || i.type === "business").reduce((s, i) => s + i.monthly, 0)
+    ? user.incomes.filter((i) => i.type === "salary" || i.type === "business" || i.type === "spouse_salary").reduce((s, i) => s + i.monthly, 0)
     : q.takeHomeMonthly ?? 0;
   const incomesAfterFire = detailed.income
     ? user.incomes.filter((i) => {
@@ -163,9 +171,14 @@ export function resolveInputs(user, pack, today = new Date()) {
         }
         return i.continuesAfterFire;
       }).map((i) => ({
-        label: i.label || i.type, monthly: i.monthly, growth: i.annualGrowth ?? 0, endsAtAge: i.endsAtAge ?? null,
+        label: i.label || i.type, monthly: i.monthly, growth: i.annualGrowth ?? DEFAULT_GROWTH[i.type] ?? 0,
+        endsAtAge: i.endsAtAge ?? null, fromAge: i.fromAge ?? null, taxShare: TAX_SHARE[i.type] ?? 1,
       }))
-    : [];
+    : q.incomeAfterFireMonthly > 0
+      // Quick answer: after tax, in today's money, from FIRE until the age given.
+      ? [{ label: "Income after FIRE", monthly: q.incomeAfterFireMonthly, growth: A["inflation.general"],
+          endsAtAge: q.incomeAfterFireUntilAge ?? null, fromAge: null, taxShare: 0 }]
+      : [];
   const plan = user.plan || {};
 
   // Goals, with repeating ones (a car every 8 years) expanded into one event per occurrence.
@@ -207,7 +220,7 @@ export function resolveInputs(user, pack, today = new Date()) {
     const lump = v * (l.unlock.lumpSumShare ?? 1);
     inflows.push({ label: `${l.label} (unlocks at ${l.unlock.age})`, atAge: l.unlock.age, net: lump, source: "estimate" });
     if (l.unlock.annuityShare)
-      incomesAfterFire.push({ label: `${l.label} pension`, monthly: (v * l.unlock.annuityShare * (l.unlock.annuityRate ?? 0.06)) / 12,
+      incomesAfterFire.push({ taxShare: 1, label: `${l.label} pension`, monthly: (v * l.unlock.annuityShare * (l.unlock.annuityRate ?? 0.06)) / 12,
         growth: 0, fromAge: l.unlock.age, endsAtAge: null, nominal: true });
   }
 
@@ -246,7 +259,8 @@ export function resolveInputs(user, pack, today = new Date()) {
   // Tax on withdrawals: interest on the 3-year cash and 5-year debt buckets per rupee withdrawn.
   const ret = Object.fromEntries(pack.assetClasses.map((a) => [a.id, a.expectedReturn]));
   const taxCtx = pack.incomeTax
-    ? { tax: pack.incomeTax, gainShare: A["tax.equityGainShare"] ?? 0.5, interestPerRupee: 3 * (ret.cash ?? 0.05) + 5 * (ret.debt ?? 0.07) }
+    ? { tax: pack.incomeTax, gainShare: A["tax.equityGainShare"] ?? 0.5, interestPerRupee: 3 * (ret.cash ?? 0.05) + 5 * (ret.debt ?? 0.07),
+        foreignShare: fireCorpus > 0 ? Math.min(1, foreignValue / fireCorpus) : 0 }
     : null;
 
   // A finished detailed section replaces the quick answer. Flag big drops: usually something's missing.

@@ -240,6 +240,12 @@
         },
         "verify": {
           "type": "boolean"
+        },
+        "ltcgForeignRate": {
+          "type": "number"
+        },
+        "ltcgForeignExemption": {
+          "type": "number"
         }
       }
     },

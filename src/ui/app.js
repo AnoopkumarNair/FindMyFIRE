@@ -345,7 +345,10 @@ function quickView(i) {
       prov[q.bind] = "default";
       persist();
     }
-    if (i + 1 < qs.length) location.hash = `#/quick/${i + 1}`;
+    // This answer may switch a follow-up question on (or off), so look again.
+    const now = S.pack.questionFlow.quick.questions.filter((x) => evaluate(x.showIf, u));
+    const at = now.indexOf(q);
+    if (at + 1 < now.length) location.hash = `#/quick/${at + 1}`;
     else location.hash = "#/results";
   };
 

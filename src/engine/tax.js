@@ -24,9 +24,12 @@ export function slabTax(income, tax) {
  * arrives from rent, pension or work. `interestPerRupee` is the slab-taxed return earned by
  * the debt and cash buckets per rupee withdrawn.
  */
-export function yearTax(w, otherSlabIncome, { tax, gainShare, interestPerRupee }) {
+export function yearTax(w, otherSlabIncome, { tax, gainShare, interestPerRupee, foreignShare = 0 }) {
   const slab = slabTax(w * interestPerRupee + otherSlabIncome, tax);
-  const ltcg = tax.ltcgEquityRate * Math.max(0, w * gainShare - tax.ltcgEquityExemption);
+  // Gains on Indian shares get the yearly exemption; foreign shares' gains don't.
+  const gains = w * gainShare, foreign = gains * foreignShare;
+  const ltcg = tax.ltcgEquityRate * Math.max(0, gains - foreign - tax.ltcgEquityExemption)
+    + (tax.ltcgForeignRate ?? tax.ltcgEquityRate) * Math.max(0, foreign - (tax.ltcgForeignExemption ?? 0));
   return (slab + ltcg) * (1 + tax.cess);
 }
 

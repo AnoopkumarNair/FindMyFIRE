@@ -372,3 +372,50 @@ test("NPS from the quick questions is locked until 60, then pays a lump sum and 
   assert.ok(eb <= ea, "money arriving at 60 can only help");
   assert.equal(evaluatePlan(withNps, pack, { today }).balance.today.locked, 800000, "shown as locked in Where you stand");
 });
+
+// ---- money after FIRE, taxed the right way ----
+const pk = () => JSON.parse(readFileSync(new URL("../rules/in.2026.1.json", import.meta.url)));
+const day = new Date("2026-09-26");
+const quickBase = { schemaVersion: "1.0.0", profile: { birthYearMonth: "1986-01" }, plan: { fireTargetAge: 50 },
+  quick: { takeHomeMonthly: 250000, monthlyExpenses: 120000, emiMonthly: 0, totalSavings: 20000000, monthlySip: 80000, epfMonthly: 20000 } };
+
+test("quick 'income after FIRE' lowers the corpus needed, and only until the age given", async () => {
+  const { evaluatePlan } = await import("../src/engine/index.js");
+  const req = (q) => evaluatePlan({ ...quickBase, quick: { ...quickBase.quick, ...q } }, pk(), { today: day }).target.required;
+  const none = req({}), toSixty = req({ incomeAfterFireMonthly: 50000, incomeAfterFireUntilAge: 60 }), forLife = req({ incomeAfterFireMonthly: 50000 });
+  assert.ok(toSixty < none, "some income helps");
+  assert.ok(forLife < toSixty, "income for life helps more than income to 60");
+});
+
+test("a spouse's salary isn't taxed as yours; a pension is; a pension counts only from its start age", async () => {
+  const { evaluatePlan } = await import("../src/engine/index.js");
+  const done = { sectionsDone: ["income"] };
+  const plan = (inc) => evaluatePlan({ ...quickBase, ...done, incomes: [
+    { id: "s", type: "salary", monthly: 250000, source: "exact" }, { id: "x", monthly: 60000, source: "exact", continuesAfterFire: true, ...inc }] }, pk(), { today: day });
+  const spouse = plan({ type: "spouse_salary", annualGrowth: 0 }), pension = plan({ type: "pension", annualGrowth: 0 });
+  assert.ok(pension.target.required > spouse.target.required, "the pension's tax needs a bigger corpus");
+  // Above the ₹12 lakh rebate, the pension shows up in the very first year's tax too.
+  const bigSpouse = plan({ type: "spouse_salary", monthly: 150000, annualGrowth: 0 }), bigPension = plan({ type: "pension", monthly: 150000, annualGrowth: 0 });
+  assert.ok(bigPension.swp.firstTax > bigSpouse.swp.firstTax);
+  const later = plan({ type: "pension", annualGrowth: 0, fromAge: 60 });
+  assert.ok(later.target.required > pension.target.required, "a pension from 60 helps less than one from 50");
+});
+
+test("foreign shares lose the ₹1.25 lakh exemption on gains", async () => {
+  const { yearTax } = await import("../src/engine/index.js");
+  const tax = pk().incomeTax, ctx = { tax, gainShare: 0.5, interestPerRupee: 0 };
+  const indian = yearTax(2000000, 0, { ...ctx, foreignShare: 0 }), foreign = yearTax(2000000, 0, { ...ctx, foreignShare: 1 });
+  assert.ok(Math.abs((foreign - indian) - 0.125 * 125000 * (1 + tax.cess)) < 1, "difference is exactly the lost exemption");
+});
+
+test("superannuation is locked until 58, then a one-third lump sum and a pension", async () => {
+  const { resolveInputs } = await import("../src/engine/index.js");
+  const u = { ...quickBase, sectionsDone: ["holdings"], holdings: [
+    { id: "a", instrumentId: "mf_equity_index", value: 5000000, asOf: "2026-09-01", source: "exact" },
+    { id: "b", instrumentId: "superannuation", value: 900000, employerMonthlyContribution: 5000, asOf: "2026-09-01", source: "exact" }] };
+  const inp = resolveInputs(u, pk(), day);
+  assert.equal(inp.fireCorpus, 5000000);
+  const lump = inp.inflows.find((x) => x.atAge === 58), pension = inp.incomesAfterFire.find((x) => x.fromAge === 58);
+  assert.ok(lump && pension, "lump sum and pension at 58");
+  assert.ok(Math.abs(lump.net / (lump.net + pension.monthly * 12 / 0.06) - 1 / 3) < 0.01, "one-third lump sum");
+});
