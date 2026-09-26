@@ -624,3 +624,72 @@ table.breakdown .total-row th, table.breakdown .total-row td { font-weight: 700;
 .inline-help { display: inline-flex; align-items: center; gap: 0.4rem; flex-wrap: wrap; font-size: 0.85rem; color: var(--ink-2); margin-top: 0.3rem; }
 .inline-help input.short { width: 6rem; min-height: 34px; padding: 0.3rem 0.5rem; }
 .overlap-warn.tip { background: var(--sun-soft); color: var(--ink); }
+
+/* ---------- landing v2: privacy up front, less scrolling ---------- */
+.top { justify-content: flex-start; }
+.top nav { margin-left: auto; }
+.private-chip > summary {
+  display: inline-flex; align-items: center; gap: 0.35rem; margin-left: 0.6rem; padding: 0.3rem 0.7rem; border-radius: 999px;
+  background: var(--good-bg); color: var(--good); font-size: 0.82rem; font-weight: 700; cursor: pointer; list-style: none; border: 1px solid transparent;
+}
+.private-chip > summary:hover { border-color: color-mix(in srgb, var(--good) 40%, transparent); }
+.private-chip .private-body { left: 0; right: auto; width: min(320px, calc(100vw - 32px)); padding: 0.9rem 1rem; transform-origin: top left; }
+.private-chip .private-body p { margin: 0.35rem 0 0; color: var(--ink-2); font-size: 0.9rem; }
+
+.landing { gap: 0; }
+.landing-hero { grid-template-columns: 1.15fr 1fr; gap: 2.5rem; padding: clamp(1rem, 3.5vw, 2.5rem) 0 clamp(1.2rem, 3vw, 2rem); }
+.landing-hero h1 { font-size: clamp(2.3rem, 5.4vw, 3.9rem); }
+.landing-hero .lede { margin: 0.2rem 0 0; }
+.cta { margin: 1.2rem 0 0; }
+.privacy-card {
+  display: flex; gap: 0.9rem; align-items: center; margin-top: 1.3rem; padding: 0.85rem 1rem;
+  background: var(--surface); border: 1px solid color-mix(in srgb, var(--good) 30%, var(--border)); border-radius: var(--radius); box-shadow: var(--shadow);
+}
+.privacy-art { flex: none; width: 3.2rem; height: 3.2rem; }
+.privacy-art .art { width: 100%; height: 100%; }
+.privacy-card strong { font-family: var(--font-display); font-size: 1.05rem; }
+.ticks { list-style: none; margin: 0.25rem 0 0; padding: 0; display: grid; gap: 0.1rem; font-size: 0.9rem; color: var(--ink-2); }
+.tick { color: var(--good); font-weight: 800; margin-right: 0.4rem; }
+
+.band { padding: clamp(1.4rem, 3.5vw, 2.2rem) 0; }
+.band > h2, .band h2 { font-size: clamp(1.3rem, 2.6vw, 1.6rem); margin-bottom: 0.9rem; }
+.band.two-col { display: grid; grid-template-columns: 0.9fr 1.3fr; gap: 2.5rem; align-items: start; }
+.steps { grid-template-columns: 1fr; gap: 0.6rem; }
+.step { display: grid; grid-template-columns: auto 1fr; gap: 0.8rem; align-items: start; padding: 0.8rem 0.9rem; }
+.step .num { position: static; width: 2rem; height: 2rem; border: 0; font-size: 1rem !important; }
+.step h3, .feature h3 { font-size: 1rem; margin: 0 0 0.15rem; }
+.step p, .feature p { font-size: 0.9rem; }
+.features { grid-template-columns: 1fr 1fr; gap: 0.6rem; }
+.feature { display: grid; grid-template-columns: auto 1fr; gap: 0.75rem; align-items: start; padding: 0.8rem 0.9rem; }
+.feature .ficon { width: 2.6rem; height: 2.6rem; margin: 0; }
+.faqs { display: grid; grid-template-columns: 1fr 1fr; column-gap: 2.5rem; }
+.faq { max-width: none; }
+.closing { display: flex; align-items: center; justify-content: space-between; gap: 1rem; flex-wrap: wrap; margin-top: 1.4rem;
+  padding: 1rem 1.2rem; border-radius: var(--radius); background: linear-gradient(90deg, var(--accent-soft), var(--sun-soft)); }
+.closing p { margin: 0; font-family: var(--font-display); font-size: 1.2rem; }
+
+@media (max-width: 900px) {
+  .landing-hero { grid-template-columns: 1fr; }
+  .band.two-col { grid-template-columns: 1fr; gap: 1.6rem; }
+}
+@media (max-width: 640px) {
+  .private-chip > summary { margin-left: 0.4rem; padding: 0.3rem 0.55rem; }
+  .features, .faqs { grid-template-columns: 1fr; }
+  .feature, .step { grid-template-columns: auto 1fr; }
+  .feature .ficon, .step .num { grid-row: auto; }
+  .landing-hero { padding-top: 0.6rem; gap: 1.2rem; }
+  .landing-hero h1 { font-size: clamp(2.1rem, 9.5vw, 2.6rem); }
+  .landing-hero .lede { font-size: 1rem; }
+  .cta { margin-top: 1rem; flex-wrap: nowrap; }
+  .cta .btn { flex: 1 1 0; min-width: 0; }
+  .cta .btn.big { min-height: 48px; padding: 0.6rem 0.8rem; font-size: 0.98rem; }
+  .landing-hero .eyebrow { margin-bottom: 0.2rem; }
+  .privacy-card { margin-top: 1rem; padding: 0.75rem 0.85rem; }
+  .privacy-art { width: 2.6rem; height: 2.6rem; }
+  .closing { flex-direction: column; align-items: stretch; text-align: center; }
+}
+.ticks li { display: grid; grid-template-columns: auto 1fr; align-items: baseline; }
+@media (max-width: 640px) {
+  .demo-svg { height: 170px; }
+  .demo-card { padding: 0.9rem; animation: none; }
+}

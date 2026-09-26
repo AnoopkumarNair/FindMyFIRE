@@ -9,7 +9,7 @@ import { openShareDialog } from "./share.js";
 import * as store from "./store.js";
 import { evaluatePlan, evaluate, getPointer, setPointer, ageAt } from "../engine/index.js";
 
-const APP_VERSION = "0.8.0";
+const APP_VERSION = "0.9.0";
 // Replaced with the commit id at deploy time; also appended to every file URL so browsers
 // fetch the new version right after a deploy instead of reusing a cached copy.
 const BUILD = "dev";
@@ -75,6 +75,11 @@ function header() {
   return h("header", { class: "top" },
     h("a", { href: "#/", class: "brand", "aria-label": "FindMyFIRE home" }, h("span", { class: "flame", "aria-hidden": "true" }),
       h("span", { class: "wordmark" }, "FindMy", h("b", {}, "FIRE"))),
+    h("details", { class: "menu private-chip" },
+      h("summary", { "aria-label": "Private: how your data is handled" }, h("span", { "aria-hidden": "true" }, "🔒"), h("span", { class: "lbl" }, "Private")),
+      h("div", { class: "menu-body private-body" },
+        h("strong", {}, "Your numbers stay on this device"),
+        h("p", {}, "Everything is calculated in your browser. Nothing you enter is sent to any server, and there's no account or tracking. Your plan is saved in this browser, or in a file you download."))),
     h("nav", {},
       hasPlan ? h("a", { href: "#/results", class: "btn ghost" }, icon("chart"), h("span", { class: "lbl" }, "Results")) : null,
       hasPlan ? h("button", { type: "button", class: "btn", onClick: saveFile, "aria-label": "Save file" }, icon("save"), h("span", { class: "lbl" }, "Save")) : null,
@@ -125,55 +130,55 @@ function welcomeView() {
        h("a", { href: "#/quick/0", class: "btn big ghost" }, "Change my answers")]
     : [h("button", { type: "button", class: "btn primary big", onClick: start }, "Find my FIRE age →"),
        h("button", { type: "button", class: "btn big ghost", onClick: loadExample }, "See an example")];
-  const step = (num, pic, title, text) => h("li", { class: "step" }, h("div", { class: "step-art" }, art(pic), h("span", { class: "num" }, num)), h("h3", {}, title), h("p", {}, text));
-  const feature = (ic, title, text) => h("li", { class: "feature" }, h("span", { class: "ficon" }, art(ic)), h("h3", {}, title), h("p", {}, text));
+  const step = (num, title, text) => h("li", { class: "step" }, h("span", { class: "num" }, num), h("div", {}, h("h3", {}, title), h("p", {}, text)));
+  const feature = (ic, title, text) => h("li", { class: "feature" }, h("span", { class: "ficon" }, art(ic)), h("div", {}, h("h3", {}, title), h("p", {}, text)));
   const faq = (q, a) => h("details", { class: "faq" }, h("summary", {}, q), h("p", {}, a));
+  const tick = (t) => h("li", {}, h("span", { class: "tick", "aria-hidden": "true" }, "✓"), t);
   return h("div", { class: "landing" },
     h("section", { class: "landing-hero" },
       h("div", { class: "hero-copy" },
         h("p", { class: "eyebrow" }, "A FIRE planner made for India"),
         h("h1", { tabindex: -1 }, "Find out when work becomes ", h("em", {}, "optional"), "."),
-        h("p", { class: "lede" }, "FIRE stands for Financial Independence, Retire Early. It's the point where your investments can pay your bills for the rest of your life. You might keep working after that. The difference is, you won't have to."),
-        h("p", { class: "lede" }, `Answer ${n} questions about your money. In about two minutes you'll see the age you could get there, how likely it is, and what to do next.`),
+        h("p", { class: "lede" }, `FIRE (Financial Independence, Retire Early) is when your investments can pay your bills for life. Answer ${n} questions to see the age you could get there, how likely it is, and your plan.`),
         h("div", { class: "cta" }, ...cta),
-        h("p", { class: "fineprint" }, working ? "Your plan is saved in this browser." : "Rough numbers are fine · No sign-up · Nothing leaves your device")),
+        h("div", { class: "privacy-card" },
+          h("span", { class: "privacy-art" }, art("lock")),
+          h("div", {},
+            h("strong", {}, "Private by design"),
+            h("ul", { class: "ticks" },
+              tick("Calculated on your device, never on a server"),
+              tick("No sign-up, no account"),
+              tick("Your numbers are never sent or tracked"))))),
       heroDemo()),
 
-    h("section", { class: "band" },
-      h("h2", {}, "How it works"),
-      h("ol", { class: "steps" },
-        step("1", "pen", "Enter the basics", "Your age, what you earn, spend and have saved. Round numbers are fine; sharpen them later."),
-        step("2", "target", "See your FIRE age", "And how sure it is. Your plan is tested against a thousand possible market futures, right on your device."),
-        step("3", "path", "Get your plan", "What to invest this year, when to build a cash cushion, and how much to take out each month once you stop."))),
-
-    h("section", { class: "band" },
-      h("h2", {}, "It counts what other calculators leave out"),
-      h("ul", { class: "features" },
-        feature("pillars", "EPF, PPF and NPS", "Including money that's locked until 58 or 60, and when it actually becomes yours."),
-        feature("house", "Your property", "Rent it earns, what it costs to keep, and a sale in any year you choose."),
-        feature("health", "Health cover after work", "Your employer's policy ends when you stop. The plan includes the premiums that rise every year after."),
-        feature("receipt", "Tax on withdrawals", "Worked out every year under the new regime, not a flat guess."),
-        feature("gift", "Money coming in", "Gratuity, policy payouts, an inheritance: dated, taxed, and put to work."),
-        feature("umbrella", "A crash at the worst time", "What happens if markets fall right after you stop, the risk that sinks most plans."))),
-
-    h("section", { class: "band privacy" },
+    h("section", { class: "band two-col" },
       h("div", {},
-        h("h2", {}, "Your numbers stay with you"),
-        h("p", {}, "Nothing you type is sent anywhere: no account, no tracking, no server that stores your data. Your plan lives in this browser. Download it as a file, lock it with a passphrase if you like, and open it here any time.")),
-      h("div", { class: "lock" }, art("lock"))),
+        h("h2", {}, "How it works"),
+        h("ol", { class: "steps" },
+          step("1", "Enter the basics", "Age, pay, spending, savings. Round numbers are fine."),
+          step("2", "See your FIRE age", "And how sure it is, tested against 1,000 market futures."),
+          step("3", "Get your plan", "What to invest now, how to build a cash cushion, what to withdraw later."))),
+      h("div", {},
+        h("h2", {}, "What it counts that others leave out"),
+        h("ul", { class: "features" },
+          feature("pillars", "EPF, PPF and NPS", "Including locked money and when it unlocks."),
+          feature("house", "Your property", "Rent, upkeep, or a sale in any year."),
+          feature("health", "Health cover after work", "Premiums that rise once your employer's cover ends."),
+          feature("receipt", "Tax on withdrawals", "Worked out every year, new regime."),
+          feature("gift", "Money coming in", "Gratuity, policy payouts, inheritance."),
+          feature("umbrella", "A crash at the worst time", "Markets falling just as you stop.")))),
 
     h("section", { class: "band" },
       h("h2", {}, "Questions people ask"),
-      faq("Do I need exact numbers?", "No. Start with rough figures and mark them as estimates. The app shows how accurate your answer is and suggests the one section worth filling in next."),
-      faq("I don't want to retire at 40. Is this still useful?", "Yes. FIRE is about having the choice. The same plan tells you whether you're on track for 60, what a career break would cost, or how much a move to a cheaper city helps."),
-      faq("Is this financial advice?", "No. It's a planning tool that does the maths carefully and shows its working. Tax rules and rates are current to FY2025-26; check big decisions with a SEBI-registered adviser."),
-      faq("Where do the numbers come from?", "Your answers, plus assumptions you can see and change: inflation, returns, life expectancy. Inflation is compared with the latest World Bank data for India.")),
-
-    h("section", { class: "final-cta" },
-      h("h2", {}, "Two minutes to your number."),
-      h("div", { class: "cta" }, working
-        ? h("a", { href: "#/results", class: "btn primary big" }, "Continue your plan →")
-        : h("button", { type: "button", class: "btn primary big", onClick: start }, "Find my FIRE age →"))));
+      h("div", { class: "faqs" },
+        faq("Do I need exact numbers?", "No. Start rough and mark answers as estimates. The app shows how accurate the result is and which one section to fill in next."),
+        faq("Where is my data stored?", "Only in this browser on this device. Download it as a file (optionally locked with a passphrase) to keep it or move it to another device. Nothing is uploaded."),
+        faq("I don't want to retire at 40. Is this still useful?", "Yes. FIRE is about having the choice: the same plan shows whether you're on track for 60, what a career break costs, or how much a cheaper city helps."),
+        faq("Is this financial advice?", "No. It's a planning tool that does the maths carefully and shows its working. Rules are current to FY2025-26; check big decisions with a SEBI-registered adviser.")),
+      h("div", { class: "closing" },
+        h("p", {}, h("strong", {}, "Two minutes to your number.")),
+        working ? h("a", { href: "#/results", class: "btn primary" }, "Continue your plan →")
+          : h("button", { type: "button", class: "btn primary", onClick: start }, "Find my FIRE age →"))));
 }
 
 /** The landing page's example: a corpus that grows, then carries you, drawn as the page loads. */

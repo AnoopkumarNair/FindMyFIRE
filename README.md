@@ -2,7 +2,7 @@
 
 A guided FIRE calculator that runs entirely in the browser. Your data lives in a JSON file on your device, never on a server. No accounts, no analytics, no LLM.
 
-**Use it:** https://anoopkumarnair.github.io/FindMyFIRE/ (published from `main` by GitHub Actions)
+**Use it:** https://fire.byteheaven.in/ (published from `main` by GitHub Actions; the old github.io address redirects here)
 
 ## Run it locally
 
