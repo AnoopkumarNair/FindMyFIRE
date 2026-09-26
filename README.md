@@ -161,6 +161,16 @@ How wrong numbers are kept off the screen (`src/assistant/guard.js`):
 - Model answers carry "The numbers behind this" with the engine's facts.
 - Known limit: a reply that swaps two real numbers (says ₹3.16 Cr where ₹2.92 Cr belongs) passes the number check. That's why the facts are always one tap away.
 
+What the first evaluation showed (September 2026, same pipeline, CPU runner):
+
+| | Qwen3 0.6B | Qwen3 1.7B |
+|---|---|---|
+| Download on WebGPU (q4f16) | 579 MB | 1,435 MB |
+| New phrasings understood (rules alone: 11/20) | – | 15/20 |
+| Replies with a wrong claim the number check missed | several ("you're in your 50s", "Yes, on track") | a few, mostly vague rather than wrong |
+
+These misses are now test cases, and the checker rejects them: claims about age, being on track, chance and "achievable". The AI is labelled beta, and CPU-only devices aren't offered the bigger model (runner CPU: 3–4 tokens/s).
+
 Security:
 - The model and runtime are fetched only on request.
 - Runtime: vendored from npm by `scripts/vendor-ai.mjs`, pinned with SHA-512.

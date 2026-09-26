@@ -424,11 +424,12 @@ const askOptions = {
   },
   confirmDownload: async (s) => {
     const ok = await dialog((close) => [
-      h("h2", {}, "Add the on-device AI?"),
+      h("h2", {}, "Add the on-device AI (beta)?"),
       h("ul", { class: "ticks" },
         h("li", {}, h("span", { class: "tick" }, "✓"), h("span", {}, `A one-time download of about ${Math.round(s.total / 1e6)} MB. Wi-Fi recommended.`)),
         h("li", {}, h("span", { class: "tick" }, "✓"), h("span", {}, "It runs inside this browser. Your questions and numbers never leave this device.")),
-        h("li", {}, h("span", { class: "tick" }, "✓"), h("span", {}, "Ask in your own words and get conversational answers. Every number still comes from the planner and is checked before it's shown.")),
+        h("li", {}, h("span", { class: "tick" }, "✓"), h("span", {}, "Ask in your own words and get conversational answers. Every number still comes from the planner and is checked before it's shown, and the plain facts are always one tap away.")),
+        h("li", {}, h("span", { class: "tick" }, "!"), h("span", {}, "It's a small model and still in beta: its wording can be off, so trust the numbers and the facts under each answer.")),
         h("li", {}, h("span", { class: "tick" }, "✓"), h("span", {}, "It downloads in the background while you use the app, and carries on after a refresh.")),
         h("li", {}, h("span", { class: "tick" }, "✓"), h("span", {}, `Runs on this device's ${s.device === "GPU" ? "graphics chip" : "processor (slower; a recent laptop or phone works best)"}. Remove it any time to free the space.`))),
       h("p", { class: "muted small" }, `${s.model.label} model: ${s.model.name} (${s.model.license}), checked piece by piece against checksums published with this app.`),

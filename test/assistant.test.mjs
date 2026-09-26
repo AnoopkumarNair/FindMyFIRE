@@ -175,6 +175,7 @@ test("the checker catches the mistakes small models actually made", () => {
     "It takes about 10 years to reach financial independence at that rate.",
     "Your FIRE age is reduced by about 3.3 years.",
     "With steady markets, the chances are high.",
+    "At 50, your financial goals are achievable with a little effort.",
   ];
   for (const s of bad) assert.notEqual(checkSentence(s, allowed, claims), null, s);
   const good = [
@@ -183,6 +184,7 @@ test("the checker catches the mistakes small models actually made", () => {
     "That's about 3.2 years sooner.",
     "In your 30s, the chance of stopping at 50 is only 11%.",
     "The chance is low at 11%.",
+    "Stopping at 50 is achievable only if you invest more each month.",
   ];
   for (const s of good) assert.equal(checkSentence(s, allowed, claims), null, s);
 });

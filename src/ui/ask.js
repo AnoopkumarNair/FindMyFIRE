@@ -35,7 +35,7 @@ function engineStatus(s, opts = statusOpts) {
       body = [h("span", { class: "muted" }, `Plain answers from your plan. ${s.message || ""}`)];
       break;
     case "none":
-      body = [h("span", {}, h("strong", {}, "Want to ask in your own words? "), `Add the on-device AI (${size}, one-time).`),
+      body = [h("span", {}, h("strong", {}, "Want to ask in your own words? "), `Add the on-device AI, in beta (${size}, one-time).`),
         btn("Add AI", () => opts.confirmDownload(s), "btn small primary")];
       break;
     case "downloading": {
@@ -55,7 +55,7 @@ function engineStatus(s, opts = statusOpts) {
       break;
     case "downloaded":
     case "ready":
-      body = [h("span", {}, h("span", { class: "spark", "aria-hidden": "true" }, "✦ "), `On-device AI on · ${label} · runs on this device's ${s.device}`),
+      body = [h("span", {}, h("span", { class: "spark", "aria-hidden": "true" }, "✦ "), `On-device AI on (beta) · ${label} · runs on this device's ${s.device}`),
         btn(`Remove (frees ${size})`, () => opts.confirmRemove(s))];
       break;
     case "error":
