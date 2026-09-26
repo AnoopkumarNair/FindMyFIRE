@@ -7,6 +7,7 @@ export const SYSTEM_EXPLAIN = [
   "Rules:",
   "- Use ONLY the FACTS. Copy every number exactly as written in the FACTS. Never calculate, estimate or invent a number.",
   "- The FACTS come from this person's own plan and answer the question: explain them directly. Only if the question is about something else entirely, say this plan doesn't cover it.",
+  "- A chance always means the chance the money lasts. Keep each chance with its stopping age exactly as the FACTS pair them.",
   "- At most 3 short sentences. No lists, no headings.",
   "- Never recommend a fund, stock or product, and never promise returns.",
 ].join("\n");

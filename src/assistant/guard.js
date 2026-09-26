@@ -45,6 +45,10 @@ function contradicts(sentence, claims = {}) {
       !/\b(if you|only if|by investing|by spending|by cutting|would need|need to|needs|provided)\b/.test(t)) return "says achievable";
   // Endorsing the plan as it stands, whatever follows: "a good decision if you're looking to…".
   if (claims.onTrack === false && /\b(good|great|wise|sound|smart) (decision|idea|plan|choice|move)\b|\bsafe to (quit|stop|retire)\b/.test(t) && !negated) return "endorses a short plan";
+  // A chance is always "the money lasts". Never "a 3 in 4 chance the age is 60" or "…of retiring at 60":
+  // those turn "stop at 60 for a 3 in 4 chance" into odds about the age.
+  if (/\bchances?\b[^.]{0,25}\b(?:the|your) (?:fire |retirement )?age\b|\b(?:\d+|one|three|nine) in (?:\d+|four|ten) chances?\b[^.]{0,6}\b(?:of|for|that you(?:'ll| will)?|you(?:'ll| will)?) (?:retir|stop|quit|reach|be able)/.test(t) &&
+      !/\b(money|corpus|savings|it) (lasts?|last(ing)?|will last|won't run out)\b/.test(t)) return "misstates what the chance is of";
   if (claims.onTrack === true && /\b(shortfall|not on track|off track|behind)\b/.test(t) && !/\bno shortfall\b/.test(t)) return "says off track";
   if (claims.chance != null && claims.chance < 0.5 &&
       /\b(high|good|strong|excellent|great)\b.{0,20}\b(chance|chances|likelihood|probability|odds)\b|\b(chances?|likelihood|probability|odds)\b.{0,15}\b(high|good|strong)\b/.test(t)) return "says the chance is high";

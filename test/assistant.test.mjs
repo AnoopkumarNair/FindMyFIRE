@@ -306,3 +306,32 @@ test("every suggested question goes to the right answer", async () => {
   };
   for (const [q, intent] of Object.entries(expect)) assert.equal(route(q, {}).intent, intent, q);
 });
+
+test("a chance is never turned into odds about an age", () => {
+  const allowed = allowedNumbers(["Stopping at 60 or later gives a 3 in 4 chance the money lasts.", "If you stop at 50, the money lasts to 80 in 9% of 1,000 simulated market histories."]);
+  const bad = [
+    "There is a 3 in 4 chance the age is 60.",
+    "You have a 3 in 4 chance of retiring at 60.",
+    "There's a 3 in 4 chance you'll stop at 60.",
+  ];
+  for (const s of bad) assert.match(checkSentence(s, allowed, {}) || "", /chance is of/, s);
+  const good = [
+    "Stopping at 60 or later gives a 3 in 4 chance the money lasts.",
+    "If you stop at 60, there's a 3 in 4 chance your money lasts.",
+    "If you stop at 50, the money lasts to 80 in 9% of 1,000 simulated market histories.",
+  ];
+  for (const s of good) assert.equal(checkSentence(s, allowed, {}), null, s);
+});
+
+test("off-topic questions and product picks get a set reply, never the AI's wording", async () => {
+  const ctx = { result: evaluatePlan(JSON.parse(readFileSync(new URL("../examples/user-quick.example.json", import.meta.url))), JSON.parse(readFileSync(new URL("../rules/in.2026.1.json", import.meta.url))), { today: new Date(2026, 8, 25) }) };
+  let called = 0;
+  const llm = { async generate(messages) { called++; return messages.length > 1 && /one label/i.test(messages[0].content) ? "out_of_scope" : "Something chatty."; } };
+  const soup = await answer("How to make soup?", ctx, { llm });
+  assert.equal(soup.mode, "facts");
+  assert.equal(soup.title, "I only answer questions about your plan");
+  const fund = await answer("Which mutual fund is best?", ctx, { llm });
+  assert.equal(fund.title, "Not something I can pick for you");
+  assert.equal(fund.mode, "facts");
+  assert.ok(called <= 1, "the AI may only have been asked for a label");
+});

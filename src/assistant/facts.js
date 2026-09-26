@@ -61,8 +61,8 @@ function chance(ctx) {
   const r = ctx.result, c = r.chance, t = r.target;
   const facts = [
     `If you stop at ${t.age}, the money lasts to ${r.inputs.planUntilAge} in ${Math.round(c.atTarget * 100)}% of 1,000 simulated market histories.`,
-    c.likelyAge != null ? `For a 3 in 4 chance, the age is ${age1(c.likelyAge)}.` : `A 3 in 4 chance isn't reached before ${r.inputs.planUntilAge}.`,
-    c.confidentAge != null ? `For a 9 in 10 chance (a safe plan), the age is ${age1(c.confidentAge)}.` : `A 9 in 10 chance isn't reached before ${r.inputs.planUntilAge}.`,
+    c.likelyAge != null ? `Stopping at ${age1(c.likelyAge)} or later gives a 3 in 4 chance the money lasts.` : `No stopping age before ${r.inputs.planUntilAge} gives a 3 in 4 chance the money lasts.`,
+    c.confidentAge != null ? `Stopping at ${age1(c.confidentAge)} or later gives a 9 in 10 chance the money lasts (a safe plan).` : `No stopping age before ${r.inputs.planUntilAge} gives a 9 in 10 chance the money lasts.`,
     `With steady markets the earliest age is ${ageText(r.earliestAge, r.inputs.planUntilAge)}; that is roughly a 50/50 point because real markets have good and bad years.`,
     GLOSSARY.sequence_risk.text,
   ];
@@ -99,7 +99,7 @@ function withdraw(ctx) {
 function summary(ctx) {
   const r = ctx.result, t = r.target;
   const facts = [
-    r.earliestAge == null ? `With today's numbers FIRE isn't reached before ${r.inputs.planUntilAge}.` : `Earliest FIRE age: ${age1(r.earliestAge)} with steady markets; ${age1(r.chance.confidentAge)} for a 9 in 10 chance.`,
+    r.earliestAge == null ? `With today's numbers FIRE isn't reached before ${r.inputs.planUntilAge}.` : `Earliest FIRE age: ${age1(r.earliestAge)} with steady markets; stopping at ${age1(r.chance.confidentAge)} gives a 9 in 10 chance the money lasts.`,
     `Target ${t.age}: ${pct(t.funded, 0)} funded (${inrShort(t.projected)} of ${inrShort(t.required)} needed).`,
     `Chance the money lasts if you stop at ${t.age}: ${Math.round(r.chance.atTarget * 100)}%.`,
     `Confidence in the inputs: ${r.confidence.score} out of 100 (${r.confidence.band.label}).`,
@@ -154,7 +154,7 @@ function whatIfTool(ctx, slots) {
     `At ${A.targetAge}: ${inrShort(A.projected)} projected against ${inrShort(A.required)} needed (was ${inrShort(B.projected)} against ${inrShort(B.required)}).`,
   ];
   if ((A.confidentAge != null || B.confidentAge != null) && A.confidentAge !== B.confidentAge)
-    facts.push(`Age for a 9 in 10 chance: ${ageText(A.confidentAge, until)} instead of ${ageText(B.confidentAge, until)}.`);
+    facts.push(`Stopping age for a 9 in 10 chance the money lasts: ${ageText(A.confidentAge, until)} instead of ${ageText(B.confidentAge, until)}.`);
   if (B.earliestAge != null && A.earliestAge != null) {
     const d = round1(B.earliestAge - A.earliestAge);
     if (Math.abs(d) >= 0.1) facts.push(`That's about ${Math.abs(d)} years ${d > 0 ? "sooner" : "later"}.`);
@@ -190,15 +190,20 @@ function solveForTool(ctx, slots) {
   return { title: `Stopping at ${age}`, facts, card: { type: "solve", age }, claims: { onTrack: s.gap >= 0, chance: s.chance }, followUps: ["Will my money last?", "What if I spend ₹10k less a month?"] };
 }
 
-function outOfScope() {
-  return { title: "Not something I can pick for you", facts: [
+// Set replies: shown as written, never reworded by the AI.
+function outOfScope(ctx, slots, question = "") {
+  const product = /\b(fund|funds|stock|stocks|shares?|etf|sip in|policy|insurance|ulip|annuity plan|bank|broker|app|crypto|bitcoin|gold|buy|sell|invest in|which|best)\b/i.test(question);
+  if (!product) return { fixed: true, title: "I only answer questions about your plan", facts: [
+    "That's outside what I can help with. Ask about your FIRE age, whether the money will last, what-ifs, or what a term means.",
+  ], followUps: ["Why this age?", "Will my money last?", "What if I invest ₹10k more a month?"] };
+  return { fixed: true, title: "Not something I can pick for you", facts: [
     "I can't recommend specific funds, stocks or products; that needs a SEBI-registered adviser who knows your full situation.",
     "I can explain your plan, try what-ifs, and show what it would take to stop at a particular age.",
   ], followUps: ["How does the money come out after FIRE?", "What is the bucket method?", "Why this age?"] };
 }
 
 function help() {
-  return { title: "What I can help with", facts: [
+  return { fixed: true, title: "What I can help with", facts: [
     "I answer questions about the plan on this page, using the same calculations as the results.",
     "Try: \"Why this age?\", \"Will my money last?\", \"What if I invest ₹10k more a month?\", \"What would it take to stop at 50?\", or \"What is an SWP?\"",
   ], followUps: ["Why this age?", "Will my money last?", "What if I invest ₹10k more a month?"] };
@@ -207,8 +212,8 @@ function help() {
 export const TOOLS = { why_age: whyAge, chance, corpus, withdraw, summary, term, what_if: whatIfTool, solve_for: solveForTool, out_of_scope: outOfScope, help };
 
 /** Runs the tool for an intent. Always returns something showable. */
-export function runTool(intent, slots, ctx) {
+export function runTool(intent, slots, ctx, question = "") {
   const fn = TOOLS[intent] || help;
-  if (!ctx.result) return { intent: "help", title: "Answer the quick questions first", facts: ["Once your plan has a result, I can explain it and try what-ifs."], followUps: [] };
-  return { intent, ...fn(ctx, slots || {}) };
+  if (!ctx.result) return { intent: "help", fixed: true, title: "Answer the quick questions first", facts: ["Once your plan has a result, I can explain it and try what-ifs."], followUps: [] };
+  return { intent, ...fn(ctx, slots || {}, question) };
 }

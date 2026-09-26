@@ -38,9 +38,10 @@ export async function understand(question, ctx, llm) {
  */
 export async function answer(question, ctx, { llm = null, onUpdate = () => {}, onFacts = () => {}, signal } = {}) {
   const u = await understand(question, ctx, llm);
-  const tool = runTool(u.intent || "help", u.slots, ctx);
+  const tool = runTool(u.intent || "help", u.slots, ctx, question);
   const base = { ...tool, question, by: u.by, confidence: u.confidence };
-  if (!llm || tool.ask || !tool.facts?.length) return { ...base, text: null, mode: "facts" };
+  // Set replies (off-topic, "can't pick a fund", help) are shown as written.
+  if (!llm || tool.ask || tool.fixed || !tool.facts?.length) return { ...base, text: null, mode: "facts" };
   onFacts(base); // the numbers can be shown at once; the wording follows
 
   const allowed = allowedNumbers(tool.facts, question);
