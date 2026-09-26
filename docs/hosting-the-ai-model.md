@@ -11,7 +11,7 @@ Browsers download the model from its publisher's Hugging Face repo, pinned to on
 - **Risk:** if the publisher deleted the repo, downloads would stop. The app then keeps working with plain answers until you publish another model or switch to option B.
 
 To publish:
-1. Open **Actions → Publish AI model → Run workflow**, on branch `main`.
+1. Open **Actions → Publish AI model → Run workflow**, on branch `main`. Do this on a laptop: GitHub's mobile app and mobile page don't show the **Run workflow** button. Direct link: <https://github.com/AnoopkumarNair/FindMyFIRE/actions/workflows/assistant-model.yml>. The grey **Run workflow ▾** button is on the right of the blue banner above the list of runs.
 2. Keep the Gemma 4 E2B defaults and **host: huggingface**.
 3. Leave **cpu** and **browser** unticked, tick **publish**, and click **Run**.
 
@@ -72,11 +72,11 @@ In the repo, open **Settings → Secrets and variables → Actions → New repos
 | `R2_BUCKET` | `findmyfire-models` |
 
 The workflow also commits the updated model list to `main`. Check these two settings:
-- **Settings → Actions → General → Workflow permissions** must allow *Read and write*.
+- No Settings change is needed: the workflow file grants itself permission to commit.
 - If `main` has branch protection, it must let GitHub Actions push.
 
 ## 6. Publish the model
-1. Open **Actions → Publish AI model → Run workflow**, on branch `main`.
+1. Open **Actions → Publish AI model → Run workflow**, on branch `main`. Do this on a laptop: GitHub's mobile app and mobile page don't show the **Run workflow** button. Direct link: <https://github.com/AnoopkumarNair/FindMyFIRE/actions/workflows/assistant-model.yml>. The grey **Run workflow ▾** button is on the right of the blue banner above the list of runs.
 2. Choose **host: r2**, and leave the other defaults:
    - repo `onnx-community/gemma-4-E2B-it-ONNX`
    - id `gemma4-e2b`
