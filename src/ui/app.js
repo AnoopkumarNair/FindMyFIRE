@@ -119,6 +119,7 @@ function route() {
   mount(app, header(), h("main", { class: changed ? "enter" : "" }, body), footer());
   drawLive();
   if (changed) { window.scrollTo({ top: 0, behavior: "instant" }); countUp(app); }
+  if (changed && document.body.dataset.view === "home") requestAnimationFrame(() => revealOnScroll(app));
   const focusable = app.querySelector("main [autofocus], main h1");
   if (focusable) focusable.focus({ preventScroll: true });
 }
@@ -141,7 +142,9 @@ function welcomeView() {
   return h("div", { class: "landing" },
     h("section", { class: "landing-hero" },
       h("div", { class: "hero-copy" },
-        h("p", { class: "eyebrow" }, "A FIRE planner made for India"),
+        h("div", { class: "hero-tags" },
+          h("p", { class: "eyebrow" }, "A FIRE planner made for India"),
+          h("span", { class: "new-pill" }, h("span", { class: "spark", "aria-hidden": "true" }, "✦"), " New: private AI on laptops")),
         h("h1", { tabindex: -1 }, "Find out when work becomes ", h("em", {}, "optional"), "."),
         h("p", { class: "lede" }, `FIRE (Financial Independence, Retire Early) is when your investments can pay your bills for life. Answer ${n} questions to see the age you could get there, how likely it is, and your plan.`),
         h("div", { class: "cta" }, ...cta),
@@ -153,7 +156,8 @@ function welcomeView() {
               tick("Calculated on your device, never on a server"),
               tick("No sign-up, no account"),
               tick("Your numbers are never sent or tracked"))))),
-      heroDemo()),
+      heroDemo(),
+      embers()),
 
     h("section", { class: "band two-col" },
       h("div", {},
@@ -165,6 +169,9 @@ function welcomeView() {
       h("div", {},
         h("h2", {}, "What it counts that others leave out"),
         h("ul", { class: "features" },
+          h("li", { class: "feature featured" }, h("span", { class: "ficon" }, art("ask")),
+            h("div", {}, h("h3", {}, "Ask about your plan ", h("span", { class: "new-pill small" }, "New")),
+              h("p", {}, "“Why 53?” “What if I invest ₹10k more?” Answers come from your own numbers. On a laptop or desktop, an optional AI puts them into words, running privately inside your browser."))),
           feature("pillars", "EPF, PPF and NPS", "Including locked money and when it unlocks."),
           feature("house", "Your property", "Rent, upkeep, or a sale in any year."),
           feature("health", "Health cover after work", "Premiums that rise once your employer's cover ends."),
@@ -178,11 +185,45 @@ function welcomeView() {
         faq("Do I need exact numbers?", "No. Start rough and mark answers as estimates. The app shows how accurate the result is and which one section to fill in next."),
         faq("Where is my data stored?", "Only in this browser on this device. Download it as a file (optionally locked with a passphrase) to keep it or move it to another device. Nothing is uploaded."),
         faq("I don't want to retire at 40. Is this still useful?", "Yes. FIRE is about having the choice: the same plan shows whether you're on track for 60, what a career break costs, or how much a cheaper city helps."),
+        faq("Is there AI? Does it see my numbers?", "It's optional. On a laptop or desktop you can add an AI that runs entirely inside your browser (a one-time 3.1 GB download). It only rewords the planner's own numbers, every number is checked before it's shown, and nothing you type leaves your device. Phones get the same answers without the AI wording."),
         faq("Is this financial advice?", "No. It's a planning tool that does the maths carefully and shows its working. Rules are current to FY2025-26; check big decisions with a SEBI-registered adviser.")),
       h("div", { class: "closing" },
         h("p", {}, h("strong", {}, "Two minutes to your number.")),
         working ? h("a", { href: "#/results", class: "btn primary" }, "Continue your plan →")
           : h("button", { type: "button", class: "btn primary", onClick: start }, "Find my FIRE age →"))));
+}
+
+const calm = () => matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+/** A few warm specks drifting up behind the hero, like a sunrise. Decoration only. */
+function embers() {
+  if (calm()) return null;
+  const box = h("div", { class: "embers", "aria-hidden": "true" });
+  for (let i = 0; i < 9; i++) {
+    const e = h("span", { class: "ember" });
+    e.style.setProperty("--x", `${6 + Math.random() * 88}%`);
+    e.style.setProperty("--s", `${3 + Math.random() * 4}px`);
+    e.style.setProperty("--d", `${10 + Math.random() * 8}s`);
+    e.style.setProperty("--delay", `${-Math.random() * 16}s`);
+    e.style.setProperty("--drift", `${(Math.random() - 0.5) * 60}px`);
+    box.append(e);
+  }
+  return box;
+}
+
+/** Sections and tiles rise gently into view as you scroll (once each). */
+function revealOnScroll(root) {
+  if (calm() || !("IntersectionObserver" in window)) return;
+  const items = root.querySelectorAll(".band, .feature, .step, .faq, .closing");
+  const io = new IntersectionObserver((entries) => {
+    for (const en of entries) if (en.isIntersecting) { en.target.classList.add("in"); io.unobserve(en.target); }
+  }, { rootMargin: "0px 0px -8% 0px" });
+  items.forEach((el, i) => {
+    if (el.getBoundingClientRect().top < innerHeight) return; // already on screen: no hiding it
+    el.classList.add("reveal");
+    el.style.setProperty("--i", String(i % 6));
+    io.observe(el);
+  });
 }
 
 /** The landing page's example: a corpus that grows, then carries you, drawn as the page loads. */
@@ -207,6 +248,8 @@ function heroDemo() {
         h("svg:path", { d, class: "demo-line", pathLength: 1 }),
         h("svg:line", { x1: sx, x2: sx, y1: pad, y2: H - pad, class: "demo-mark" }),
         h("svg:circle", { cx: sx, cy: sy, r: 9, class: "demo-sun" }),
+        calm() ? null : h("svg:circle", { r: 4, class: "demo-tracer" },
+          h("svg:animateMotion", { dur: "9s", begin: "2.2s", repeatCount: "indefinite", path: d, calcMode: "linear" })),
         h("svg:text", { x: pad, y: H - 6, class: "demo-tick" }, "35"),
         h("svg:text", { x: sx - 8, y: H - 6, class: "demo-tick" }, "53"),
         h("svg:text", { x: W - pad - 14, y: H - 6, class: "demo-tick" }, "90")),

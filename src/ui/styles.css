@@ -741,3 +741,58 @@ table.breakdown .total-row th, table.breakdown .total-row td { font-weight: 700;
 .ask-a.pending { display: block; }
 .ask-a .writing { display: flex; align-items: center; justify-content: space-between; gap: 0.6rem; color: var(--muted); font-size: 0.88rem; }
 @media (prefers-reduced-motion: no-preference) { .ask-a .writing .spark { animation: twinkle 1.2s ease-in-out infinite; } }
+
+/* ---------------- a little life on the landing page (all switched off for reduced motion) ---------------- */
+/* The dawn light drifts slowly: two soft glows on a fixed layer, never wider than the page. */
+body[data-view="home"]::before { inset: -12%; animation: dawn-drift 34s ease-in-out infinite alternate; }
+body[data-view="home"]::after {
+  content: ""; position: fixed; inset: -12%; z-index: -1; pointer-events: none;
+  background: radial-gradient(30rem 22rem at 70% 85%, color-mix(in srgb, var(--sun) 12%, transparent), transparent 70%);
+  animation: dawn-drift-2 27s ease-in-out infinite alternate;
+}
+@keyframes dawn-drift { from { transform: translate3d(0, 0, 0) scale(1); } to { transform: translate3d(-4%, 3%, 0) scale(1.08); } }
+@keyframes dawn-drift-2 { from { transform: translate3d(0, 0, 0); opacity: 0.6; } to { transform: translate3d(5%, -4%, 0); opacity: 1; } }
+
+/* Embers: a few warm specks rising behind the hero. */
+.embers { position: absolute; inset: 0; overflow: hidden; pointer-events: none; z-index: -1; }
+.ember {
+  position: absolute; left: var(--x); bottom: -10px; width: var(--s); height: var(--s); border-radius: 50%;
+  background: radial-gradient(circle, #ffe08a 0%, var(--sun) 45%, #ea580c 100%); opacity: 0; filter: blur(0.4px);
+  box-shadow: 0 0 10px 2px color-mix(in srgb, #f97316 45%, transparent);
+  animation: ember-rise var(--d) linear var(--delay) infinite, ember-flicker 1.6s ease-in-out infinite alternate;
+}
+@keyframes ember-flicker { from { filter: blur(0.4px) brightness(1); } to { filter: blur(0.6px) brightness(1.35); } }
+@keyframes ember-rise {
+  0% { transform: translate3d(0, 0, 0); opacity: 0; }
+  15% { opacity: 0.55; }
+  70% { opacity: 0.35; }
+  100% { transform: translate3d(var(--drift), -420px, 0); opacity: 0; }
+}
+.landing-hero > .hero-copy, .landing-hero > .demo { position: relative; z-index: 1; }
+
+/* The example chart stays alive: a small light keeps tracing the corpus curve. */
+.demo-tracer { fill: var(--sun); opacity: 0; animation: fade 0.6s 2.2s forwards;
+  filter: drop-shadow(0 0 6px var(--sun)); }
+
+/* Sections rise into view as you scroll to them. */
+.reveal { opacity: 0; transform: translateY(18px); transition: opacity 0.6s var(--ease), transform 0.6s var(--ease);
+  transition-delay: calc(var(--i, 0) * 60ms); }
+.reveal.in { opacity: 1; transform: none; }
+
+/* The AI highlight. */
+.hero-tags { display: flex; flex-wrap: wrap; align-items: center; gap: 0.4rem 0.7rem; margin-bottom: 0.4rem; }
+.hero-tags .eyebrow { margin: 0; }
+.new-pill { display: inline-flex; align-items: center; gap: 0.25rem; padding: 0.22rem 0.65rem; border-radius: 999px;
+  font-size: 0.78rem; font-weight: 700; color: var(--accent-ink); background: var(--accent-soft);
+  border: 1px solid color-mix(in srgb, var(--accent) 25%, transparent); white-space: nowrap; }
+.new-pill.small { font-size: 0.68rem; padding: 0.1rem 0.45rem; vertical-align: middle; margin-left: 0.2rem; }
+.new-pill .spark { color: var(--sun); }
+@media (prefers-reduced-motion: no-preference) { .new-pill .spark { animation: twinkle 2.4s ease-in-out infinite; } }
+.feature.featured { grid-column: 1 / -1; border-color: color-mix(in srgb, var(--accent) 35%, var(--border));
+  background: linear-gradient(120deg, var(--accent-soft), var(--surface) 60%); }
+
+@media (prefers-reduced-motion: reduce) {
+  body[data-view="home"]::before, body[data-view="home"]::after { transform: none !important; }
+  .reveal { opacity: 1 !important; transform: none !important; }
+  .demo-tracer { display: none; }
+}
