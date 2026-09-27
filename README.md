@@ -12,12 +12,13 @@ A few things it handles that simpler calculators don't:
 
 - **Emergency fund.** You give one total for your savings, and the planner keeps six months of spending and EMIs aside before counting the rest.
 - **Inflation by category.** Everyday costs, healthcare and education each rise at their own rate. Children's costs stop when they become independent.
-- **Locked money.** NPS unlocks at 60: 60% as a lump sum, the rest as a pension. Employer superannuation unlocks at 58, a third as a lump sum. Neither counts as spendable before then.
+- **Locked money.** NPS follows PFRDA's exit rules: exit between 60 and 85, up to 80% as a lump sum (60% for government employees), the rest as a pension, and tax on any lump sum above the tax-free 60%. You choose the exit age and lump sum; the default is 60% at 60. Employer superannuation unlocks at 58, a third as a lump sum. Neither counts as spendable before then.
 - **Income after you stop.** A spouse who keeps working, a pension, an annuity, rent or part-time work reduces what you draw, each taxed the right way and each with its own start and end age.
 - **Tax on withdrawals**, worked out every year under the new regime (FY2026-27 rules, including the ₹12 lakh rebate with marginal relief): slab rates on interest and pensions, 12.5% on equity gains above ₹1.25 lakh, and no exemption for foreign shares.
 - **Health cover after FIRE.** Once employer cover ends, a family floater premium is added. It rises with age and with medical inflation.
-- **Market ups and downs.** 1,000 simulated market histories give the chance your money lasts, and the ages that give a 3 in 4 and a 9 in 10 chance.
-- **Property, goals and lump sums.** Rent, upkeep, planned sales (after capital-gains tax), repeating goals such as a car every eight years, gratuity and policy payouts.
+- **Market ups and downs.** 10,000 simulated market histories show how often your money lasts, and the ages at which 75% and 90% of them last. The 90% age is the safe planning age.
+- **Property, goals and lump sums.** Rent, upkeep, planned sales (after capital-gains tax, using indexation where a pre-July-2024 purchase allows it), repeating goals such as a car every eight years, gratuity and policy payouts.
+- **What moves the answer.** A ranked view of which inputs shift your FIRE age most, and a step-by-step "show me the math" from today's spending to the corpus needed.
 
 ## Ask about your plan
 
@@ -79,17 +80,19 @@ Quick answers and detailed sections map onto the same inputs. Each detailed sect
 
 All amounts are in nominal rupees, projected one year at a time.
 
-- **Before FIRE**, savings grow with your monthly investments (stepping up each year), PF contributions and returns, less any goals that fall due.
+- **Before FIRE**, savings grow with your monthly investments (stepping up each year) and PF contributions, both paid month by month, less any goals that fall due.
 - **After FIRE**, each year's withdrawal is the spending for that year: each expense rises at its own rate and is adjusted for life after work. Add health cover, EMIs still running and goals; subtract income that continues; then add tax on top.
 - **The corpus needed** at an age is the present value of every withdrawal from then until the age your money should last to. The earliest FIRE age is the first age at which your projected savings reach that amount.
 - **Withdrawals** come from three buckets: three years in cash, five in debt, the rest in equity.
 
 ### Tests
 
-`npm test` covers four areas:
+`npm test` covers:
 
-- **Golden tests** reproduce the original spreadsheet this started from. `scripts/golden-from-sheet.py` recalculates the workbook in LibreOffice and records its outputs. The workbook itself is never committed.
+- **Golden tests** reproduce the original spreadsheet this started from. `scripts/golden-from-sheet.py` recalculates the workbook in LibreOffice and records its outputs. The workbook itself is never committed. (The sheet puts a year's investments in at its start; the planner invests monthly, and the golden tests use the sheet's timing.)
 - **Example tests** cover specific cases: tax slabs, NPS and superannuation unlocking, emergency fund, income after FIRE, foreign-share tax, repeating goals and each double-counting rule.
+- **Maths tests** check that monthly investing matches month-by-month compounding, zero and negative returns, tax continuity at every slab edge and the rebate limit, boundary ages, a 110-year horizon, and that money arriving later can't pay for earlier years.
+- **Regression households** (`test/fixtures/households/`) are six typical plans whose key results are recorded. Any engine or rules change that moves them fails the tests until it's reviewed and re-recorded with `node scripts/regression.mjs --update`; `node scripts/regression.mjs --rules <file>` compares a new rules pack before release.
 - **Property tests** generate 150 random households and check that the results move in the right direction. More spending never needs less money, more savings never delays FIRE, and quick and detailed entry of the same household give the same answer. The breakdown must also add up.
 - **Assistant tests** check question matching, amounts written in different ways, and the answer checker against mistakes small models have actually made.
 
