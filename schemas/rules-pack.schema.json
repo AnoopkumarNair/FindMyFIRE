@@ -1314,6 +1314,10 @@
               "minimum": 0,
               "maximum": 1,
               "description": "Fall in the corpus during the first year of retirement (sequence-of-returns risk)."
+            },
+            "planUntilDelta": {
+              "type": "number",
+              "description": "Years added to how long the money must last."
             }
           }
         }

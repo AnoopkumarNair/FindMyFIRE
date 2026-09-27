@@ -18,7 +18,7 @@ export function makeParams(inp, changes = {}) {
   return {
     age: inp.age,
     fireTargetAge: inp.fireTargetAge + (changes.fireAgeDelta || 0),
-    planUntilAge: inp.planUntilAge,
+    planUntilAge: inp.planUntilAge + (changes.planUntilDelta || 0),
     infl: {
       general: A["inflation.general"] + (changes.generalInflationDelta || 0),
       health: A["inflation.health"] + (changes.healthInflationDelta || 0),

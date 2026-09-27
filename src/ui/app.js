@@ -66,7 +66,7 @@ function drawLive() {
   live.replaceChildren(
     h("span", {}, "Earliest FIRE age ", h("strong", {}, r.earliestAge == null ? "not before " + r.inputs.planUntilAge : age1(r.earliestAge))),
     h("span", {}, "Corpus needed at ", r.target.age, ": ", h("strong", {}, inrShort(r.target.required))),
-    h("span", {}, "Confidence ", h("strong", {}, `${r.confidence.score}`), ` (${r.confidence.band.label})`));
+    h("span", {}, "Estimate quality ", h("strong", {}, `${r.confidence.score}`), ` (${r.confidence.band.label})`));
 }
 
 // ---------------- shell ----------------
@@ -471,11 +471,13 @@ function resultsView() {
       `Of ${r.chance.runs.toLocaleString("en-IN")} simulated market histories, if you stop at ${t.age} (±${Math.max(1, Math.round(r.chance.margin * 100))} pt).`, r.chance.atTarget >= 0.75 ? "good" : "warn"));
 
   return h("div", { class: "results" },
+    // The decision first: when, how much, and what changes it. Then how to sharpen it, questions,
+    // and the detail behind it.
     hero, kpis,
-    // Refining comes before asking: more detail makes both the result and the answers better.
+    leversCard(r),
     confidenceCard(r),
     askCard(askOptions),
-    leversCard(r),
+    sensitivityCard(r),
     actionPlanCard(r),
     card("How your corpus grows and lasts",
       corpusChart(r.timeline, { targetAge: t.age, earliestAge: r.earliestAge }),
@@ -553,6 +555,28 @@ function chanceStrip(r) {
     h("p", { class: "muted tiny" }, "Simulations use the assumed returns and ups and downs under Assumptions: they show how sensitive the plan is, not a guarantee."));
 }
 
+/** Which inputs move the FIRE age most, each changed on its own by a realistic amount. */
+function sensitivityCard(r) {
+  const rows = r.sensitivity;
+  if (!rows?.length || r.earliestAge == null) return null;
+  const years = (d) => (d == null ? "not reached" : Math.abs(d) < 0.05 ? "no change" : `${d > 0 ? "+" : "−"}${age1(Math.abs(d))} yr`);
+  const money = (d) => `${d > 0 ? "+" : "−"}${inrShort(Math.abs(d))}`;
+  const max = Math.max(1, ...rows.flatMap((x) => [Math.abs(x.lo.ageDelta ?? 0), Math.abs(x.hi.ageDelta ?? 0)]));
+  const bar = (d, side) => h("span", { class: ["tbar", side, d > 0 ? "later" : "sooner"], "data-w": Math.min(1, Math.abs(d ?? max) / max) });
+  return card("What moves your FIRE age most",
+    h("p", { class: "muted small" }, `Each input changed on its own, with steady returns, from today's earliest age of ${age1(r.earliestAge)}. Left is the lower setting, right the higher; green brings FIRE sooner, red pushes it later.`),
+    h("ul", { class: "tornado" }, ...rows.map((x) => {
+      const ageMoves = Math.abs(x.lo.ageDelta ?? 1) >= 0.05 || Math.abs(x.hi.ageDelta ?? 1) >= 0.05;
+      return h("li", {},
+        h("strong", {}, x.label),
+        ageMoves
+          ? h("div", { class: "tbars" },
+              h("span", { class: "tside lo" }, h("small", {}, `${x.lo.label}: ${years(x.lo.ageDelta)}`), bar(x.lo.ageDelta, "lo")),
+              h("span", { class: "tside hi" }, bar(x.hi.ageDelta, "hi"), h("small", {}, `${x.hi.label}: ${years(x.hi.ageDelta)}`)))
+          : h("p", { class: "small muted" }, `Doesn't change the earliest age. Money needed at your target: ${money(x.lo.requiredDelta)} if ${x.lo.label}, ${money(x.hi.requiredDelta)} if ${x.hi.label}.`));
+    })));
+}
+
 function leversCard(r) {
   const L = r.levers, t = r.target, now = r.inputs.monthlySip;
   if (!L) return null;
@@ -608,20 +632,33 @@ function nextSection(r, skip) {
   return [...r.confidence.sections].filter((x) => !x.done && x.id !== skip && x.potential > 0).sort((a, b) => b.potential - a.potential)[0] || null;
 }
 
+/** "Using your details for X; quick answers for Y": which inputs the result is built from right now. */
+function usingLine(c) {
+  const name = { expenses: "spending", holdings: "investments", income: "income", loans: "loans" };
+  const withQuick = S.pack.questionFlow.refine.filter((s) => s.replacesQuick?.length);
+  const detailed = withQuick.filter((s) => (S.user.sectionsDone || []).includes(s.id)).map((s) => name[s.id] || s.title.toLowerCase());
+  const quick = withQuick.filter((s) => !(S.user.sectionsDone || []).includes(s.id)).map((s) => name[s.id] || s.title.toLowerCase());
+  if (!detailed.length) return null;
+  return h("p", { class: "small using" },
+    h("strong", {}, "Using your details for: "), detailed.join(", "), ". ",
+    quick.length ? [h("strong", {}, "Quick answers for: "), quick.join(", "), "."] : "No quick guesses left.");
+}
+
 function confidenceCard(r) {
   const c = r.confidence;
   const done = c.sections.filter((x) => x.done).length;
   const todo = [...c.sections].filter((x) => !x.done && x.potential > 0).sort((a, b) => b.potential - a.potential);
   const quickCountNow = S.pack.questionFlow.quick.questions.filter((q) => evaluate(q.showIf, S.user)).length;
   const row = (x) => h("li", {},
-    h("a", { href: `#/refine/${x.id}`, class: "refine-link" }, h("strong", {}, x.title), h("span", { class: "badge" }, `+${x.potential} accuracy`)),
+    h("a", { href: `#/refine/${x.id}`, class: "refine-link" }, h("strong", {}, x.title), h("span", { class: "badge" }, `+${x.potential} quality`)),
     x.benefit ? h("p", { class: "muted small" }, x.benefit) : null);
   return h("section", { class: "card next-step" },
     h("h2", {}, todo.length ? "Make this result more accurate" : "Your plan is complete"),
     h("div", { class: "meter-row" },
-      h("strong", {}, `Accuracy ${c.score}/100 · ${c.band.label}`),
-      h("div", { class: "meter", role: "meter", "aria-valuemin": 0, "aria-valuemax": 100, "aria-valuenow": c.score, "aria-label": "Accuracy" },
+      h("strong", {}, `Estimate quality ${c.score}/100 · ${c.band.label}`),
+      h("div", { class: "meter", role: "meter", "aria-valuemin": 0, "aria-valuemax": 100, "aria-valuenow": c.score, "aria-label": "Estimate quality" },
         h("span", { class: "fill", "data-w": c.score / 100 }))),
+    usingLine(c),
     todo.length
       ? [h("p", {}, done
           ? `Built from your quick answers plus ${done} detailed section${done > 1 ? "s" : ""}. `
@@ -714,7 +751,9 @@ function scenariosCard(r) {
         h("td", { class: "num" }, `${inrShort(s.projected)}`, h("small", { class: "help" }, `at ${s.fireTargetAge}`)),
         h("td", { class: "num" }, inrShort(s.required)),
         h("td", { class: ["num", s.earliestAge == null || s.earliestAge > r.earliestAge + 0.05 ? "worse" : s.earliestAge < r.earliestAge - 0.05 ? "better" : ""] },
-          s.earliestAge == null ? "not reached" : age1(s.earliestAge))))))));
+          s.earliestAge == null ? "not reached" : age1(s.earliestAge),
+          s.id !== "base" && s.earliestAge != null && r.earliestAge != null && Math.abs(s.earliestAge - r.earliestAge) >= 0.05
+            ? h("small", { class: "help" }, `${s.earliestAge > r.earliestAge ? "+" : "−"}${age1(Math.abs(s.earliestAge - r.earliestAge))} yr`) : null)))))));
 }
 
 /** What the corpus needed at the target age pays for, so nothing hides inside one number. */
@@ -742,7 +781,27 @@ function breakdownCard(r) {
       ...rows.map((x) => h("tr", {}, h("th", { scope: "row" }, h("span", { class: ["key-block", x[3]] }), x[0], h("small", { class: "help" }, x[2])),
         h("td", { class: "num" }, inrShort(x[1])), h("td", { class: "num muted" }, pct(x[1] / total, 0)))),
       ...minus.map((x) => h("tr", { class: "minus" }, h("th", { scope: "row" }, x[0]), h("td", { class: "num" }, `−${inrShort(x[1])}`), h("td", {}))),
-      h("tr", { class: "total-row" }, h("th", { scope: "row" }, `Corpus needed at ${t.age}`), h("td", { class: "num" }, inrShort(t.required)), h("td", {}))))));
+      h("tr", { class: "total-row" }, h("th", { scope: "row" }, `Corpus needed at ${t.age}`), h("td", { class: "num" }, inrShort(t.required)), h("td", {}))))),
+    mathDetails(r));
+}
+
+/** The calculation chain, step by step, from today's spending to the gap at the target age. */
+function mathDetails(r) {
+  const m = r.math, f = m.firstYear, t = r.target, i = r.inputs;
+  const part = (label, x) => (x > 0.5 ? `${label} ${inrShort(x)}` : null);
+  const costs = [part("living", f.living), part("healthcare", f.health), part("health insurance", f.healthPremium), part("EMIs", f.emi), part("goals", f.goals)].filter(Boolean);
+  const steps = [
+    `Today you spend about ${inr(r.derived.monthlyExpenses)} a month (${inrShort(12 * r.derived.monthlyExpenses)} a year), plus EMIs of ${inr(r.derived.monthlyEmi || 0)}.`,
+    `By ${m.fireAge}, in ${m.yearsToFire} years, prices rise ${pct(m.inflation.general)} a year (healthcare ${pct(m.inflation.health)}), and each cost is adjusted for life after work. Your first retired year costs ${costs.join(" + ")} = ${inrShort(f.spend)}.`,
+    f.income > 0.5 ? `Income that continues (rent, pension, a spouse's pay…) covers ${inrShort(f.income)}, leaving ${inrShort(f.need)} to take from your savings.` : `Nothing else comes in, so all ${inrShort(f.need)} comes from your savings.`,
+    `Tax on those withdrawals adds an estimated ${inrShort(f.tax)}${f.inflow > 0.5 ? `, and money arriving that year covers ${inrShort(f.inflow)}` : ""}: the first year's withdrawal is ${inrShort(f.withdrawal)}.`,
+    `Every later year is worked out the same way, up to ${i.planUntilAge} (${m.yearsRetired} years). Valued back to ${m.fireAge} at ${pct(m.returnAfter)} a year (the return after FIRE), they add up to ${inrShort(m.required)}: the corpus needed.`,
+    `On the other side: ${inrShort(m.savingsToday)} saved today, plus ${inrShort(m.contributions)} you'll invest over ${m.yearsToFire} years (monthly, rising each year)${Math.abs(m.lumps) > 0.5 ? `, ${m.lumps >= 0 ? "plus" : "less"} ${inrShort(Math.abs(m.lumps))} of lump sums and goals before then` : ""}, plus ${inrShort(m.growth)} of growth at ${pct(m.returnBefore)} a year = ${inrShort(m.projected)} by ${m.fireAge}.`,
+    t.gap >= 0 ? `${inrShort(m.projected)} is more than ${inrShort(m.required)}: a surplus of ${inrShort(t.gap)}.` : `${inrShort(m.projected)} against ${inrShort(m.required)} needed: a shortfall of ${inrShort(-t.gap)}.`,
+  ];
+  return h("details", { class: "math" }, h("summary", {}, "Show me the math"),
+    h("ol", {}, ...steps.map((x) => h("li", {}, x))),
+    h("p", { class: "muted small" }, "All amounts are in future rupees, with steady returns. The chance figures come from the separate market simulation."));
 }
 
 function swpCard(r) {

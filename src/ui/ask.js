@@ -198,7 +198,7 @@ export function askCard(opts) {
   statusEl = engineStatus(ai.current(), opts);
   const el = h("section", { class: "card ask", id: "ask" },
     h("h2", {}, "Ask about your plan"),
-    h("p", { class: "muted small" }, "Answers use the same calculations as this page. What you type stays on this device."),
+    h("p", { class: "muted small" }, "Answers use the same calculations as this page. The optional AI only rewords those facts: it can't calculate or change your numbers, and every number it writes is checked against your plan. What you type stays on this device."),
     statusEl,
     form,
     h("div", { class: "chips starters" }, ...starters.map((q) => h("button", { type: "button", class: "chip", onMousedown: (e) => e.preventDefault(), onClick: () => ask(q, opts) }, q))),

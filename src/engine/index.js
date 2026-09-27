@@ -6,6 +6,7 @@ import { confidence, bandFor } from "./confidence.js";
 import { resolveInputs } from "./resolve.js";
 import { makeParams, analyse, requiredMonthlySip, withdrawalsFrom, withdrawalParts, drawdown, requiredAt } from "./project.js";
 import { chanceByFireYear, levers, SIMULATION_RUNS, simulationMargin } from "./risk.js";
+import { sensitivity, mathTrail } from "./explain.js";
 
 export { fv, pmt, nper, pvDue } from "./finance.js";
 export { evaluate, getPointer, setPointer } from "./conditions.js";
@@ -173,6 +174,9 @@ export function evaluatePlan(user, pack, { today = new Date(), runs = SIMULATION
     overlaps: inp.overlaps,
     chance,
     levers: levers(inp, p, base),
+    // Worked out only when asked for (the results page), not on every answer in the wizard.
+    get sensitivity() { return (this._sens ??= sensitivity(inp, p, base)); },
+    get math() { return (this._math ??= mathTrail(inp, p, base)); },
     balance,
     depletesAtAge: depletedRow ? inp.age + tFire + depletedRow.k : null,
     nudges,
@@ -216,3 +220,4 @@ function swpPlan(inp, p, pack, tFire, year0) {
   };
 }
 export { whatIf, solveFor, WHATIF_KEYS } from "./whatif.js";
+export { sensitivity, mathTrail } from "./explain.js";

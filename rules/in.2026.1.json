@@ -44,8 +44,8 @@
     },
     {
       "name": "confidence",
-      "label": "Answer confidence",
-      "description": "0–100 score from the confidence model."
+      "label": "Estimate quality",
+      "description": "0–100: how complete and exact your answers are (not how likely the plan is to work)."
     },
     {
       "name": "emergencyShortfall",
@@ -1579,7 +1579,7 @@
       "id": "quick",
       "title": "Quick estimate",
       "weight": 0,
-      "intro": "Nine questions, about two minutes. You'll get a first FIRE age with a confidence score; refine any section afterwards.",
+      "intro": "Nine questions, about two minutes. You'll get a first FIRE age with an estimate-quality score; add detail in any section afterwards.",
       "questions": [
         {
           "id": "q.ages",
@@ -2199,6 +2199,14 @@
       "description": "Corpus falls 30% in your first year of retirement. The biggest real-world risk.",
       "changes": {
         "crashAtFire": 0.3
+      }
+    },
+    {
+      "id": "live_longer",
+      "label": "Money must last 5 years longer",
+      "description": "Longevity: you live, and spend, 5 years beyond your plan-until age.",
+      "changes": {
+        "planUntilDelta": 5
       }
     },
     {

@@ -532,3 +532,19 @@ test("property bought before 23 Jul 2024 pays the lower of 12.5% plain and 20% i
   const later = propertyGainsTax({ price: 12000000, cost: 4000000, boughtOn: "2010-05", soldOn: "2035-05" }, P);
   assert.ok(later.tax <= old.tax, "more years of indexation never raise the tax");
 });
+
+test("sensitivity moves the FIRE age the right way, and the math adds up", async () => {
+  const { evaluatePlan } = await import("../src/engine/index.js");
+  const r = evaluatePlan(quickBase, pk(), { today: day, runs: 1000 });
+  const by = Object.fromEntries(r.sensitivity.map((x) => [x.id, x]));
+  assert.ok(by.spending.hi.ageDelta > 0 && by.spending.lo.ageDelta < 0, "more spending: later");
+  assert.ok(by.returns.hi.ageDelta < 0 && by.returns.lo.ageDelta > 0, "higher returns: sooner");
+  assert.ok(by.inflation.hi.ageDelta > 0, "higher inflation: later");
+  assert.ok(by.investing.hi.ageDelta < 0, "investing more: sooner");
+  assert.ok(by.horizon.hi.ageDelta > 0, "money lasting longer: later");
+  assert.ok(Math.abs(by.target.hi.ageDelta) < 0.05 && by.target.hi.requiredDelta > 0, "a later target needs more by then, same earliest age");
+  const m = r.math;
+  assert.ok(Math.abs(m.savingsToday + m.contributions + m.lumps + m.growth - m.projected) < 1, "the projection adds up");
+  assert.ok(Math.abs(m.firstYear.withdrawal - (m.firstYear.need + m.firstYear.tax - m.firstYear.inflow)) < 1, "the first year adds up");
+  assert.ok(Math.abs(m.required - r.target.required) < 1);
+});

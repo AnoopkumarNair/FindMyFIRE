@@ -858,3 +858,14 @@ body::before { inset: -12%; animation: dawn-drift 34s ease-in-out infinite alter
 .provenance summary { cursor: pointer; font-weight: 600; }
 .provenance ul { padding-left: 1.1rem; display: grid; gap: 0.5rem; }
 .provenance .help { display: block; }
+.tornado { list-style: none; padding: 0; margin: 0.6rem 0 0; display: grid; gap: 0.9rem; }
+.tbars { display: grid; grid-template-columns: 1fr 1fr; gap: 2px; margin-top: 0.3rem; }
+.tside { display: flex; flex-direction: column; gap: 0.2rem; min-width: 0; }
+.tside.lo { align-items: flex-end; text-align: right; border-right: 2px solid var(--axis); padding-right: 4px; }
+.tside.hi { align-items: flex-start; padding-left: 4px; }
+.tbar { display: block; height: 12px; width: 0; border-radius: 3px; transition: width 1s var(--ease); }
+.tbar.sooner { background: var(--good); }
+.tbar.later { background: var(--critical); }
+.tside small { color: var(--muted); font-size: 0.8rem; }
+.math ol { padding-left: 1.2rem; display: grid; gap: 0.5rem; }
+.math summary { cursor: pointer; font-weight: 600; margin-top: 0.6rem; }

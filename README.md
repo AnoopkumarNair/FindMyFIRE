@@ -6,7 +6,7 @@ A FIRE (financial independence, retire early) planner for India that runs entire
 
 ## What it does
 
-Answer nine quick questions: your ages, take-home pay, spending, EMIs, savings, monthly investments, PF, NPS, and any income that continues after you stop working. You get the earliest age you could stop working, how much money that needs, and the chance it lasts. From there you can fill in as much detail as you like: expenses by category, each investment, goals, loans, property, family, other income and insurance. Each section you complete makes the answer more accurate, and the confidence score shows how much to trust it.
+Answer nine quick questions: your ages, take-home pay, spending, EMIs, savings, monthly investments, PF, NPS, and any income that continues after you stop working. You get the earliest age you could stop working, how much money that needs, and the chance it lasts. From there you can fill in as much detail as you like: expenses by category, each investment, goals, loans, property, family, other income and insurance. Each section you complete makes the answer more accurate, and the estimate-quality score shows how complete your answers are.
 
 A few things it handles that simpler calculators don't:
 
@@ -97,7 +97,7 @@ All amounts are in nominal rupees, projected one year at a time.
 
 ## Roadmap
 
-- Done: quick pass and live result; detailed sections with a confidence score; nudges; save, open and encrypt; check-ins; tax on withdrawals; income after FIRE; on-device assistant.
+- Done: quick pass and live result; detailed sections with an estimate-quality score; nudges; save, open and encrypt; check-ins; tax on withdrawals; income after FIRE; on-device assistant.
 - Next: property price data by location, a check-in history chart, offline use (PWA), asset-allocation drift.
 
 ## Disclaimer
