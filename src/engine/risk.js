@@ -4,7 +4,7 @@
 // average can end very differently if the bad years come early in retirement. This simulates
 // many possible market histories and counts how often the money lasts.
 
-import { preFireFlows, contributionGrowth, withdrawalsFrom, analyse, requiredMonthlySip } from "./project.js";
+import { preFireFlows, withdrawalsFrom, analyse, requiredMonthlySip } from "./project.js";
 
 // Small seeded generator so the same plan always shows the same percentage.
 function mulberry32(seed) {
@@ -25,6 +25,26 @@ function normals(count, seed) {
   return out;
 }
 
+// The market histories are the same for every recalculation with the same settings (they're
+// seeded), so their growth factors are made once and kept: the last few settings are cached.
+const shockCache = new Map();
+function shocks(runs, horizon, seed, volPre, volPost) {
+  const key = `${runs}|${horizon}|${seed}|${volPre}|${volPost}`;
+  let s = shockCache.get(key);
+  if (!s) {
+    const z = normals(runs * horizon, seed), n = z.length;
+    s = { pre: new Float64Array(n), pre12: new Float64Array(n), post: new Float64Array(n) };
+    for (let i = 0; i < n; i++) {
+      s.pre[i] = Math.exp(volPre * z[i]);
+      s.pre12[i] = Math.exp((volPre * z[i]) / 12); // the same shock spread over 12 months
+      s.post[i] = Math.exp(volPost * z[i]);
+    }
+    shockCache.set(key, s);
+    if (shockCache.size > 3) shockCache.delete(shockCache.keys().next().value);
+  }
+  return s;
+}
+
 /**
  * Share of simulated market histories in which the money lasts until plan-until age, for each
  * whole-year FIRE point t = 0..maxT. Yearly growth is (1 + expected return) × e^(σ·z): the
@@ -40,11 +60,14 @@ export const simulationMargin = (p, runs = SIMULATION_RUNS) => 1.96 * Math.sqrt(
 export function chanceByFireYear(inp, p, { runs = SIMULATION_RUNS, seed = 20260925 } = {}) {
   const horizon = Math.max(1, Math.floor(p.planUntilAge - p.age) + 1);
   const maxT = horizon - 1;
-  const z = normals(runs * horizon, seed);
   const { lumps, contributions } = preFireFlows(inp, p, maxT);
   const volPre = inp.assumptions["risk.volatilityBeforeFire"] ?? 0.13;
   const volPost = inp.assumptions["risk.volatilityAfterFire"] ?? 0.09;
-  const withdrawals = Array.from({ length: maxT + 1 }, (_, t) => withdrawalsFrom(inp, p, {}, t));
+  const S = shocks(runs, horizon, seed, volPre, volPost);
+  const monthly = p.contributionTiming !== "yearStart", a = (1 + p.rPre) ** (1 / 12);
+  // Withdrawals by year from today; stopping at t draws years t, t+1, … to the plan-until age.
+  const ws = withdrawalsFrom(inp, p, {}, 0);
+  const need = new Float64Array(ws.length + 1);
   const ok = new Array(maxT + 1).fill(0);
   const pre = new Float64Array(maxT + 1);
   for (let r = 0; r < runs; r++) {
@@ -53,20 +76,21 @@ export function chanceByFireYear(inp, p, { runs = SIMULATION_RUNS, seed = 202609
     let c = p.corpus;
     pre[0] = c;
     for (let y = 0; y < maxT; y++) {
-      const g = (1 + p.rPre) * Math.exp(volPre * z[zr + y]);
-      c = (c + lumps[y]) * g + contributions[y] * contributionGrowth(g - 1, p.contributionTiming);
+      const g = (1 + p.rPre) * S.pre[zr + y];
+      // contributionGrowth(g − 1) without the powers: the month's growth is a × the shock's 12th root.
+      let k = g;
+      if (monthly) { const m1 = a * S.pre12[zr + y], m = m1 - 1; k = Math.abs(m) < 1e-12 ? 1 : (m1 * (g - 1)) / (12 * m); }
+      c = (c + lumps[y]) * g + contributions[y] * k;
       pre[y + 1] = c;
     }
-    for (let t = 0; t <= maxT; t++) {
-      const ws = withdrawals[t];
-      let d = pre[t], lasted = true;
-      for (let k = 0; k < ws.length; k++) {
-        d -= ws[k];
-        if (d < 0) { lasted = false; break; }
-        d *= (1 + p.rPost) * Math.exp(volPost * z[zr + t + k]);
-      }
-      if (lasted) ok[t]++;
-    }
+    // In this history, the least money that lasts from year T on (taking each year's withdrawal,
+    // never going below zero, then growing): need(T) = w(T) + max(0, need(T+1)) / growth(T).
+    // Stopping at t works exactly when the savings at t reach need(t): one backward pass instead
+    // of a separate drawdown for every stopping age.
+    need[ws.length] = 0;
+    for (let T = ws.length - 1; T >= 0; T--)
+      need[T] = ws[T] + Math.max(0, need[T + 1]) / ((1 + p.rPost) * S.post[zr + T]);
+    for (let t = 0; t <= maxT; t++) if (pre[t] >= need[t]) ok[t]++;
   }
   const out = [];
   for (let t = 0; t <= maxT; t++) out.push({ t, age: p.age + t, chance: ok[t] / runs });

@@ -9,7 +9,6 @@
 //               the sheet's retirement schedule. The corpus needed at FIRE is the present value
 //               of every withdrawal until `plan.untilAge` (money lasts through that year).
 
-import { pvDue } from "./finance.js";
 import { grossUp } from "./tax.js";
 import { premiumAt } from "./resolve.js";
 
@@ -142,27 +141,49 @@ export function withdrawalAt(inp, p, tier, T) {
   return withdrawalParts(inp, p, tier, T).withdrawal;
 }
 
+// A retired year's withdrawal depends only on the year, not on when you stopped working, so the
+// whole schedule is worked out once per set of assumptions (params object) and reused.
+const scheduleCache = new WeakMap();
+
+/** Withdrawals for every year T = 0 .. (plan-until age − today's age), for these inputs and params. */
+export function withdrawalSchedule(inp, p, tier = {}) {
+  let byInp = scheduleCache.get(p);
+  if (!byInp) scheduleCache.set(p, (byInp = new WeakMap()));
+  let byTier = byInp.get(inp);
+  if (!byTier) byInp.set(inp, (byTier = new Map()));
+  const key = JSON.stringify(tier);
+  let s = byTier.get(key);
+  if (!s) {
+    const last = Math.floor(p.planUntilAge - p.age);
+    s = [];
+    for (let T = 0; T <= last; T++) s.push(withdrawalAt(inp, p, tier, T));
+    byTier.set(key, s);
+  }
+  return s;
+}
+
 export function withdrawalsFrom(inp, p, tier, t) {
-  const years = Math.floor(p.planUntilAge - (p.age + t)) + 1;
-  const out = [];
-  for (let k = 0; k < years; k++) out.push(withdrawalAt(inp, p, tier, t + k));
-  return out;
+  return withdrawalSchedule(inp, p, tier).slice(t);
 }
 
 /**
- * Smallest corpus at the start of year t that pays every withdrawal until plan-until age.
+ * Smallest corpus at the start of each year t that pays every withdrawal until plan-until age.
  * Without inflows this is the present value of the withdrawals. With a late inflow the early
- * years must still be covered on their own, so it is the largest running present value.
+ * years must still be covered on their own, so it is the largest running present value. Worked
+ * backwards in one pass: best(t) = w(t) + max(0, best(t+1)) / (1 + r).
  */
-export function requiredAt(inp, p, tier, t) {
-  const ws = withdrawalsFrom(inp, p, tier, t);
-  if (ws.every((w) => w >= 0)) return pvDue(ws, p.rPost);
-  let run = 0, need = 0;
-  for (let k = 0; k < ws.length; k++) {
-    run += ws[k] / (1 + p.rPost) ** k;
-    need = Math.max(need, run);
+export function requiredAll(inp, p, tier = {}) {
+  const ws = withdrawalSchedule(inp, p, tier), out = new Array(ws.length);
+  let best = 0;
+  for (let t = ws.length - 1; t >= 0; t--) {
+    best = ws[t] + Math.max(0, best) / (1 + p.rPost);
+    out[t] = Math.max(0, best);
   }
-  return need;
+  return out;
+}
+
+export function requiredAt(inp, p, tier, t) {
+  return requiredAll(inp, p, tier)[t] ?? 0;
 }
 
 const lerp = (arr, x) => {
@@ -177,7 +198,8 @@ const lerp = (arr, x) => {
 export function analyse(inp, p, tier = {}) {
   const maxT = Math.max(0, Math.floor(p.planUntilAge - p.age) - 1);
   const path = accumulate(inp, p, maxT, tier);
-  const req = path.map((_, t) => requiredAt(inp, p, tier, t));
+  const all = requiredAll(inp, p, tier);
+  const req = path.map((_, t) => all[t] ?? 0);
   // Scenario: a crash in the first year of retirement hits whatever corpus you retire with.
   const hit = (x) => x * (1 - (p.fireCrash || 0));
   let earliestT = null;
