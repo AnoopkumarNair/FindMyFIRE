@@ -62,7 +62,7 @@ export async function drawCard(canvas, r, { showTarget, showAmounts }) {
 
   x.font = `600 40px ${body}`; x.fillStyle = "rgba(255,255,255,0.92)";
   const lines = [];
-  if (r.chance?.likelyAge != null) lines.push(`3 in 4 chance by ${Math.round(r.chance.likelyAge)} · 9 in 10 by ${r.chance.confidentAge == null ? "—" : Math.round(r.chance.confidentAge)}`);
+  if (r.chance?.likelyAge != null) lines.push(`75% of simulated paths last by ${Math.round(r.chance.likelyAge)} · 90% by ${r.chance.confidentAge == null ? "—" : Math.round(r.chance.confidentAge)}`);
   if (showTarget) lines.push(r.target.gap >= 0 ? `On track for my target of ${r.target.age}` : `Working towards ${r.target.age}`);
   if (showAmounts) lines.push(`Corpus needed: ${inrShort(r.target.required)} · on track for ${inrShort(r.target.projected)}`);
   lines.forEach((t, i) => x.fillText(t, 90, 720 + i * 62));

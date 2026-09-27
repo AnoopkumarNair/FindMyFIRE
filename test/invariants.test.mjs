@@ -125,7 +125,7 @@ test("every added income or lump sum lowers (or keeps) the corpus needed", () =>
 
 test("stress scenarios never make things better", () => {
   for (let i = 0; i < 25; i++) {
-    const r = evaluatePlan(household(i), pack, { today });
+    const r = evaluatePlan(household(i), pack, { today, runs: 1000 });
     const s = Object.fromEntries(r.scenarios.map((x) => [x.id, x.earliestAge ?? Infinity]));
     for (const k of ["high_inflation", "low_returns", "crash_today", "crash_at_fire"]) assert.ok(s[k] >= s.base - 1e-9, `${k} on household #${i}`);
   }
@@ -179,7 +179,7 @@ test("with lump sums, the corpus needed still never runs short", () => each((u) 
 
 test("results are finite and within range; the breakdown adds up", () => {
   for (let i = 0; i < 30; i++) {
-    const u = household(i), r = evaluatePlan(u, pack, { today });
+    const u = household(i), r = evaluatePlan(u, pack, { today, runs: 1000 });
     const vals = [r.target.required, r.target.projected, r.breakdown.net, r.chance.atTarget, r.confidence.score];
     assert.ok(vals.every(Number.isFinite), `non-finite on #${i}`);
     assert.ok(r.earliestAge == null || (r.earliestAge >= r.inputs.age - 1e-9 && r.earliestAge <= r.inputs.planUntilAge), `age out of range on #${i}`);

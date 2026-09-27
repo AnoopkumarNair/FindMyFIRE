@@ -123,8 +123,8 @@ function answerBlock(entry, opts) {
         h("thead", {}, h("tr", {}, h("th", {}, ""), h("th", { scope: "col" }, "Now"), h("th", { scope: "col" }, "With the change"))),
         h("tbody", {},
           row("Earliest FIRE age", u(B.earliestAge), u(A.earliestAge)),
-          row(`Chance it lasts, stopping at ${A.targetAge}`, `${Math.round(B.chance * 100)}%`, `${Math.round(A.chance * 100)}%`),
-          row("Age for a 9 in 10 chance", u(B.confidentAge), u(A.confidentAge))))),
+          row(`Simulated paths that last, stopping at ${A.targetAge}`, `${Math.round(B.chance * 100)}%`, `${Math.round(A.chance * 100)}%`),
+          row("Age where 90% of paths last", u(B.confidentAge), u(A.confidentAge))))),
       can ? h("button", { type: "button", class: "btn small primary", onClick: (e) => { e.target.disabled = true; opts.apply(c.changes); } }, "Apply this to my plan")
         : h("p", { class: "muted small" }, "To keep this, change it in your plan's sections."));
   }

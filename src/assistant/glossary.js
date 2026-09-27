@@ -44,7 +44,7 @@ export const GLOSSARY = {
   },
   monte_carlo: {
     names: ["monte carlo", "simulation", "simulated", "market histories"],
-    text: "The chance figures come from running your plan through 1,000 made-up market histories, with good and bad years in random order, and counting how often the money lasts. A bad run just after you stop working hurts most.",
+    text: "The chance figures come from running your plan through 10,000 simulated market histories, with good and bad years in random order, and counting how often the money lasts. They rest on the plan's assumed returns and ups and downs, so they're a guide, not a guarantee. A bad run just after you stop working hurts most.",
   },
   sequence_risk: {
     names: ["sequence risk", "sequence of returns", "bad years early"],

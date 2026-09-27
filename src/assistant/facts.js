@@ -60,13 +60,14 @@ function whyAge(ctx) {
 function chance(ctx) {
   const r = ctx.result, c = r.chance, t = r.target;
   const facts = [
-    `If you stop at ${t.age}, the money lasts to ${r.inputs.planUntilAge} in ${Math.round(c.atTarget * 100)}% of 1,000 simulated market histories.`,
-    c.likelyAge != null ? `Stopping at ${age1(c.likelyAge)} or later gives a 3 in 4 chance the money lasts.` : `No stopping age before ${r.inputs.planUntilAge} gives a 3 in 4 chance the money lasts.`,
-    c.confidentAge != null ? `Stopping at ${age1(c.confidentAge)} or later gives a 9 in 10 chance the money lasts (a safe plan).` : `No stopping age before ${r.inputs.planUntilAge} gives a 9 in 10 chance the money lasts.`,
+    `If you stop at ${t.age}, the money lasts to ${r.inputs.planUntilAge} in ${Math.round(c.atTarget * 100)}% of ${c.runs.toLocaleString("en-IN")} simulated market histories.`,
+    c.likelyAge != null ? `Stopping at ${age1(c.likelyAge)} or later, the money lasts in 75% of the simulated histories.` : `No stopping age before ${r.inputs.planUntilAge} lets the money last in 75% of the simulated histories.`,
+    c.confidentAge != null ? `Stopping at ${age1(c.confidentAge)} or later, it lasts in 90% of them: the safe planning age.` : `No stopping age before ${r.inputs.planUntilAge} lets the money last in 90% of the simulated histories.`,
+    "The simulations use the plan's assumed returns and ups and downs, so they show how sensitive the plan is, not a guarantee.",
     `With steady markets the earliest age is ${ageText(r.earliestAge, r.inputs.planUntilAge)}; that is roughly a 50/50 point because real markets have good and bad years.`,
     GLOSSARY.sequence_risk.text,
   ];
-  return { title: "How likely it is", facts, followUps: ["What would get me to a 9 in 10 chance?", "Why this age?", "What is sequence risk?"] };
+  return { title: "How likely it is", facts, followUps: ["What would it take for 90% of paths to last?", "Why this age?", "What is sequence risk?"] };
 }
 
 function corpus(ctx) {
@@ -99,7 +100,7 @@ function withdraw(ctx) {
 function summary(ctx) {
   const r = ctx.result, t = r.target;
   const facts = [
-    r.earliestAge == null ? `With today's numbers FIRE isn't reached before ${r.inputs.planUntilAge}.` : `Earliest FIRE age: ${age1(r.earliestAge)} with steady markets; stopping at ${age1(r.chance.confidentAge)} gives a 9 in 10 chance the money lasts.`,
+    r.earliestAge == null ? `With today's numbers FIRE isn't reached before ${r.inputs.planUntilAge}.` : `Earliest FIRE age: ${age1(r.earliestAge)} with steady returns; the safe planning age, where 90% of simulated market histories last, is ${age1(r.chance.confidentAge)}.`,
     `Target ${t.age}: ${pct(t.funded, 0)} funded (${inrShort(t.projected)} of ${inrShort(t.required)} needed).`,
     `Chance the money lasts if you stop at ${t.age}: ${Math.round(r.chance.atTarget * 100)}%.`,
     `Confidence in the inputs: ${r.confidence.score} out of 100 (${r.confidence.band.label}).`,
@@ -154,7 +155,7 @@ function whatIfTool(ctx, slots) {
     `At ${A.targetAge}: ${inrShort(A.projected)} projected against ${inrShort(A.required)} needed (was ${inrShort(B.projected)} against ${inrShort(B.required)}).`,
   ];
   if ((A.confidentAge != null || B.confidentAge != null) && A.confidentAge !== B.confidentAge)
-    facts.push(`Stopping age for a 9 in 10 chance the money lasts: ${ageText(A.confidentAge, until)} instead of ${ageText(B.confidentAge, until)}.`);
+    facts.push(`Safe planning age (90% of simulated histories last): ${ageText(A.confidentAge, until)} instead of ${ageText(B.confidentAge, until)}.`);
   if (B.earliestAge != null && A.earliestAge != null) {
     const d = round1(B.earliestAge - A.earliestAge);
     if (Math.abs(d) >= 0.1) facts.push(`That's about ${Math.abs(d)} years ${d > 0 ? "sooner" : "later"}.`);

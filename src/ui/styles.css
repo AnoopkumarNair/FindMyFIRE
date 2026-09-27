@@ -351,6 +351,8 @@ select.source { font-size: 0.85rem; min-height: 34px; padding: 0.3rem; }
 .chance p { margin: 0 0 0.5rem; }
 .pills { display: flex; flex-wrap: wrap; gap: 0.5rem; }
 .pill { display: inline-flex; align-items: baseline; gap: 0.45rem; padding: 0.4rem 0.9rem; border-radius: 999px; border: 1px solid var(--border); background: var(--surface); font-size: 0.9rem; color: var(--ink-2); }
+.pill .badge { font-style: normal; font-size: 0.72rem; }
+.pill.safe { flex-wrap: wrap; }
 .pill strong { font-family: var(--font-display); font-size: 1.2rem; color: var(--ink); }
 .pill.mid { border-color: color-mix(in srgb, var(--sun) 60%, transparent); background: var(--sun-soft); }
 .pill.safe { border-color: color-mix(in srgb, var(--good) 50%, transparent); background: var(--good-bg); }

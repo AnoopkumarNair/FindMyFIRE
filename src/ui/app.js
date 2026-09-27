@@ -165,7 +165,7 @@ function welcomeView() {
         h("h2", {}, "How it works"),
         h("ol", { class: "steps" },
           step("1", "Enter the basics", "Age, pay, spending, savings. Round numbers are fine."),
-          step("2", "See your FIRE age", "And how sure it is, tested against 1,000 market futures."),
+          step("2", "See your FIRE age", "And how sure it is, tested against 10,000 simulated market histories."),
           step("3", "Get your plan", "What to invest now, how to build a cash cushion, what to withdraw later."))),
       h("div", {},
         h("h2", {}, "What it counts that others leave out"),
@@ -257,7 +257,7 @@ function heroDemo() {
       h("div", { class: "demo-chips" },
         h("span", { class: "chip-pop c1" }, h("b", {}, "53"), " could stop working"),
         h("span", { class: "chip-pop c2" }, h("b", {}, "₹4.9 Cr"), " needed by then"),
-        h("span", { class: "chip-pop c3" }, h("b", {}, "9 in 10"), " chance by 61"))));
+        h("span", { class: "chip-pop c3" }, h("b", {}, "90%"), " of market paths last by 61"))));
 }
 
 /** Small line icons for the header (drawn with SVG, no icon font). */
@@ -467,8 +467,8 @@ function resultsView() {
       : "Money coming in covers the first year's spending"),
     kpi(`Projected at ${t.age}`, inrShort(t.projected), `From ${inrShort(r.inputs.fireCorpus)} today, plus ${inr(r.inputs.monthlySip)}/month you invest${r.inputs.epfMonthly ? ` and ${inr(r.inputs.epfMonthly)} into PF` : ""}`),
     kpi(t.gap >= 0 ? "Surplus at target" : "Shortfall at target", inrShort(Math.abs(t.gap)), t.gap >= 0 ? "Ahead of plan" : "Gap to close", t.gap >= 0 ? "good" : "warn"),
-    kpi(`Chance it lasts to ${r.inputs.planUntilAge}`, `${Math.round(r.chance.atTarget * 100)}%`,
-      `If you stop at ${t.age}, across 1,000 simulated market histories.`, r.chance.atTarget >= 0.75 ? "good" : "warn"));
+    kpi(`Paths that last to ${r.inputs.planUntilAge}`, `${Math.round(r.chance.atTarget * 100)}%`,
+      `Of ${r.chance.runs.toLocaleString("en-IN")} simulated market histories, if you stop at ${t.age} (±${Math.max(1, Math.round(r.chance.margin * 100))} pt).`, r.chance.atTarget >= 0.75 ? "good" : "warn"));
 
   return h("div", { class: "results" },
     hero, kpis,
@@ -536,16 +536,21 @@ const askOptions = {
   },
 };
 
-/** Steady-market age vs. what 1,000 simulated market histories say. */
+/**
+ * How sure the headline age is. The steady-returns age is roughly a coin flip; the simulated
+ * ages show what it takes for most market histories to last. One of them is named the planning age.
+ */
 function chanceStrip(r) {
-  const c = r.chance;
-  const pill = (label, age, cls) => h("span", { class: ["pill", cls] }, h("strong", {}, age == null ? "—" : age1(age)), label);
+  const c = r.chance, until = r.inputs.planUntilAge;
+  const pill = (label, age, cls, badge) => h("span", { class: ["pill", cls] }, badge ? h("em", { class: "badge" }, badge) : null,
+    h("strong", {}, age == null ? `after ${until}` : age1(age)), label);
   return h("div", { class: "chance" },
-    h("p", { class: "muted small" }, "Markets don't return the same every year, and a bad run early in retirement hurts most. Across 1,000 simulated market histories:"),
+    h("p", { class: "muted small" }, `How sure is that? Markets don't return the same every year, and a bad run early in retirement hurts most. Stopping at each age, how many of ${c.runs.toLocaleString("en-IN")} simulated market histories last to ${until}:`),
     h("div", { class: "pills" },
-      pill("about 50/50 (steady markets)", r.earliestAge),
-      pill("3 in 4 chance the money lasts", c.likelyAge, "mid"),
-      pill("9 in 10 chance: a safe plan", c.confidentAge, "safe")));
+      pill("steady returns: about half of the simulated paths last", r.earliestAge),
+      pill("75% of simulated paths last", c.likelyAge, "mid"),
+      pill("90% of simulated paths last", c.confidentAge, "safe", "Safe planning age")),
+    h("p", { class: "muted tiny" }, "Simulations use the assumed returns and ups and downs under Assumptions: they show how sensitive the plan is, not a guarantee."));
 }
 
 function leversCard(r) {
@@ -554,7 +559,7 @@ function leversCard(r) {
   if (L.onTrack) {
     return card("You have room",
       h("ul", { class: "levers" },
-        h("li", {}, h("strong", {}, `Stop at ${age1(L.retireAt)}`), ` instead of ${t.age} (steady markets; 9 in 10 chance by ${age1(r.chance.confidentAge)}).`),
+        h("li", {}, h("strong", {}, `Stop at ${age1(L.retireAt)}`), ` instead of ${t.age} (steady returns; ${age1(r.chance.confidentAge)} for 90% of simulated paths to last).`),
         L.spendAfterFire && h("li", {}, h("strong", {}, `Spend up to ${inr(L.spendAfterFire.to)} a month`), ` after FIRE (today's money) instead of ${inr(L.spendAfterFire.from)}.`)));
   }
   const items = [
@@ -562,7 +567,7 @@ function leversCard(r) {
       ` from your pay (${inr(now + L.investMore)} in total, not counting PF), increasing ${pct(r.params.stepUp, 0)} each year.`),
     L.spendAfterFire && h("li", {}, h("strong", {}, `Plan to live on ${inr(L.spendAfterFire.to)} a month`),
       ` after FIRE (today's money) instead of ${inr(L.spendAfterFire.from)}. A cheaper city, or no rent or EMIs by then, can do this.`),
-    L.retireAt != null && h("li", {}, h("strong", {}, `Stop at ${age1(L.retireAt)}`), ` instead of ${t.age}. For a 9 in 10 chance, ${age1(r.chance.confidentAge)}.`),
+    L.retireAt != null && h("li", {}, h("strong", {}, `Stop at ${age1(L.retireAt)}`), ` instead of ${t.age} (steady returns). For 90% of simulated paths to last: ${age1(r.chance.confidentAge)}.`),
     !(r.inputs.properties || []).length && h("li", {}, h("strong", {}, "Count your property. "), "Selling or renting out a second home can close much of the gap: ",
       h("a", { href: "#/refine/property" }, "add it under Property"), "."),
   ].filter(Boolean);
@@ -646,7 +651,7 @@ function actionPlanCard(r) {
   const reachable = t.gap < 0 && t.requiredMonthlySip != null && t.requiredMonthlySip <= 1.5 * now;
   step("This year", reachable ? `Invest ${inr(t.requiredMonthlySip)} a month from your pay` : `Keep investing ${inr(now)} a month from your pay`,
     reachable ? `That's what reaching ${fireAge} takes (you invest ${inr(now)} now${pfNote}). `
-      : t.gap < 0 ? `With your PF${pf ? ` (${inr(pf)} a month)` : ""}, this gets you to about ${age1(r.earliestAge)} (3 in 4 chance by ${age1(r.chance.likelyAge)}). To get closer to ${fireAge}, combine the options above. `
+      : t.gap < 0 ? `With your PF${pf ? ` (${inr(pf)} a month)` : ""}, this gets you to about ${age1(r.earliestAge)} with steady returns (${age1(r.chance.likelyAge)} for 75% of simulated paths to last). To get closer to ${fireAge}, combine the options above. `
       : `You're on track${pfNote}. `,
     `Raise it ${pct(r.params.stepUp, 0)} every year, e.g. with each raise. Until ${prep}, keep about ${S.pack.assetClasses.map((a) => `${Math.round(a.targetBeforeFire * 100)}% ${a.label.toLowerCase()}`).filter((x) => !x.startsWith("0%")).join(", ")}.`);
   const efTarget = A["emergency.months"] * (r.derived.monthlyExpenses + r.derived.monthlyEmi);
@@ -768,6 +773,7 @@ function swpCard(r) {
         eqWarn ? h("small", { class: "warn-text" }, "⚠ That's a lot to expect from equity. Consider lowering the post-FIRE return in Assumptions.") : null)),
     h("p", { class: "small" }, h("strong", {}, "Each year: "),
       "move one year of withdrawals from debt to cash, and top up debt from equity. After a bad year for markets, skip the equity sale and let debt carry you; that's what the 8 years of cash and debt are for."),
+    h("p", { class: "muted small" }, "The buckets show how to hold and draw the money. The chance figures come from simulating the whole corpus with one blended return and its ups and downs, not each bucket separately, so treat the buckets as a way to act on the plan rather than part of the simulation."),
     h("p", { class: "small" }, h("strong", {}, "Included in the SWP: "),
       `an estimated ${inr(w.firstTax)} tax in the first year (${pct(w.firstTaxRate)} of withdrawals: interest and debt-fund gains at slab rates, equity gains at 12.5% above ₹1.25 lakh, assuming ${pct(r.inputs.assumptions["tax.equityGainShare"] ?? 0.5, 0)} of equity withdrawals is gain), and `,
       `${inr(w.firstHealthPremium)} for a family health policy once employer cover stops`,

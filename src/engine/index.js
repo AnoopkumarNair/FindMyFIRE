@@ -5,7 +5,7 @@ import { evaluate } from "./conditions.js";
 import { confidence, bandFor } from "./confidence.js";
 import { resolveInputs } from "./resolve.js";
 import { makeParams, analyse, requiredMonthlySip, withdrawalsFrom, withdrawalParts, drawdown, requiredAt } from "./project.js";
-import { chanceByFireYear, levers } from "./risk.js";
+import { chanceByFireYear, levers, SIMULATION_RUNS, simulationMargin } from "./risk.js";
 
 export { fv, pmt, nper, pvDue } from "./finance.js";
 export { evaluate, getPointer, setPointer } from "./conditions.js";
@@ -13,7 +13,7 @@ export { resolveInputs, assumptionValues, ageAt } from "./resolve.js";
 export { snapshotOf, withSnapshot, progress } from "./checkin.js";
 export { makeParams, accumulate, analyse, drawdown, withdrawalsFrom, withdrawalParts, requiredAt } from "./project.js";
 export { slabTax, yearTax } from "./tax.js";
-export { chanceByFireYear, levers } from "./risk.js";
+export { chanceByFireYear, levers, SIMULATION_RUNS, simulationMargin } from "./risk.js";
 
 function tierSpec(tier, inp) {
   const A = inp.assumptions;
@@ -33,7 +33,7 @@ function tierSpec(tier, inp) {
   }
 }
 
-export function evaluatePlan(user, pack, { today = new Date() } = {}) {
+export function evaluatePlan(user, pack, { today = new Date(), runs = SIMULATION_RUNS } = {}) {
   const inp = resolveInputs(user, pack, today);
   const p = makeParams(inp);
   const base = analyse(inp, p);
@@ -121,10 +121,13 @@ export function evaluatePlan(user, pack, { today = new Date() } = {}) {
   const swp = swpPlan(inp, p, pack, tFire, year0);
 
   // ---- market ups and downs: how often the money lasts, by FIRE age ----
-  const chances = chanceByFireYear(inp, p);
+  const chances = chanceByFireYear(inp, p, { runs });
   const at = (t) => chances[Math.min(Math.max(0, t), chances.length - 1)];
   const firstWith = (x) => chances.find((c) => c.chance >= x) || null;
   const chance = {
+    runs,
+    // Sampling noise only: the model's own assumptions (returns, volatility) matter far more.
+    margin: simulationMargin(at(tFire).chance, runs),
     atTarget: at(tFire).chance,
     confidentAge: firstWith(0.9)?.age ?? null,
     likelyAge: firstWith(0.75)?.age ?? null,

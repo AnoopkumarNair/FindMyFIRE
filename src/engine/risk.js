@@ -31,7 +31,13 @@ function normals(count, seed) {
  * assumed returns are the median outcome, and the same market history is reused for every
  * FIRE age so the answers are comparable.
  */
-export function chanceByFireYear(inp, p, { runs = 1000, seed = 20260925 } = {}) {
+/** Simulated market histories per plan. At 10,000 a result's sampling error is under ±1 point. */
+export const SIMULATION_RUNS = 10000;
+
+/** The ± range (95%) around a simulated share `p` from `runs` histories: sampling noise only. */
+export const simulationMargin = (p, runs = SIMULATION_RUNS) => 1.96 * Math.sqrt((p * (1 - p)) / runs);
+
+export function chanceByFireYear(inp, p, { runs = SIMULATION_RUNS, seed = 20260925 } = {}) {
   const horizon = Math.max(1, Math.floor(p.planUntilAge - p.age) + 1);
   const maxT = horizon - 1;
   const z = normals(runs * horizon, seed);
