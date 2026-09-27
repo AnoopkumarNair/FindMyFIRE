@@ -109,8 +109,21 @@ To refresh it when RBI publishes a new quarter (about two months after each quar
 
 ## Roadmap
 
-- Done: quick pass and live result; detailed sections with an estimate-quality score; nudges; save, open and encrypt; check-ins; tax on withdrawals; income after FIRE; on-device assistant.
-- Next: property price data by location, a check-in history chart, offline use (PWA), asset-allocation drift.
+**Done:** quick pass and live result; detailed sections with an estimate-quality score; nudges; save, open and encrypt; check-ins with changes since the last one; tax on withdrawals (FY2026-27, with marginal relief); income after FIRE; NPS exit choices under the December 2025 PFRDA rules; PPF and NPS kept apart until they unlock; property capital gains with indexation for pre-July-2024 purchases; 10,000-path market simulation with a safe planning age; sensitivity and "show me the math"; a Sources page; the RBI All-India house price trend; the on-device assistant.
+
+**Next steps**, roughly in order, with the thinking behind each:
+
+1. **Simulate the cash, debt and equity buckets separately.** Today the simulation uses one blended return and volatility for the whole corpus, while the withdrawal plan explains itself in three buckets (and says the buckets aren't simulated). Simulating each bucket, with its own returns and the yearly refill rule ("don't sell equity after a bad year"), would show sequence risk more realistically. It needs sourced return and volatility assumptions per asset class and how they move together, and it can't use the current one-pass speed-up, so it's a larger job. Expected effect: the chance figures move a few points, not the headline answer.
+2. **"Run down by 90" or "leave something behind".** The corpus is sized to run out at the plan-until age, and the app now says so and shows roughly what never running out would take. A choice to leave a set amount (for children, or as a longevity buffer) would make that explicit in the number itself.
+3. **City and state property trends.** The Property section shows RBI's All-India house price trend. City and state figures switch on automatically once RBI's own city table is imported with `scripts/import-hpi.py --with-cities`; a longer history (RBI's older 2010-11 base series) would allow 10-year rates instead of about 3.5 years. Figures that can't be checked against RBI's release aren't used.
+4. **Historical stress tests.** Replay Indian market and inflation history (for example 2008 or the early 2000s) instead of only random paths. Needs verified long-run series for Indian equity, debt and inflation.
+5. **Tax on actual gains.** Withdrawal tax assumes a share of each equity withdrawal is gain (an assumption you can change). Optional cost basis per holding would make it exact for people with very old or very new investments.
+6. **Work-optional scenarios as first-class plans.** Coast FIRE, part-time (barista) FIRE, career breaks and traditional retirement side by side; the engine already supports most of the parts.
+7. **Check-in trend chart.** A chart of savings, money needed, FIRE age and chance across check-ins, marking where answers changed rather than money.
+8. **Offline use (PWA)** and asset-allocation drift against the suggested mix.
+9. **Feedback and support.** A "Report a problem" email link with app and rules version (no plan numbers unless the person ticks a box), and a quiet UPI support link with the payee name shown for checking.
+
+**Kept deliberately simple:** one steady-return headline age with simulated ages beside it (rather than a single "probability"); whole-year headline ages; rules as data, refreshed and dated each Budget.
 
 ## Disclaimer
 
