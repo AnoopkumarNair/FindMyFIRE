@@ -114,6 +114,7 @@ function sourcesView() {
   const cite = (label, o) => (o?.sourceIds || []).forEach((id) => (uses[id] ||= []).push(label));
   cite("Income tax", P.incomeTax);
   cite("Property capital gains", P.property);
+  for (const t of P.taxTreatments) cite(`Tax on ${(t.label || t.id).toLowerCase()}`, t);
   for (const i of P.instruments) cite(i.label, i);
   for (const a of P.assumptions) cite(a.label, a);
   return h("section", { class: "sources-page" },

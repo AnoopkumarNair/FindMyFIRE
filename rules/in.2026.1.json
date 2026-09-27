@@ -267,8 +267,13 @@
       "annualExemption": 125000,
       "slabTaxed": false,
       "taxFree": false,
-      "asOf": "FY2025-26 rules (post Union Budget July 2024)",
-      "verify": true
+      "asOf": "FY2026-27; capital-gains framework from Budget 2024, unchanged in Budget 2026",
+      "verify": true,
+      "verifiedOn": "2026-09-27",
+      "sourceIds": [
+        "cbdt-cg-faq",
+        "pib-budget-2026"
+      ]
     },
     {
       "id": "debt_fund_new",
@@ -280,8 +285,12 @@
       "annualExemption": null,
       "slabTaxed": true,
       "taxFree": false,
-      "asOf": "FY2025-26 rules (post Union Budget July 2024)",
-      "verify": true
+      "asOf": "FY2026-27; slab-rate treatment since April 2023, unchanged in Budget 2026",
+      "verify": true,
+      "verifiedOn": "2026-09-27",
+      "sourceIds": [
+        "pib-budget-2026"
+      ]
     },
     {
       "id": "interest_slab",
@@ -289,7 +298,11 @@
       "summary": "Interest taxed at slab rate as it accrues.",
       "slabTaxed": true,
       "taxFree": false,
-      "asOf": "FY2025-26 rules (post Union Budget July 2024)"
+      "asOf": "FY2026-27; unchanged in Budget 2026",
+      "verifiedOn": "2026-09-27",
+      "sourceIds": [
+        "pib-budget-2026"
+      ]
     },
     {
       "id": "gold_etf",
@@ -299,19 +312,29 @@
       "ltcgHoldingMonths": 12,
       "slabTaxed": false,
       "taxFree": false,
-      "asOf": "FY2025-26 rules (post Union Budget July 2024)",
-      "verify": true
+      "asOf": "FY2026-27; capital-gains framework from Budget 2024, unchanged in Budget 2026",
+      "verify": true,
+      "verifiedOn": "2026-09-27",
+      "sourceIds": [
+        "cbdt-cg-faq",
+        "pib-budget-2026"
+      ]
     },
     {
       "id": "sgb",
       "label": "Sovereign Gold Bond",
-      "summary": "Redemption at maturity tax-free; secondary-market sale taxed as LTCG 12.5% after 12 months. 2.5% interest taxed at slab.",
+      "summary": "Redemption at maturity is tax-free only if you bought at the original issue and held to maturity. Bonds bought on the stock exchange, or sold before maturity, pay LTCG at 12.5% after 12 months. The 2.5% interest is taxed at slab rates.",
       "ltcgRate": 0.125,
       "ltcgHoldingMonths": 12,
       "slabTaxed": false,
       "taxFree": false,
-      "asOf": "FY2025-26 rules (post Union Budget July 2024)",
-      "verify": true
+      "asOf": "FY2026-27: Budget 2026 limits tax-free redemption to original subscribers, from 1 Apr 2026",
+      "verify": true,
+      "verifiedOn": "2026-09-27",
+      "sourceIds": [
+        "pib-budget-2026",
+        "budget-speech-2026"
+      ]
     },
     {
       "id": "eee",
@@ -319,7 +342,11 @@
       "summary": "Contribution, growth and withdrawal all tax-free (PPF, SSY).",
       "taxFree": true,
       "slabTaxed": false,
-      "asOf": "FY2025-26 rules (post Union Budget July 2024)"
+      "asOf": "FY2026-27; unchanged in Budget 2026",
+      "verifiedOn": "2026-09-27",
+      "sourceIds": [
+        "pib-budget-2026"
+      ]
     },
     {
       "id": "epf",
@@ -327,17 +354,26 @@
       "summary": "Withdrawal tax-free after 5 years' continuous service. Interest on employee contributions above ₹2.5 lakh/yr is taxable.",
       "taxFree": true,
       "slabTaxed": false,
-      "asOf": "FY2025-26 rules (post Union Budget July 2024)",
-      "verify": true
+      "asOf": "FY2026-27; unchanged in Budget 2026",
+      "verify": true,
+      "verifiedOn": "2026-09-27",
+      "sourceIds": [
+        "pib-budget-2026"
+      ]
     },
     {
       "id": "nps",
       "label": "NPS Tier-1",
-      "summary": "Lump sum at 60 tax-free; mandatory annuity portion; annuity income taxed at slab. Exit and annuity rules have been changing — confirm current PFRDA rules.",
+      "summary": "Locked until exit (60, or later up to 85). Up to 80% can be taken as a lump sum (60% for government employees), but only 60% of the balance is tax-free; the rest of the lump sum is taxed at slab rates. The annuity (pension) is taxed at slab rates.",
       "taxFree": false,
       "slabTaxed": true,
-      "asOf": "FY2025-26 rules (post Union Budget July 2024)",
-      "verify": true
+      "asOf": "FY2026-27; PFRDA exit rules of Dec 2025",
+      "verify": true,
+      "verifiedOn": "2026-09-27",
+      "sourceIds": [
+        "pfrda-exit-2025",
+        "pib-nps-exit"
+      ]
     },
     {
       "id": "reit",
@@ -347,19 +383,29 @@
       "ltcgHoldingMonths": 12,
       "slabTaxed": false,
       "taxFree": false,
-      "asOf": "FY2025-26 rules (post Union Budget July 2024)",
-      "verify": true
+      "asOf": "FY2026-27; capital-gains framework from Budget 2024, unchanged in Budget 2026",
+      "verify": true,
+      "verifiedOn": "2026-09-27",
+      "sourceIds": [
+        "cbdt-cg-faq",
+        "pib-budget-2026"
+      ]
     },
     {
       "id": "property",
       "label": "Investment property",
-      "summary": "LTCG 12.5% without indexation after 24 months; rent taxed at slab after 30% standard deduction.",
+      "summary": "LTCG 12.5% without indexation after 24 months. Bought before 23 Jul 2024: the lower of that and 20% with indexation. Rent taxed at slab rates after a 30% standard deduction.",
       "ltcgRate": 0.125,
       "ltcgHoldingMonths": 24,
       "slabTaxed": false,
       "taxFree": false,
-      "asOf": "FY2025-26 rules (post Union Budget July 2024)",
-      "verify": true
+      "asOf": "FY2026-27; capital-gains framework from Budget 2024, unchanged in Budget 2026",
+      "verify": true,
+      "verifiedOn": "2026-09-27",
+      "sourceIds": [
+        "cbdt-cg-faq",
+        "cbdt-cii-2026"
+      ]
     },
     {
       "id": "foreign_equity",
@@ -367,8 +413,13 @@
       "summary": "Foreign shares (US stocks, RSUs of companies listed abroad) held over 24 months: 12.5% on gains, with no ₹1.25 lakh yearly exemption; held less: slab rates. International FoFs' treatment depends on the fund's structure. Sending over ₹10 lakh a year abroad under LRS attracts 20% TCS, which is credited against your tax, so it's a timing cost only.",
       "slabTaxed": false,
       "taxFree": false,
-      "asOf": "FY2025-26 rules (post Union Budget July 2024)",
-      "verify": true
+      "asOf": "FY2026-27; capital-gains framework from Budget 2024, unchanged in Budget 2026",
+      "verify": true,
+      "verifiedOn": "2026-09-27",
+      "sourceIds": [
+        "cbdt-cg-faq",
+        "pib-budget-2026"
+      ]
     },
     {
       "id": "insurance_traditional",
@@ -376,8 +427,12 @@
       "summary": "Maturity tax-free only within premium limits set in recent budgets; otherwise taxed. Check your policy.",
       "taxFree": false,
       "slabTaxed": true,
-      "asOf": "FY2025-26 rules (post Union Budget July 2024)",
-      "verify": true
+      "asOf": "FY2026-27; premium limits from Budgets 2021 and 2023, unchanged in Budget 2026",
+      "verify": true,
+      "verifiedOn": "2026-09-27",
+      "sourceIds": [
+        "pib-budget-2026"
+      ]
     }
   ],
   "instruments": [
@@ -427,8 +482,12 @@
         "asOf",
         "comment"
       ],
-      "asOf": "Same rate as EPF",
-      "verify": true
+      "asOf": "Follows the EPF rate (8.25% for FY2025-26)",
+      "verify": true,
+      "verifiedOn": "2026-09-27",
+      "sourceIds": [
+        "pib-epf-2025-26"
+      ]
     },
     {
       "id": "ppf",
@@ -585,7 +644,9 @@
         "annuityShare": 0.6667,
         "annuityRate": 0.06,
         "note": "Up to one-third commuted tax-free; the rest buys an annuity. Schemes differ on age and options; check yours."
-      }
+      },
+      "asOf": "FY2026-27; commuted one-third tax-free (Sec 10(13) of the 1961 Act), unchanged in Budget 2026",
+      "verifiedOn": "2026-09-27"
     },
     {
       "id": "mf_equity_index",
@@ -843,8 +904,14 @@
         "asOf",
         "comment"
       ],
-      "help": "No new tranches issued since early 2024 as far as known; existing bonds still count.",
-      "verify": true
+      "help": "No new tranches issued since early 2024; existing bonds still count. Since 1 April 2026, redemption is tax-free only for bonds bought at the original issue and held to maturity.",
+      "verify": true,
+      "asOf": "FY2026-27: Budget 2026 limits tax-free redemption to original subscribers",
+      "verifiedOn": "2026-09-27",
+      "sourceIds": [
+        "pib-budget-2026",
+        "budget-speech-2026"
+      ]
     },
     {
       "id": "reit_invit",
@@ -932,7 +999,10 @@
         "asOf",
         "comment"
       ],
-      "verify": true
+      "verify": true,
+      "asOf": "FY2026-27; high-premium ULIPs taxed as capital gains since Budget 2025",
+      "verifiedOn": "2026-09-27",
+      "help": "Maturity is tax-free when your total ULIP premiums stay within ₹2.5 lakh a year. Above that (policies from Feb 2021), gains are taxed like equity: 12.5% after 12 months, slab rates within a year."
     },
     {
       "id": "other",
@@ -1366,18 +1436,20 @@
     {
       "id": "inflow.gratuity",
       "label": "Gratuity",
-      "hint": "Paid when you leave after 5+ years: 15 days' last basic + DA for each year of service. Tax-free up to ₹25 lakh for private-sector employees.",
+      "hint": "Paid when you leave after 5+ years: 15 days' last basic + DA for each year of service. Tax-free up to ₹20 lakh in your working life for private-sector employees (government employees: fully tax-free).",
       "defaultTaxRate": 0,
-      "asOf": "FY2025-26 limit",
-      "verify": true
+      "asOf": "FY2026-27 limit, unchanged in Budget 2026",
+      "verify": true,
+      "verifiedOn": "2026-09-27"
     },
     {
       "id": "inflow.insurance_payout",
       "label": "Insurance maturity / survival benefit",
       "hint": "Endowment, money-back or guaranteed-income plans. Usually tax-free under Sec 10(10D) if premiums stay within the limits; check your policy. If you add the payout here, don't also count the policy's value in your savings.",
       "defaultTaxRate": 0,
-      "asOf": "FY2025-26 rules",
-      "verify": true
+      "asOf": "FY2026-27 rules, unchanged in Budget 2026",
+      "verify": true,
+      "verifiedOn": "2026-09-27"
     },
     {
       "id": "inflow.property_sale",
@@ -1385,8 +1457,9 @@
       "hint": "Easier: add the property under Property and choose 'Sell'. That handles growth, costs and capital-gains tax. Use this only for a sale you don't want to list there.",
       "defaultTaxRate": 0.05,
       "defaultGrowthRate": 0.05,
-      "asOf": "FY2025-26 rules",
-      "verify": true
+      "asOf": "FY2026-27 rules, unchanged in Budget 2026",
+      "verify": true,
+      "verifiedOn": "2026-09-27"
     },
     {
       "id": "inflow.pf_leave_encashment",
@@ -1508,8 +1581,8 @@
       }
     ],
     "note": "Indicative yearly premium for a ₹15 lakh family floater (two adults) by the elder's age, in today's money. Real quotes vary by insurer, city and health; get one and enter it.",
-    "asOf": "Indicative, 2026",
-    "verify": true
+    "asOf": "Indicative figures for 2026, not an official source; replace with your own quote",
+    "verify": false
   },
   "incomeTax": {
     "regime": "New regime, FY2026-27 (Income-tax Act 2025)",

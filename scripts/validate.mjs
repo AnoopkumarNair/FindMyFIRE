@@ -119,6 +119,14 @@ for (const f of rulesFiles) {
     for (const [k, v] of Object.entries(o)) if (k !== "sources") walkSources(v, `${where}.${k}`);
   };
   walkSources(r, "pack");
+  // Anything marked for verification must say when it was last checked, so stale labels show up.
+  const walkVerify = (o, where) => {
+    if (Array.isArray(o)) return o.forEach((x, i) => walkVerify(x, `${where}[${i}]`));
+    if (!o || typeof o !== "object") return;
+    if (o.verify === true && !o.verifiedOn) fail(file, `${where}${o.id ? ` (${o.id})` : ""}: marked verify but has no verifiedOn date`);
+    for (const [k, v] of Object.entries(o)) walkVerify(v, `${where}.${k}`);
+  };
+  walkVerify(r, "pack");
   ok(file, "integrity");
   packs[`${r.packId}@${r.packVersion}`] = { ...r, ids };
 }

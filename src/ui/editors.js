@@ -495,6 +495,7 @@ function rulesProvenance(pack) {
   const items = [
     pack.incomeTax && { label: "Income tax", note: pack.incomeTax.asOf, on: pack.incomeTax.verifiedOn },
     pack.property && { label: "Property capital gains", note: pack.property.asOf, on: pack.property.verifiedOn },
+    ...pack.taxTreatments.filter((t) => t.asOf).map((t) => ({ label: `Tax: ${t.label || t.id}`, note: `${t.summary || ""} (${t.asOf})`, on: t.verifiedOn })),
     ...pack.instruments.filter((i) => i.asOf || i.unlock?.note).map((i) => ({ label: i.label, note: [i.asOf, i.unlock?.note].filter(Boolean).join(" "), on: i.verifiedOn })),
     ...pack.inflowTemplates.filter((t) => t.asOf).map((t) => ({ label: t.label, note: `${t.hint || ""} (${t.asOf})`, on: t.verifiedOn })),
   ].filter(Boolean);
