@@ -1,0 +1,24 @@
+{
+  "$schema": "../../../schemas/user-file.schema.json",
+  "schemaVersion": 1,
+  "app": {
+    "rulesPack": "in",
+    "rulesPackVersion": "2026.1"
+  },
+  "createdAt": "2026-09-26T09:00:00+05:30",
+  "updatedAt": "2026-09-26T09:00:00+05:30",
+  "profile": {
+    "birthYearMonth": "1996-06"
+  },
+  "plan": {
+    "fireTargetAge": 45
+  },
+  "quick": {
+    "takeHomeMonthly": 120000,
+    "monthlyExpenses": 60000,
+    "emiMonthly": 0,
+    "totalSavings": 1500000,
+    "monthlySip": 40000,
+    "epfMonthly": 8000
+  }
+}

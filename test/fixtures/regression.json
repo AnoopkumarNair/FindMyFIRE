@@ -1,0 +1,65 @@
+{
+  "rulesPack": "in@2026.1",
+  "households": {
+    "late-shortfall": {
+      "earliestAge": 68.7,
+      "requiredLakh": 752,
+      "projectedLakh": 162.8,
+      "firstYearWithdrawalLakh": 23.5,
+      "chanceAtTarget": 0,
+      "likelyAge": 72.5,
+      "confidentAge": 75.5,
+      "confidence": 28
+    },
+    "nps-and-income-after": {
+      "earliestAge": 52.9,
+      "requiredLakh": 850.2,
+      "projectedLakh": 680.2,
+      "firstYearWithdrawalLakh": 19.1,
+      "chanceAtTarget": 0.316,
+      "likelyAge": 57.7,
+      "confidentAge": 62.7,
+      "confidence": 33
+    },
+    "property-rent-and-sale": {
+      "earliestAge": 54.1,
+      "requiredLakh": 935.3,
+      "projectedLakh": 680.2,
+      "firstYearWithdrawalLakh": 23.1,
+      "chanceAtTarget": 0.254,
+      "likelyAge": 59.7,
+      "confidentAge": 64.7,
+      "confidence": 35
+    },
+    "quick-typical": {
+      "earliestAge": 54.7,
+      "requiredLakh": 994.1,
+      "projectedLakh": 680.2,
+      "firstYearWithdrawalLakh": 27.7,
+      "chanceAtTarget": 0.189,
+      "likelyAge": 59.7,
+      "confidentAge": 63.7,
+      "confidence": 28
+    },
+    "spouse-pension-loan": {
+      "earliestAge": 53,
+      "requiredLakh": 828.1,
+      "projectedLakh": 674,
+      "firstYearWithdrawalLakh": 12.3,
+      "chanceAtTarget": 0.336,
+      "likelyAge": 59.7,
+      "confidentAge": 63.7,
+      "confidence": 32
+    },
+    "young-starter": {
+      "earliestAge": 57.2,
+      "requiredLakh": 970.5,
+      "projectedLakh": 382.6,
+      "firstYearWithdrawalLakh": 20.8,
+      "chanceAtTarget": 0.018,
+      "likelyAge": 62.3,
+      "confidentAge": 66.3,
+      "confidence": 28
+    }
+  }
+}

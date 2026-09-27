@@ -115,8 +115,12 @@ for (const f of rulesFiles) {
 
 // ================= USER FILES =================
 console.log("User files");
-for (const f of readdirSync(join(root, "examples")).filter((x) => x.endsWith(".json"))) {
-  const file = `examples/${f}`;
+// Example plans, and the households the regression suite runs, must both be valid plan files.
+const userFiles = [
+  ...readdirSync(join(root, "examples")).filter((x) => x.endsWith(".json")).map((f) => `examples/${f}`),
+  ...readdirSync(join(root, "test/fixtures/households")).filter((x) => x.endsWith(".json")).map((f) => `test/fixtures/households/${f}`),
+];
+for (const file of userFiles) {
   const u = load(file);
   if (!validateUser(u)) {
     validateUser.errors.forEach((e) => fail(file, `${e.instancePath} ${e.message}`));

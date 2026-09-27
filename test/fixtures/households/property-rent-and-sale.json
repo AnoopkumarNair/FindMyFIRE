@@ -1,0 +1,47 @@
+{
+  "$schema": "../../../schemas/user-file.schema.json",
+  "schemaVersion": 1,
+  "app": {
+    "rulesPack": "in",
+    "rulesPackVersion": "2026.1"
+  },
+  "createdAt": "2026-09-26T09:00:00+05:30",
+  "updatedAt": "2026-09-26T09:00:00+05:30",
+  "profile": {
+    "birthYearMonth": "1986-01"
+  },
+  "plan": {
+    "fireTargetAge": 50,
+    "planUntilAge": 95
+  },
+  "quick": {
+    "takeHomeMonthly": 250000,
+    "monthlyExpenses": 120000,
+    "emiMonthly": 0,
+    "totalSavings": 20000000,
+    "monthlySip": 80000,
+    "epfMonthly": 20000
+  },
+  "properties": [
+    {
+      "id": "p1",
+      "label": "Flat",
+      "value": 9000000,
+      "monthlyRent": 25000,
+      "annualCosts": 40000,
+      "plan": "keep",
+      "source": "exact",
+      "kind": "secondHome"
+    },
+    {
+      "id": "p2",
+      "label": "Plot",
+      "value": 4000000,
+      "plan": "sell",
+      "sellOn": "2040-01",
+      "purchasePrice": 1500000,
+      "source": "estimate",
+      "kind": "land"
+    }
+  ]
+}
