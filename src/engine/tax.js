@@ -16,6 +16,8 @@ export function slabTax(income, tax) {
     if (income > from) owed += (Math.min(income, to) - from) * s.rate;
     from = to;
   }
+  // Marginal relief on the rebate: just above the limit, tax can't exceed the income above it.
+  if (tax.rebateMarginalRelief && tax.rebateUpTo) owed = Math.min(owed, income - tax.rebateUpTo);
   return owed;
 }
 

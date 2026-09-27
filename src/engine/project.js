@@ -1,7 +1,10 @@
 // Year-by-year projection. All amounts are nominal rupees; `t` is whole years from today.
 //
-// Before FIRE:  corpus(t+1) = (corpus(t) + SIP(t) + EPF(t) − goals(t)) × (1 + return before FIRE)
-//               (contributions at the start of the year = the sheet's FV(..., type 1))
+// Before FIRE:  corpus(t+1) = (corpus(t) + lump sums(t) − goals(t)) × (1 + r) + contributions(t) × k(r)
+//               where contributions are paid monthly through the year (SIP and PF at the start of
+//               each month) and k(r) is what ₹1 of them is worth by the year end. The original
+//               sheet's timing (all contributions at the start of the year, FV(..., type 1)) is
+//               kept as p.contributionTiming = "yearStart" for the golden tests.
 // After FIRE:   the withdrawal is taken at the start of each year and the rest grows, as in
 //               the sheet's retirement schedule. The corpus needed at FIRE is the present value
 //               of every withdrawal until `plan.untilAge` (money lasts through that year).
@@ -44,23 +47,40 @@ function inflowAt(inp, p, T) {
   return sum;
 }
 
-/** Money added (+) or taken (−) at the start of each year before FIRE: contributions, goals, lump sums. */
+/**
+ * What ₹1 of a year's contributions is worth at the end of that year, when it's paid in 12 equal
+ * monthly instalments at the start of each month and the year's return is r. Less than 1 + r,
+ * because later instalments are invested for fewer months.
+ */
+export function contributionGrowth(r, timing = "monthly") {
+  if (timing === "yearStart") return 1 + r;
+  const m = (1 + r) ** (1 / 12) - 1;
+  return Math.abs(m) < 1e-12 ? 1 : ((1 + m) * r) / (12 * m);
+}
+
+/**
+ * Money going in before FIRE, year by year: `lumps` arrive at the start of the year (money
+ * received, minus goals paid), `contributions` are the year's SIP and PF, paid monthly.
+ */
 export function preFireFlows(inp, p, years, tier = {}) {
-  const flows = [];
+  const lumps = [], contributions = [];
   for (let y = 0; y < years; y++) {
-    let f = 12 * p.sip * (1 + p.stepUp) ** y + 12 * p.epf * (1 + p.incomeGrowth) ** y + inflowAt(inp, p, y);
+    let f = inflowAt(inp, p, y);
     for (const g of inp.goals) if (goalIndex(g, p) === y && goalIncluded(g, tier)) f -= goalCost(g, p);
-    flows.push(f);
+    lumps.push(f);
+    contributions.push(12 * p.sip * (1 + p.stepUp) ** y + 12 * p.epf * (1 + p.incomeGrowth) ** y);
   }
-  return flows;
+  return { lumps, contributions };
 }
 
 /** Corpus at the start of each year t = 0..years, investing until then. */
 export function accumulate(inp, p, years, tier = {}) {
   const path = [p.corpus];
   let c = p.corpus;
-  for (const f of preFireFlows(inp, p, years, tier)) {
-    c = (c + f) * (1 + p.rPre);
+  const { lumps, contributions } = preFireFlows(inp, p, years, tier);
+  const k = contributionGrowth(p.rPre, p.contributionTiming);
+  for (let y = 0; y < years; y++) {
+    c = (c + lumps[y]) * (1 + p.rPre) + contributions[y] * k;
     path.push(c);
   }
   return path;

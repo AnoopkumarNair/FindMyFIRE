@@ -246,6 +246,10 @@
         },
         "ltcgForeignExemption": {
           "type": "number"
+        },
+        "rebateMarginalRelief": {
+          "type": "boolean",
+          "description": "Tax just above the rebate limit is capped at the income above the limit (new regime)."
         }
       }
     },

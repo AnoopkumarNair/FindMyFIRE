@@ -1467,7 +1467,8 @@
     "asOf": "Union Budget 2025",
     "verify": true,
     "ltcgForeignRate": 0.125,
-    "ltcgForeignExemption": 0
+    "ltcgForeignExemption": 0,
+    "rebateMarginalRelief": true
   },
   "resolution": [
     {

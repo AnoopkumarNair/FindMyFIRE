@@ -34,7 +34,8 @@ test("year-by-year accumulation equals the sheet's FV formula", () => {
   const inp = {
     goals: I.milestones.map((m) => ({ atAge: m.age, costToday: -m.amount, inflationRate: 0, priority: "must" })),
   };
-  const p = { age: I.currentAge, corpus: I.corpus, sip: I.annualSip / 12, epf: 0, stepUp: 0, incomeGrowth: 0, rPre: I.returnBefore };
+  // The sheet puts a year's contributions in at its start; the planner's default is monthly.
+  const p = { age: I.currentAge, corpus: I.corpus, sip: I.annualSip / 12, epf: 0, stepUp: 0, incomeGrowth: 0, rPre: I.returnBefore, contributionTiming: "yearStart" };
   // A milestone at the FIRE age lands in year n, i.e. after the path ends; the sheet adds it undiscounted.
   const atFire = I.milestones.filter((m) => m.age === I.fireAge).reduce((s, m) => s + m.amount, 0);
   close(accumulate(inp, p, n).at(-1) + atFire, O.E11);

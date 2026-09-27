@@ -4,7 +4,7 @@
 // average can end very differently if the bad years come early in retirement. This simulates
 // many possible market histories and counts how often the money lasts.
 
-import { preFireFlows, withdrawalsFrom, analyse, requiredMonthlySip } from "./project.js";
+import { preFireFlows, contributionGrowth, withdrawalsFrom, analyse, requiredMonthlySip } from "./project.js";
 
 // Small seeded generator so the same plan always shows the same percentage.
 function mulberry32(seed) {
@@ -35,27 +35,35 @@ export function chanceByFireYear(inp, p, { runs = 1000, seed = 20260925 } = {}) 
   const horizon = Math.max(1, Math.floor(p.planUntilAge - p.age) + 1);
   const maxT = horizon - 1;
   const z = normals(runs * horizon, seed);
-  const flows = preFireFlows(inp, p, maxT);
+  const { lumps, contributions } = preFireFlows(inp, p, maxT);
   const volPre = inp.assumptions["risk.volatilityBeforeFire"] ?? 0.13;
   const volPost = inp.assumptions["risk.volatilityAfterFire"] ?? 0.09;
-  const out = [];
-  for (let t = 0; t <= maxT; t++) {
-    const ws = withdrawalsFrom(inp, p, {}, t);
-    let ok = 0;
-    for (let r = 0; r < runs; r++) {
-      const zr = r * horizon;
-      let c = p.corpus;
-      for (let y = 0; y < t; y++) c = (c + flows[y]) * (1 + p.rPre) * Math.exp(volPre * z[zr + y]);
-      let lasted = true;
-      for (let k = 0; k < ws.length; k++) {
-        c -= ws[k];
-        if (c < 0) { lasted = false; break; }
-        c *= (1 + p.rPost) * Math.exp(volPost * z[zr + t + k]);
-      }
-      if (lasted) ok++;
+  const withdrawals = Array.from({ length: maxT + 1 }, (_, t) => withdrawalsFrom(inp, p, {}, t));
+  const ok = new Array(maxT + 1).fill(0);
+  const pre = new Float64Array(maxT + 1);
+  for (let r = 0; r < runs; r++) {
+    const zr = r * horizon;
+    // The savings path before FIRE doesn't depend on when you stop, so it's built once per market history.
+    let c = p.corpus;
+    pre[0] = c;
+    for (let y = 0; y < maxT; y++) {
+      const g = (1 + p.rPre) * Math.exp(volPre * z[zr + y]);
+      c = (c + lumps[y]) * g + contributions[y] * contributionGrowth(g - 1, p.contributionTiming);
+      pre[y + 1] = c;
     }
-    out.push({ t, age: p.age + t, chance: ok / runs });
+    for (let t = 0; t <= maxT; t++) {
+      const ws = withdrawals[t];
+      let d = pre[t], lasted = true;
+      for (let k = 0; k < ws.length; k++) {
+        d -= ws[k];
+        if (d < 0) { lasted = false; break; }
+        d *= (1 + p.rPost) * Math.exp(volPost * z[zr + t + k]);
+      }
+      if (lasted) ok[t]++;
+    }
   }
+  const out = [];
+  for (let t = 0; t <= maxT; t++) out.push({ t, age: p.age + t, chance: ok[t] / runs });
   return out;
 }
 
