@@ -356,7 +356,9 @@ function propertiesEditor(ctx) {
           }, { placeholder: false, options: [{ value: "keep", label: "Keep" }, { value: "sell", label: "Sell" }] }),
           selling ? field("Sell in", "month", x.sellOn, (v) => { if (v) { x.sellOn = v; save(); } }) : null,
           selling ? field("Bought for", "currency", x.purchasePrice, (v) => { x.purchasePrice = v; save(); },
-            { help: "For capital-gains tax (12.5% of the gain). Blank = today's value." }) : null,
+            { help: "For capital-gains tax. Blank = today's value. Bought before April 2001? Enter its value on 1 April 2001." }) : null,
+          selling ? field("Bought in", "month", x.boughtOn, (v) => { x.boughtOn = v || undefined; save(); },
+            { help: "Bought before 23 July 2024? The tax is the lower of 12.5% on the gain, or 20% after indexation for inflation." }) : null,
           field("How sure?", "source", x.source, (v) => { x.source = v; save(); }),
           h("div", { class: "field wide" }, note),
         ];

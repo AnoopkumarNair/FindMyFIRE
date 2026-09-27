@@ -143,6 +143,23 @@
           "type": "string",
           "format": "date",
           "description": "When this item was last checked against an official source."
+        },
+        "ciiByFyStart": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "number"
+          },
+          "description": "Cost Inflation Index by the calendar year the financial year starts in."
+        },
+        "grandfatherBefore": {
+          "type": "string",
+          "format": "date"
+        },
+        "indexedRate": {
+          "type": "number"
+        },
+        "ciiNote": {
+          "type": "string"
         }
       }
     },

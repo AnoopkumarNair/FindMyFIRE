@@ -772,6 +772,11 @@
           "sellOn": {
             "type": "string",
             "pattern": "^[0-9]{4}-(0[1-9]|1[0-2])$"
+          },
+          "boughtOn": {
+            "type": "string",
+            "pattern": "^\\d{4}-(0[1-9]|1[0-2])$",
+            "description": "Month the property was bought (for capital-gains tax)."
           }
         }
       }

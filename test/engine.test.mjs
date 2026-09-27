@@ -511,3 +511,24 @@ test("choosing a later NPS exit or a bigger lump sum flows through the plan", as
   assert.ok(Math.abs(L(bigger).atUnlock.lump - 0.8 * L(bigger).atUnlock.total) < 1 && L(bigger).atUnlock.tax > 0);
   assert.ok(L(bigger).atUnlock.pensionMonthly < L(base).atUnlock.pensionMonthly, "a bigger lump sum means a smaller pension");
 });
+
+test("property bought before 23 Jul 2024 pays the lower of 12.5% plain and 20% indexed", async () => {
+  const { propertyGainsTax } = await import("../src/engine/resolve.js");
+  const P = pk().property;
+  // Bought in May 2010 for ₹40 L, sold in May 2026 for ₹1.2 Cr. CII 167 → 384.
+  const old = propertyGainsTax({ price: 12000000, cost: 4000000, boughtOn: "2010-05", soldOn: "2026-05" }, P);
+  const plain = 0.125 * 8000000, indexed = 0.2 * (12000000 - 4000000 * 384 / 167);
+  assert.ok(Math.abs(old.tax - Math.min(plain, indexed)) < 1, `${old.tax} vs ${plain} / ${indexed}`);
+  assert.match(old.method, /20% on the gain after indexation/);
+  // A property that tripled in value: indexation helps less than the lower rate.
+  const fast = propertyGainsTax({ price: 30000000, cost: 4000000, boughtOn: "2010-05", soldOn: "2026-05" }, P);
+  assert.equal(fast.tax, 0.125 * 26000000);
+  // Bought after the change: 12.5% only. No date: 12.5%, with a nudge to add it.
+  assert.equal(propertyGainsTax({ price: 12000000, cost: 4000000, boughtOn: "2025-01", soldOn: "2030-01" }, P).tax, 1000000);
+  assert.match(propertyGainsTax({ price: 12000000, cost: 4000000, soldOn: "2030-01" }, P).method, /add the purchase month/);
+  // Before April 2001 counts from 2001-02 (CII 100); future years are projected, never lower.
+  const pre = propertyGainsTax({ price: 12000000, cost: 1000000, boughtOn: "1995-01", soldOn: "2026-05" }, P);
+  assert.ok(Math.abs(pre.tax - Math.min(0.125 * 11000000, 0.2 * (12000000 - 1000000 * 3.84))) < 1);
+  const later = propertyGainsTax({ price: 12000000, cost: 4000000, boughtOn: "2010-05", soldOn: "2035-05" }, P);
+  assert.ok(later.tax <= old.tax, "more years of indexation never raise the tax");
+});

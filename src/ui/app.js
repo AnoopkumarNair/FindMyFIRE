@@ -665,7 +665,7 @@ function actionPlanCard(r) {
       `Cover is much harder to get later or with an illness. Roughly ${inr(w?.health?.premiumNow ?? 0)} a year at your age. `,
       coverKnown ? "" : "Add what you have under Insurance & health cover to make this step specific.");
   for (const x of i.properties || []) if (x.sale) step(`At ${Math.floor(x.sale.atAge)}`, `Sell ${x.label}`,
-    `Expect about ${inrShort(x.sale.net)} after costs and tax. Put it straight into the cash and debt buckets, not a lump-sum equity bet.`);
+    `Expect about ${inrShort(x.sale.net)} after costs and about ${inrShort(x.sale.tax)} in capital-gains tax (${x.sale.method}). Put it straight into the cash and debt buckets, not a lump-sum equity bet.`);
   // Only money the person entered; the amounts are this plan's own projections.
   for (const l of i.locked || []) step(`At ${l.unlock.age}`, `${l.label} unlocks`,
     `From ${l.from || "your plan"}: ${inrShort(l.value)} today. `,
@@ -720,7 +720,7 @@ function breakdownCard(r) {
     ["Living costs", b.living, "Everything except healthcare, adjusted for life after FIRE.", "s1"],
     ["Healthcare", b.health, `Doctor visits, medicines: ${pct(r.params.infl.health, 0)} a year inflation.`, "s2"],
     ["Health insurance", b.healthPremium, r.swp?.health?.estimated ? "Estimated family floater after employer cover ends. Enter your quote under Insurance." : "Your quote, rising with age and medical inflation.", "s3"],
-    ["Tax on withdrawals", b.tax, "Worked out each year under the new regime.", "s4"],
+    ["Tax on withdrawals", b.tax, `An estimate, worked out each year under the new regime. It assumes ${pct(r.inputs.assumptions["tax.equityGainShare"] ?? 0.5, 0)} of what you take from equity is gain (change it under Assumptions).`, "s4"],
     ["Loan EMIs after FIRE", b.emi, "EMIs still running after you stop.", "s5"],
     ["Goals after FIRE", b.goals, "Big one-off costs due after you stop.", "s6"],
   ].filter((x) => x[1] > 0.5);
@@ -769,7 +769,7 @@ function swpCard(r) {
     h("p", { class: "small" }, h("strong", {}, "Each year: "),
       "move one year of withdrawals from debt to cash, and top up debt from equity. After a bad year for markets, skip the equity sale and let debt carry you; that's what the 8 years of cash and debt are for."),
     h("p", { class: "small" }, h("strong", {}, "Included in the SWP: "),
-      `about ${inr(w.firstTax)} tax in the first year (${pct(w.firstTaxRate)} of withdrawals: interest and debt-fund gains at slab rates, equity gains at 12.5% above ₹1.25 lakh), and `,
+      `an estimated ${inr(w.firstTax)} tax in the first year (${pct(w.firstTaxRate)} of withdrawals: interest and debt-fund gains at slab rates, equity gains at 12.5% above ₹1.25 lakh, assuming ${pct(r.inputs.assumptions["tax.equityGainShare"] ?? 0.5, 0)} of equity withdrawals is gain), and `,
       `${inr(w.firstHealthPremium)} for a family health policy once employer cover stops`,
       w.health?.estimated ? h("span", {}, " (an estimate: ", h("a", { href: "#/refine/protection" }, "enter your quote"), ")") : "",
       `. The premium rises with age and medical inflation, so it's a much bigger share later on.`),

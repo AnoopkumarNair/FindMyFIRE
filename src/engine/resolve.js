@@ -259,8 +259,9 @@ export function resolveInputs(user, pack, today = new Date()) {
       rentMonthly: x.monthlyRent || 0, costsYearly: x.annualCosts || 0 };
     if (sellAge != null && sellAge >= age) {
       const price = x.value * (1 + g) ** (sellAge - age);
-      const tax = P.ltcgRate * Math.max(0, price - (x.purchasePrice ?? x.value));
-      out.sale = { atAge: sellAge, price, tax, costs: price * P.saleCostRate, net: price * (1 - P.saleCostRate) - tax };
+      const cg = propertyGainsTax({ price, cost: x.purchasePrice ?? x.value, boughtOn: x.purchasePrice != null ? x.boughtOn : null, soldOn: x.sellOn },
+        P, A["inflation.general"]);
+      out.sale = { atAge: sellAge, price, tax: cg.tax, method: cg.method, costs: price * P.saleCostRate, net: price * (1 - P.saleCostRate) - cg.tax };
       inflows.push({ label: `Sale of ${x.label}`, atAge: sellAge, net: out.sale.net, source: x.source });
     }
     return out;
@@ -366,4 +367,34 @@ export function npsExit(balance, unlock, choice = {}, { tax, deflator = 1 } = {}
   const taxable = Math.max(0, lump - balance * (unlock.taxFreeShare ?? 1));
   const owed = taxable > 0 && tax ? slabTax(taxable / deflator, tax) * (1 + (tax.cess ?? 0)) * deflator : 0;
   return { lump, tax: owed };
+}
+
+/** Financial year (by the calendar year it starts in) of a "YYYY-MM" month. */
+const fyStart = (ym) => { const [y, m] = ym.split("-").map(Number); return m >= 4 ? y : y - 1; };
+
+/** Cost Inflation Index for a financial year: the notified value, or projected with inflation. */
+function cii(P, fy, inflation) {
+  const table = P.ciiByFyStart || {};
+  const years = Object.keys(table).map(Number).sort((a, b) => a - b);
+  if (!years.length) return null;
+  if (fy <= years[0]) return table[years[0]]; // bought before 2001: the value on 1 April 2001 is the cost
+  const last = years.at(-1);
+  return fy <= last ? table[fy] ?? table[last] : table[last] * (1 + inflation) ** (fy - last);
+}
+
+/**
+ * Long-term capital-gains tax on a property sale. Bought before the grandfathering date (23 July
+ * 2024), the lower of 12.5% without indexation and 20% on the indexed gain; otherwise 12.5%.
+ * Without a purchase date, the plain 12.5% rule is used and said so.
+ */
+export function propertyGainsTax({ price, cost, boughtOn, soldOn }, P, inflation = 0.05) {
+  const plain = P.ltcgRate * Math.max(0, price - cost);
+  if (!boughtOn || !P.ciiByFyStart || !P.grandfatherBefore || !(`${boughtOn}-01` < P.grandfatherBefore))
+    return { tax: plain, method: boughtOn ? "12.5% on the gain (bought after 23 Jul 2024)" : "12.5% on the gain (add the purchase month: property bought before 23 Jul 2024 may pay less)" };
+  const sale = soldOn ? fyStart(soldOn) : fyStart(new Date().toISOString().slice(0, 7));
+  const indexedCost = cost * cii(P, sale, inflation) / cii(P, fyStart(boughtOn), inflation);
+  const indexed = (P.indexedRate ?? 0.2) * Math.max(0, price - indexedCost);
+  return indexed < plain
+    ? { tax: indexed, method: "20% on the gain after indexation (lower than 12.5% without it)" }
+    : { tax: plain, method: "12.5% on the gain without indexation (lower than 20% with it)" };
 }
