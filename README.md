@@ -14,7 +14,7 @@ A few things it handles that simpler calculators don't:
 - **Inflation by category.** Everyday costs, healthcare and education each rise at their own rate. Children's costs stop when they become independent.
 - **Locked money.** NPS unlocks at 60: 60% as a lump sum, the rest as a pension. Employer superannuation unlocks at 58, a third as a lump sum. Neither counts as spendable before then.
 - **Income after you stop.** A spouse who keeps working, a pension, an annuity, rent or part-time work reduces what you draw, each taxed the right way and each with its own start and end age.
-- **Tax on withdrawals**, worked out every year under the new regime: slab rates on interest and pensions, 12.5% on equity gains above ₹1.25 lakh, and no exemption for foreign shares.
+- **Tax on withdrawals**, worked out every year under the new regime (FY2026-27 rules, including the ₹12 lakh rebate with marginal relief): slab rates on interest and pensions, 12.5% on equity gains above ₹1.25 lakh, and no exemption for foreign shares.
 - **Health cover after FIRE.** Once employer cover ends, a family floater premium is added. It rises with age and with medical inflation.
 - **Market ups and downs.** 1,000 simulated market histories give the chance your money lasts, and the ages that give a 3 in 4 and a 9 in 10 chance.
 - **Property, goals and lump sums.** Rent, upkeep, planned sales (after capital-gains tax), repeating goals such as a car every eight years, gratuity and policy payouts.
@@ -102,4 +102,4 @@ All amounts are in nominal rupees, projected one year at a time.
 
 ## Disclaimer
 
-A planning tool, not investment, tax or legal advice. Tax rules are summarised as of FY2025-26 and marked for verification.
+A planning tool, not investment, tax or legal advice. Tax rules are for FY2026-27 (Budget 2026 left the new-regime slabs unchanged). Each tax item in the rules pack records when it was last checked, shown under Assumptions.

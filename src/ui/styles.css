@@ -852,3 +852,7 @@ body::before { inset: -12%; animation: dawn-drift 34s ease-in-out infinite alter
   table.stackable tr > :first-child[data-label] { display: block; text-align: left; }
   table.stackable tr > .num-head[data-label]::before { display: inline; content: attr(data-label) " "; color: inherit; font-weight: 700; }
 }
+.provenance { margin-top: 1rem; }
+.provenance summary { cursor: pointer; font-weight: 600; }
+.provenance ul { padding-left: 1.1rem; display: grid; gap: 0.5rem; }
+.provenance .help { display: block; }

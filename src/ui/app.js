@@ -100,7 +100,7 @@ function header() {
 function footer() {
   return h("footer", { class: "foot" },
     h("p", {}, "Your plan stays on this device. It's saved in this browser and in the file you download. Nothing is uploaded: no accounts, no analytics."),
-    h("p", { class: "muted" }, `A planning tool, not investment, tax or legal advice. Rules pack ${S.pack?.packId}.${S.pack?.packVersion} (${S.pack?.effectiveFrom || "FY2025-26"}). App v${APP_VERSION} (build ${BUILD}). `,
+    h("p", { class: "muted" }, `A planning tool, not investment, tax or legal advice. Rules ${S.pack?.packId}.${S.pack?.packVersion}, tax year 2026-27, last checked ${S.pack?.verifiedOn || "—"}. App v${APP_VERSION} (build ${BUILD}). `,
       h("a", { href: "https://github.com/AnoopkumarNair/FindMyFIRE", rel: "noopener" }, "Source code")));
 }
 
@@ -187,7 +187,7 @@ function welcomeView() {
         faq("Where is my data stored?", "Only in this browser on this device. Download it as a file (optionally locked with a passphrase) to keep it or move it to another device. Nothing is uploaded."),
         faq("I don't want to retire at 40. Is this still useful?", "Yes. FIRE is about having the choice: the same plan shows whether you're on track for 60, what a career break costs, or how much a cheaper city helps."),
         faq("Is there AI? Does it see my numbers?", "It's optional. On a laptop or desktop you can add an AI that runs entirely inside your browser (a one-time 3.1 GB download). It only rewords the planner's own numbers, every number is checked before it's shown, and nothing you type leaves your device. Phones get the same answers without the AI wording."),
-        faq("Is this financial advice?", "No. It's a planning tool that does the maths carefully and shows its working. Rules are current to FY2025-26; check big decisions with a SEBI-registered adviser.")),
+        faq("Is this financial advice?", "No. It's a planning tool that does the maths carefully and shows its working. Tax rules are for FY2026-27 and each shows when it was last checked (see Assumptions); check big decisions with a SEBI-registered adviser.")),
       h("div", { class: "closing" },
         h("p", {}, h("strong", {}, "Two minutes to your number.")),
         working ? h("a", { href: "#/results", class: "btn primary" }, "Continue your plan →")

@@ -138,6 +138,11 @@
         },
         "verify": {
           "type": "boolean"
+        },
+        "verifiedOn": {
+          "type": "string",
+          "format": "date",
+          "description": "When this item was last checked against an official source."
         }
       }
     },
@@ -179,6 +184,11 @@
               }
             }
           }
+        },
+        "verifiedOn": {
+          "type": "string",
+          "format": "date",
+          "description": "When this item was last checked against an official source."
         }
       }
     },
@@ -250,6 +260,11 @@
         "rebateMarginalRelief": {
           "type": "boolean",
           "description": "Tax just above the rebate limit is capped at the income above the limit (new regime)."
+        },
+        "verifiedOn": {
+          "type": "string",
+          "format": "date",
+          "description": "When this item was last checked against an official source."
         }
       }
     },
@@ -282,6 +297,11 @@
       "items": {
         "$ref": "#/$defs/nudge"
       }
+    },
+    "verifiedOn": {
+      "type": "string",
+      "format": "date",
+      "description": "When the tax and rate items were last checked against official sources."
     }
   },
   "$defs": {
@@ -445,6 +465,11 @@
         },
         "verify": {
           "type": "boolean"
+        },
+        "verifiedOn": {
+          "type": "string",
+          "format": "date",
+          "description": "When this item was last checked against an official source."
         }
       }
     },
@@ -539,6 +564,11 @@
         },
         "verify": {
           "type": "boolean"
+        },
+        "verifiedOn": {
+          "type": "string",
+          "format": "date",
+          "description": "When this item was last checked against an official source."
         }
       }
     },
@@ -683,6 +713,11 @@
               "type": "string"
             }
           }
+        },
+        "verifiedOn": {
+          "type": "string",
+          "format": "date",
+          "description": "When this item was last checked against an official source."
         }
       }
     },
@@ -1287,6 +1322,11 @@
         },
         "verify": {
           "type": "boolean"
+        },
+        "verifiedOn": {
+          "type": "string",
+          "format": "date",
+          "description": "When this item was last checked against an official source."
         }
       }
     }

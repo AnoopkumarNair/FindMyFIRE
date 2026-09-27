@@ -400,8 +400,9 @@
         "comment"
       ],
       "help": "Find the balance in the EPFO passbook / UMANG app.",
-      "asOf": "Rate declared for FY2024-25",
-      "verify": true
+      "asOf": "8.25%, declared for FY2025-26 (the latest declared rate)",
+      "verify": true,
+      "verifiedOn": "2026-09-27"
     },
     {
       "id": "vpf",
@@ -445,8 +446,9 @@
         "asOf",
         "comment"
       ],
-      "asOf": "Rate set quarterly by Govt",
-      "verify": true
+      "asOf": "Rate for Jul–Sep 2026 (Q2 FY2026-27), unchanged since Jan 2024",
+      "verify": true,
+      "verifiedOn": "2026-09-27"
     },
     {
       "id": "ssy",
@@ -471,8 +473,9 @@
         "comment"
       ],
       "help": "Usually better modelled as funding a goal than as FIRE corpus.",
-      "asOf": "Rate set quarterly by Govt",
-      "verify": true
+      "asOf": "Rate for Jul–Sep 2026 (Q2 FY2026-27), unchanged since Jan 2024",
+      "verify": true,
+      "verifiedOn": "2026-09-27"
     },
     {
       "id": "nps_tier1",
@@ -762,7 +765,9 @@
         "asOf",
         "comment"
       ],
-      "verify": true
+      "verify": true,
+      "asOf": "Rate for Jul–Sep 2026 (Q2 FY2026-27), unchanged since Jan 2024",
+      "verifiedOn": "2026-09-27"
     },
     {
       "id": "gold_etf",
@@ -1371,8 +1376,9 @@
     "saleCostRate": 0.02,
     "ltcgRate": 0.125,
     "growthHint": "Long-run residential prices in Indian cities have grown at roughly inflation to a little above it, with big differences by city and locality and long flat spells. Check your city in the RBI House Price Index or NHB RESIDEX, and your locality's recent sale prices, before using more than 5–6%.",
-    "asOf": "LTCG 12.5% without indexation (Finance Act 2024); property bought before 23 Jul 2024 may choose 20% with indexation",
-    "verify": true
+    "asOf": "LTCG 12.5% without indexation. Bought before 23 Jul 2024: the lower of that and 20% with indexation (CII). CII FY2026-27 = 384.",
+    "verify": true,
+    "verifiedOn": "2026-09-27"
   },
   "healthCover": {
     "recommendedCover": 1500000,
@@ -1427,7 +1433,7 @@
     "verify": true
   },
   "incomeTax": {
-    "regime": "New regime (Sec 115BAC), FY2025-26",
+    "regime": "New regime, FY2026-27 (Income-tax Act 2025)",
     "slabs": [
       {
         "upTo": 400000,
@@ -1464,11 +1470,12 @@
     "ltcgEquityRate": 0.125,
     "ltcgEquityExemption": 125000,
     "note": "Slab income after FIRE: interest and debt-fund gains, rent (after 30% standard deduction), pension. Equity gains are taxed separately at 12.5% above ₹1.25 lakh. The Sec 87A rebate doesn't apply to equity gains. Surcharge above ₹50 lakh income is ignored. Slabs are assumed to rise with inflation. Foreign shares' long-term gains are taxed at 12.5% with no yearly exemption.",
-    "asOf": "Union Budget 2025",
+    "asOf": "FY2026-27: Union Budget 2026 kept the new-regime slabs, the ₹12 lakh rebate (with marginal relief) and the ₹75,000 standard deduction unchanged; equity LTCG stays 12.5% above ₹1.25 lakh",
     "verify": true,
     "ltcgForeignRate": 0.125,
     "ltcgForeignExemption": 0,
-    "rebateMarginalRelief": true
+    "rebateMarginalRelief": true,
+    "verifiedOn": "2026-09-27"
   },
   "resolution": [
     {
@@ -2219,5 +2226,6 @@
       },
       "message": "Your answer is a rough estimate. Breaking down expenses improves it the most."
     }
-  ]
+  ],
+  "verifiedOn": "2026-09-27"
 }

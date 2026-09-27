@@ -448,5 +448,20 @@ function assumptionsEditor(ctx) {
         changed ? h("button", { type: "button", class: "link", onClick: () => set(undefined) }, "Reset") : null),
       extra ? h("div", { class: "wide-note" }, extra) : null);
   });
-  return h("div", { class: "assumptions" }, ...rows);
+  return h("div", { class: "assumptions" }, ...rows, rulesProvenance(pack));
+}
+
+/** The tax rules and administered rates the plan uses, with where they come from and when they were checked. */
+function rulesProvenance(pack) {
+  const date = (d) => (d ? new Date(`${d}T00:00:00`).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" }) : "not yet checked");
+  const items = [
+    pack.incomeTax && { label: "Income tax", note: pack.incomeTax.asOf, on: pack.incomeTax.verifiedOn },
+    pack.property && { label: "Property capital gains", note: pack.property.asOf, on: pack.property.verifiedOn },
+    ...pack.instruments.filter((i) => i.asOf || i.unlock?.note).map((i) => ({ label: i.label, note: [i.asOf, i.unlock?.note].filter(Boolean).join(" "), on: i.verifiedOn })),
+    ...pack.inflowTemplates.filter((t) => t.asOf).map((t) => ({ label: t.label, note: `${t.hint || ""} (${t.asOf})`, on: t.verifiedOn })),
+  ].filter(Boolean);
+  return h("details", { class: "provenance" },
+    h("summary", {}, `Tax rules and rates used (rules ${pack.packId}.${pack.packVersion}, last checked ${date(pack.verifiedOn)})`),
+    h("p", { class: "muted small" }, "These change with Budgets and government notices. Each shows what it's based on and when it was last checked against official sources. The plan is an estimate built on them, not tax advice."),
+    h("ul", {}, ...items.map((x) => h("li", {}, h("strong", {}, x.label), x.on ? ` · checked ${date(x.on)}` : " · not checked yet", h("small", { class: "help" }, x.note)))));
 }
