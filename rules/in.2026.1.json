@@ -496,15 +496,33 @@
         "asOf",
         "comment"
       ],
-      "help": "Locked until 60: it isn't spent before then. At 60 the plan counts 60% as a lump sum and 40% as a monthly pension. Include your employer's contributions (corporate NPS).",
+      "help": "Locked until you exit NPS (60, or later up to 85): it isn't spent before then. By default the plan takes 60% as a lump sum (the tax-free part) and 40% as a monthly pension; change this under Life after FIRE. Include your employer's contributions (corporate NPS).",
       "verify": true,
       "unlock": {
         "age": 60,
+        "maxAge": 85,
         "lumpSumShare": 0.6,
         "annuityShare": 0.4,
         "annuityRate": 0.06,
-        "note": "At 60, at least 40% must buy an annuity (pension); the rest can be taken tax-free. PFRDA has been revising exit rules; check the current limits."
-      }
+        "bySector": {
+          "private": {
+            "maxLumpShare": 0.8
+          },
+          "government": {
+            "maxLumpShare": 0.6
+          }
+        },
+        "fullWithdrawalUpTo": 800000,
+        "partialBand": {
+          "corpusUpTo": 1200000,
+          "lumpMax": 600000
+        },
+        "taxFreeShare": 0.6,
+        "note": "PFRDA exit rules (Dec 2025): at 60 you can take up to 80% as a lump sum (60% for government employees) and the rest buys an annuity; a balance up to ₹8 lakh can be taken in full, and ₹8–12 lakh allows up to ₹6 lakh. Exit can be deferred to 85. Only 60% of the balance is tax-free; a lump sum above that is taxed at slab rates.",
+        "verifiedOn": "2026-09-27"
+      },
+      "asOf": "PFRDA exit regulations, Dec 2025",
+      "verifiedOn": "2026-09-27"
     },
     {
       "id": "nps_tier2",
@@ -1949,6 +1967,83 @@
             "input": "percent",
             "bind": "/plan/sipStepUp",
             "defaultFrom": "sip.stepUp"
+          },
+          {
+            "id": "r.nps_sector",
+            "prompt": "Your NPS account",
+            "input": "select",
+            "bind": "/plan/nps/sector",
+            "showIf": {
+              "any": [
+                {
+                  "ref": "/quick/npsBalance",
+                  "op": "gt",
+                  "value": 0
+                },
+                {
+                  "ref": "/holdings",
+                  "op": "hasInstrument",
+                  "value": "nps_tier1"
+                }
+              ]
+            },
+            "options": [
+              {
+                "value": "private",
+                "label": "Private sector or all-citizen"
+              },
+              {
+                "value": "government",
+                "label": "Central or state government"
+              }
+            ],
+            "help": "Sets how much you can take as a lump sum: up to 80%, or 60% for government employees."
+          },
+          {
+            "id": "r.nps_exit_age",
+            "prompt": "Age you'll exit NPS",
+            "input": "integer",
+            "bind": "/plan/nps/exitAge",
+            "min": 60,
+            "max": 85,
+            "showIf": {
+              "any": [
+                {
+                  "ref": "/quick/npsBalance",
+                  "op": "gt",
+                  "value": 0
+                },
+                {
+                  "ref": "/holdings",
+                  "op": "hasInstrument",
+                  "value": "nps_tier1"
+                }
+              ]
+            },
+            "help": "60 to 85. Until then it keeps growing; contributions stop when you stop working. Leave blank for 60."
+          },
+          {
+            "id": "r.nps_lump",
+            "prompt": "Share of NPS you'll take as a lump sum",
+            "input": "percent",
+            "bind": "/plan/nps/lumpShare",
+            "min": 0,
+            "max": 0.8,
+            "showIf": {
+              "any": [
+                {
+                  "ref": "/quick/npsBalance",
+                  "op": "gt",
+                  "value": 0
+                },
+                {
+                  "ref": "/holdings",
+                  "op": "hasInstrument",
+                  "value": "nps_tier1"
+                }
+              ]
+            },
+            "help": "The rest buys a pension for life. Only 60% of the balance is tax-free; anything above that is taxed at slab rates. Leave blank for 60%."
           }
         ],
         "benefit": "How your spending changes after you stop, and how fast your investments step up."

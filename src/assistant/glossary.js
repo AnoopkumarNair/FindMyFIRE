@@ -36,7 +36,7 @@ export const GLOSSARY = {
   },
   nps: {
     names: ["nps", "national pension"],
-    text: "NPS (National Pension System) is mostly locked until 60. At 60 part of it can be taken as a lump sum and the rest buys an annuity that pays a monthly pension. This plan assumes 60% as a lump sum and 40% into an annuity.",
+    text: "NPS (National Pension System) is mostly locked until 60. At 60 part of it can be taken as a lump sum and the rest buys an annuity that pays a monthly pension. Most accounts can take up to 80% as a lump sum (government employees 60%), but only 60% is tax-free, so this plan assumes 60% unless you change it under Life after FIRE.",
   },
   ltcg: {
     names: ["ltcg", "capital gains", "long term capital gain", "long-term capital gains"],

@@ -481,3 +481,33 @@ test("check-ins show the change since the previous one, and flag when the answer
   const old = progress([{ date: "2025-01-01", fireCorpus: 1, netWorth: 1 }, { date: "2025-06-01", fireCorpus: 2, netWorth: 3 }]);
   assert.equal(old[1].change.chance, null, "older check-ins without every field still work");
 });
+
+// ---- NPS exit choices (PFRDA rules as in the rules pack) ----
+test("NPS lump sum follows the sector's cap, small-balance rules and the tax-free share", async () => {
+  const { npsExit, npsExitAge } = await import("../src/engine/resolve.js");
+  const U = pk().instruments.find((i) => i.id === "nps_tier1").unlock, tax = pk().incomeTax;
+  const big = 20000000; // big enough that the taxable 20% is above the rebate limit
+  assert.equal(npsExit(big, U, {}, { tax }).lump, 0.6 * big, "default: the tax-free 60%");
+  assert.equal(npsExit(big, U, {}, { tax }).tax, 0, "no tax within 60%");
+  const eighty = npsExit(big, U, { lumpShare: 0.8 }, { tax });
+  assert.equal(eighty.lump, 0.8 * big, "private sector may take 80%");
+  assert.ok(eighty.tax > 0, "the 20% above the tax-free share is taxed");
+  assert.equal(npsExit(big, U, { lumpShare: 0.8, sector: "government" }, { tax }).lump, 0.6 * big, "government stays at 60%");
+  assert.equal(npsExit(big, U, { lumpShare: 1 }, { tax }).lump, 0.8 * big, "never above the cap");
+  assert.equal(npsExit(700000, U, {}, { tax }).lump, 700000, "up to ₹8 lakh can come out in full");
+  assert.equal(npsExit(1000000, U, { lumpShare: 0.8 }, { tax }).lump, 600000, "₹8–12 lakh: at most ₹6 lakh");
+  assert.equal(npsExitAge(U, { exitAge: 70 }), 70);
+  assert.equal(npsExitAge(U, { exitAge: 90 }), 85, "no later than 85");
+  assert.equal(npsExitAge(U, { exitAge: 55 }), 60, "no earlier than 60");
+});
+
+test("choosing a later NPS exit or a bigger lump sum flows through the plan", async () => {
+  const { evaluatePlan } = await import("../src/engine/index.js");
+  const run = (nps) => evaluatePlan({ ...quickBase, plan: { ...quickBase.plan, nps }, quick: { ...quickBase.quick, npsBalance: 5000000, npsMonthly: 25000 } }, pk(), { today: day });
+  const base = run(undefined), later = run({ exitAge: 65 }), bigger = run({ lumpShare: 0.8 });
+  const L = (r) => r.inputs.locked[0];
+  assert.equal(L(later).unlock.age, 65);
+  assert.ok(L(later).atUnlock.total > L(base).atUnlock.total, "it keeps growing until the later exit");
+  assert.ok(Math.abs(L(bigger).atUnlock.lump - 0.8 * L(bigger).atUnlock.total) < 1 && L(bigger).atUnlock.tax > 0);
+  assert.ok(L(bigger).atUnlock.pensionMonthly < L(base).atUnlock.pensionMonthly, "a bigger lump sum means a smaller pension");
+});

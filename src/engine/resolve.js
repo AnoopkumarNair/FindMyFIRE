@@ -1,3 +1,4 @@
+import { slabTax } from "./tax.js";
 // Turns a user file + rules pack into the plain numbers the projection needs.
 // Quick-pass answers are used until the matching refine section is in
 // `sectionsDone`; then the detailed lists win (see `resolution` in the pack).
@@ -122,7 +123,7 @@ export function resolveInputs(user, pack, today = new Date()) {
         excludedCorpus += h.value;
         excluded.push({ label: h.label || inst.label, value: h.value, instrumentId: h.instrumentId });
         if (inst.unlock && h.countInFire !== false) locked.push({
-          label: h.label || inst.label, from: "your Investments list", value: h.value, rate: inst.defaultReturn ?? 0.08, unlock: inst.unlock,
+          label: h.label || inst.label, instrumentId: h.instrumentId, from: "your Investments list", value: h.value, rate: inst.defaultReturn ?? 0.08, unlock: inst.unlock,
           yearlyContribution: 12 * ((h.monthlyContribution || 0) + (h.employerMonthlyContribution || 0)) + (h.annualContribution || 0),
         });
       }
@@ -146,7 +147,7 @@ export function resolveInputs(user, pack, today = new Date()) {
     if (q.npsBalance > 0 && npsInst?.unlock) {
       excludedCorpus += q.npsBalance;
       excluded.push({ label: npsInst.label, value: q.npsBalance, instrumentId: "nps_tier1" });
-      locked.push({ label: npsInst.label, from: "your answer to the NPS question", value: q.npsBalance, rate: npsInst.defaultReturn ?? 0.09, unlock: npsInst.unlock,
+      locked.push({ label: npsInst.label, instrumentId: "nps_tier1", from: "your answer to the NPS question", value: q.npsBalance, rate: npsInst.defaultReturn ?? 0.09, unlock: npsInst.unlock,
         yearlyContribution: 12 * (q.npsMonthly || 0) });
     }
     monthlySip = q.monthlySip ?? 0;
@@ -228,16 +229,23 @@ export function resolveInputs(user, pack, today = new Date()) {
   // Locked money: grows (with contributions until FIRE) to its unlock age, then arrives as a
   // lump sum plus, for NPS, a pension from the annuity share.
   for (const l of locked) {
+    // NPS: your exit age and lump-sum share, within the rules pack's limits (see npsExit).
+    if (l.instrumentId === "nps_tier1") l.unlock = { ...l.unlock, age: npsExitAge(l.unlock, plan.nps) };
     const years = l.unlock.age - age;
     if (years <= 0) continue;
     const payingYears = Math.max(0, Math.min(years, (plan.fireTargetAge ?? l.unlock.age) - age));
     let v = l.value;
     for (let y = 0; y < years; y++) v = (v + (y < payingYears ? l.yearlyContribution : 0)) * (1 + l.rate);
-    const lump = v * (l.unlock.lumpSumShare ?? 1);
-    l.atUnlock = { total: v, lump, pensionMonthly: l.unlock.annuityShare ? (v * l.unlock.annuityShare * (l.unlock.annuityRate ?? 0.06)) / 12 : 0 };
-    inflows.push({ label: `${l.label} (unlocks at ${l.unlock.age})`, atAge: l.unlock.age, net: lump, source: "estimate" });
-    if (l.unlock.annuityShare)
-      incomesAfterFire.push({ taxShare: 1, label: `${l.label} pension`, monthly: (v * l.unlock.annuityShare * (l.unlock.annuityRate ?? 0.06)) / 12,
+    const exit = l.instrumentId === "nps_tier1"
+      ? npsExit(v, l.unlock, plan.nps, { tax: pack.incomeTax, deflator: (1 + A["inflation.general"]) ** years })
+      : { lump: v * (l.unlock.lumpSumShare ?? 1), tax: 0 };
+    const annuity = l.instrumentId === "nps_tier1" ? v - exit.lump : v * (l.unlock.annuityShare ?? 0);
+    const pensionMonthly = (annuity * (l.unlock.annuityRate ?? 0.06)) / 12;
+    l.unlock = { ...l.unlock, lumpSumShare: exit.lump / v, annuityShare: annuity / v };
+    l.atUnlock = { total: v, lump: exit.lump, tax: exit.tax, pensionMonthly };
+    inflows.push({ label: `${l.label} (unlocks at ${l.unlock.age})`, atAge: l.unlock.age, net: exit.lump - exit.tax, source: "estimate" });
+    if (pensionMonthly > 0)
+      incomesAfterFire.push({ taxShare: 1, label: `${l.label} pension`, monthly: pensionMonthly,
         growth: 0, fromAge: l.unlock.age, endsAtAge: null, nominal: true });
   }
 
@@ -337,4 +345,25 @@ export function premiumAt(table, a) {
     if (a <= hi.age) return lo.premium + ((a - lo.age) / (hi.age - lo.age)) * (hi.premium - lo.premium);
   }
   return table.at(-1).premium;
+}
+
+/** The age NPS is taken: your choice between the unlock age and the latest allowed, else the unlock age. */
+export function npsExitAge(unlock, choice = {}) {
+  return Math.min(unlock.maxAge ?? unlock.age, Math.max(unlock.age, choice?.exitAge ?? unlock.age));
+}
+
+/**
+ * NPS at exit (all nominal rupees): how much comes out as a lump sum and the tax on it. The lump
+ * sum is your chosen share, capped by your sector's limit; a small balance can come out in full,
+ * a middling one up to a fixed amount. Only `taxFreeShare` of the balance is tax-free; the rest of
+ * the lump sum is taxed at slab rates (slabs rising with inflation, so worked out in today's money).
+ */
+export function npsExit(balance, unlock, choice = {}, { tax, deflator = 1 } = {}) {
+  const max = unlock.bySector?.[choice?.sector || "private"]?.maxLumpShare ?? unlock.lumpSumShare ?? 1;
+  let lump = balance * Math.min(max, Math.max(0, choice?.lumpShare ?? unlock.lumpSumShare ?? max));
+  if (unlock.fullWithdrawalUpTo != null && balance <= unlock.fullWithdrawalUpTo) lump = choice?.lumpShare != null ? balance * choice.lumpShare : balance;
+  else if (unlock.partialBand && balance <= unlock.partialBand.corpusUpTo) lump = Math.min(lump, unlock.partialBand.lumpMax);
+  const taxable = Math.max(0, lump - balance * (unlock.taxFreeShare ?? 1));
+  const owed = taxable > 0 && tax ? slabTax(taxable / deflator, tax) * (1 + (tax.cess ?? 0)) * deflator : 0;
+  return { lump, tax: owed };
 }

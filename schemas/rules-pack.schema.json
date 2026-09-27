@@ -711,6 +711,50 @@
             },
             "note": {
               "type": "string"
+            },
+            "maxAge": {
+              "type": "integer",
+              "description": "Latest age the exit can be deferred to."
+            },
+            "bySector": {
+              "type": "object",
+              "additionalProperties": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "maxLumpShare": {
+                    "type": "number",
+                    "minimum": 0,
+                    "maximum": 1
+                  }
+                }
+              }
+            },
+            "fullWithdrawalUpTo": {
+              "type": "number",
+              "description": "A balance up to this can be taken in full."
+            },
+            "partialBand": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "corpusUpTo": {
+                  "type": "number"
+                },
+                "lumpMax": {
+                  "type": "number"
+                }
+              }
+            },
+            "taxFreeShare": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1,
+              "description": "Share of the balance that can be taken tax-free."
+            },
+            "verifiedOn": {
+              "type": "string",
+              "format": "date"
             }
           }
         },
