@@ -874,3 +874,6 @@ body::before { inset: -12%; animation: dawn-drift 34s ease-in-out infinite alter
 .sources li { border: 1px solid var(--border); border-radius: 12px; padding: 0.8rem 1rem; background: var(--raised); }
 .sources li p { margin: 0.25rem 0 0; }
 .sources a { font-weight: 600; overflow-wrap: anywhere; }
+.card.stress { border-left: 4px solid var(--sun); }
+.card.stress h2 { font-size: 1.05rem; }
+.strategy { margin: 0.4rem 0 0.8rem; }

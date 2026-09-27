@@ -29,6 +29,8 @@ export function words(n) {
 export const pct = (x, d = 1) => (x == null || !Number.isFinite(x) ? "—" : `${trim(x * 100, d)}%`);
 
 export const age1 = (a) => (a == null ? "—" : trim(a, 1));
+/** An age in whole years, for headlines: the model can't honestly promise a decimal. */
+export const ageWhole = (a) => (a == null ? "—" : String(Math.round(a)));
 
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
@@ -37,4 +39,10 @@ export function monthAtAge(birthYearMonth, age) {
   const [y, m] = birthYearMonth.split("-").map(Number);
   const total = (m - 1) + Math.round(age * 12);
   return `${MONTHS[((total % 12) + 12) % 12]} ${y + Math.floor(total / 12)}`;
+}
+
+/** The calendar year you reach an age (for headlines; months would be false precision). */
+export function yearAtAge(birthYearMonth, age) {
+  const [y, m] = birthYearMonth.split("-").map(Number);
+  return y + Math.floor(((m - 1) + Math.round(age * 12)) / 12);
 }

@@ -1,7 +1,7 @@
 // Shareable result card, drawn on a canvas on this device. Only what the user ticks goes on it,
 // and nothing is uploaded: the image is handed to the phone's share sheet or downloaded.
 import { h } from "./dom.js";
-import { inrShort, age1 } from "./format.js";
+import { inrShort } from "./format.js";
 
 const W = 1080, H = 1350;
 // Whatever address the app is served from (github.io today, a custom domain later).
@@ -81,7 +81,7 @@ const toBlob = (canvas) => new Promise((res) => canvas.toBlob(res, "image/png"))
 export function openShareDialog(r) {
   const opts = { showTarget: true, showAmounts: false };
   const canvas = document.createElement("canvas");
-  const img = h("img", { class: "share-preview", alt: `Share card: could make work optional at ${age1(r.earliestAge)}` });
+  const img = h("img", { class: "share-preview", alt: `Share card: could make work optional at about ${r.earliestAge == null ? "—" : Math.round(r.earliestAge)}` });
   const redraw = async () => { await drawCard(canvas, r, opts); img.src = canvas.toDataURL("image/png"); };
   const box = (key, label) => h("label", { class: "check" },
     h("input", { type: "checkbox", checked: opts[key], onChange: (e) => { opts[key] = e.target.checked; redraw(); } }), label);

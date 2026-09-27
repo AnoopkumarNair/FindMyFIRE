@@ -1,6 +1,6 @@
 import { h, mount } from "./dom.js";
 import { control } from "./fields.js";
-import { inr, inrShort, pct, age1, monthAtAge } from "./format.js";
+import { inr, inrShort, pct, age1, ageWhole, yearAtAge } from "./format.js";
 import { corpusChart } from "./chart.js";
 import { sectionEditor } from "./editors.js";
 import { marketNote } from "./market.js";
@@ -64,7 +64,7 @@ function drawLive() {
   const r = S.result;
   if (!r) { live.replaceChildren(h("span", { class: "muted" }, "Your result appears here as you answer.")); return; }
   live.replaceChildren(
-    h("span", {}, "Earliest FIRE age ", h("strong", {}, r.earliestAge == null ? "not before " + r.inputs.planUntilAge : age1(r.earliestAge))),
+    h("span", {}, "Earliest FIRE age ", h("strong", {}, r.earliestAge == null ? "not before " + r.inputs.planUntilAge : `about ${ageWhole(r.earliestAge)}`)),
     h("span", {}, "Corpus needed at ", r.target.age, ": ", h("strong", {}, inrShort(r.target.required))),
     h("span", {}, "Estimate quality ", h("strong", {}, `${r.confidence.score}`), ` (${r.confidence.band.label})`));
 }
@@ -479,11 +479,11 @@ function resultsView() {
     embers(5),
     h("p", { class: "eyebrow" }, "Earliest you could stop working"),
     h("h1", { tabindex: -1, class: "big-age" }, reached
-      ? [h("span", { class: "unit" }, "Age "), h("span", { "data-count": Number(age1(r.earliestAge)), "data-dec": 1 }, age1(r.earliestAge))]
+      ? [h("span", { class: "unit" }, "Around "), h("span", { "data-count": Math.round(r.earliestAge), "data-dec": 0 }, ageWhole(r.earliestAge))]
       : `Not before ${r.inputs.planUntilAge}`),
-    reached ? h("p", { class: "sub" }, `Around ${monthAtAge(bym, r.earliestAge)}. `,
-      r.range.from != null && r.range.to != null && r.range.to - r.range.from >= 0.2
-        ? `Likely between ${age1(r.range.from)} and ${age1(r.range.to)}, allowing for how exact your answers are.`
+    reached ? h("p", { class: "sub" }, `In about ${yearAtAge(bym, r.earliestAge)}, with steady returns. `,
+      r.range.from != null && r.range.to != null && Math.ceil(r.range.to) - Math.floor(r.range.from) >= 1
+        ? `Likely ${Math.floor(r.range.from)}–${Math.ceil(r.range.to)}, allowing for how exact your answers are.`
         : r.range.to == null ? "With pessimistic readings of your answers it may not be reachable." : "")
       : h("p", { class: "sub" }, "With current savings and spending, the corpus doesn't catch up with what you'd need. Try the levers below."),
     chanceStrip(r),
@@ -507,6 +507,7 @@ function resultsView() {
     // The decision first: when, how much, and what changes it. Then how to sharpen it, questions,
     // and the detail behind it.
     hero, kpis,
+    stressLine(r),
     leversCard(r),
     confidenceCard(r),
     askCard(askOptions),
@@ -578,7 +579,7 @@ const askOptions = {
 function chanceStrip(r) {
   const c = r.chance, until = r.inputs.planUntilAge;
   const pill = (label, age, cls, badge) => h("span", { class: ["pill", cls] }, badge ? h("em", { class: "badge" }, badge) : null,
-    h("strong", {}, age == null ? `after ${until}` : age1(age)), label);
+    h("strong", {}, age == null ? `after ${until}` : ageWhole(age)), label);
   return h("div", { class: "chance" },
     h("p", { class: "muted small" }, `How sure is that? Markets don't return the same every year, and a bad run early in retirement hurts most. Stopping at each age, how many of ${c.runs.toLocaleString("en-IN")} simulated market histories last to ${until}:`),
     h("div", { class: "pills" },
@@ -597,7 +598,7 @@ function sensitivityCard(r) {
   const max = Math.max(1, ...rows.flatMap((x) => [Math.abs(x.lo.ageDelta ?? 0), Math.abs(x.hi.ageDelta ?? 0)]));
   const bar = (d, side) => h("span", { class: ["tbar", side, d > 0 ? "later" : "sooner"], "data-w": Math.min(1, Math.abs(d ?? max) / max) });
   return card("What moves your FIRE age most",
-    h("p", { class: "muted small" }, `Each input changed on its own, with steady returns, from today's earliest age of ${age1(r.earliestAge)}. Left is the lower setting, right the higher; green brings FIRE sooner, red pushes it later.`),
+    h("p", { class: "muted small" }, `Each input changed on its own, with steady returns, from today's earliest age of about ${ageWhole(r.earliestAge)}. Left is the lower setting, right the higher; green brings FIRE sooner, red pushes it later.`),
     h("ul", { class: "tornado" }, ...rows.map((x) => {
       const ageMoves = Math.abs(x.lo.ageDelta ?? 1) >= 0.05 || Math.abs(x.hi.ageDelta ?? 1) >= 0.05;
       return h("li", {},
@@ -610,13 +611,31 @@ function sensitivityCard(r) {
     })));
 }
 
+/**
+ * The one stress case worth a headline: markets fall just as you stop. Everything else about the
+ * future is uncertain; this is the risk that hurts most and can be planned for.
+ */
+function stressLine(r) {
+  const s = r.scenarios.find((x) => x.id === "crash_at_fire");
+  if (!s || r.earliestAge == null) return null;
+  const later = s.earliestAge == null ? null : s.earliestAge - r.earliestAge;
+  return h("section", { class: "card stress" },
+    h("h2", {}, "What if retirement starts badly?"),
+    h("p", {}, "If markets fall 30% in your first year after stopping, ",
+      s.earliestAge == null ? h("strong", {}, `the money wouldn't last to ${r.inputs.planUntilAge} at any age`)
+        : later < 0.5 ? h("strong", {}, "your earliest age barely moves") : [h("strong", {}, `your earliest age moves from about ${ageWhole(r.earliestAge)} to about ${ageWhole(s.earliestAge)}`), ` (about ${Math.round(later)} year${Math.round(later) === 1 ? "" : "s"} later)`],
+      ". ",
+      r.chance.confidentAge != null ? `The safe planning age of about ${ageWhole(r.chance.confidentAge)} already allows for bad starts like this. ` : "",
+      "Holding 3 years of withdrawals in cash and 5 in debt when you stop (see Living off your corpus) is what lets you ride it out without selling equity at the bottom."));
+}
+
 function leversCard(r) {
   const L = r.levers, t = r.target, now = r.inputs.monthlySip;
   if (!L) return null;
   if (L.onTrack) {
     return card("You have room",
       h("ul", { class: "levers" },
-        h("li", {}, h("strong", {}, `Stop at ${age1(L.retireAt)}`), ` instead of ${t.age} (steady returns; ${age1(r.chance.confidentAge)} for 90% of simulated paths to last).`),
+        h("li", {}, h("strong", {}, `Stop at about ${ageWhole(L.retireAt)}`), ` instead of ${t.age} (steady returns; about ${ageWhole(r.chance.confidentAge)} for 90% of simulated paths to last).`),
         L.spendAfterFire && h("li", {}, h("strong", {}, `Spend up to ${inr(L.spendAfterFire.to)} a month`), ` after FIRE (today's money) instead of ${inr(L.spendAfterFire.from)}.`)));
   }
   const items = [
@@ -624,7 +643,7 @@ function leversCard(r) {
       ` from your pay (${inr(now + L.investMore)} in total, not counting PF), increasing ${pct(r.params.stepUp, 0)} each year.`),
     L.spendAfterFire && h("li", {}, h("strong", {}, `Plan to live on ${inr(L.spendAfterFire.to)} a month`),
       ` after FIRE (today's money) instead of ${inr(L.spendAfterFire.from)}. A cheaper city, or no rent or EMIs by then, can do this.`),
-    L.retireAt != null && h("li", {}, h("strong", {}, `Stop at ${age1(L.retireAt)}`), ` instead of ${t.age} (steady returns). For 90% of simulated paths to last: ${age1(r.chance.confidentAge)}.`),
+    L.retireAt != null && h("li", {}, h("strong", {}, `Stop at about ${ageWhole(L.retireAt)}`), ` instead of ${t.age} (steady returns). For 90% of simulated paths to last: about ${ageWhole(r.chance.confidentAge)}.`),
     !(r.inputs.properties || []).length && h("li", {}, h("strong", {}, "Count your property. "), "Selling or renting out a second home can close much of the gap: ",
       h("a", { href: "#/refine/property" }, "add it under Property"), "."),
   ].filter(Boolean);
@@ -721,7 +740,7 @@ function actionPlanCard(r) {
   const reachable = t.gap < 0 && t.requiredMonthlySip != null && t.requiredMonthlySip <= 1.5 * now;
   step("This year", reachable ? `Invest ${inr(t.requiredMonthlySip)} a month from your pay` : `Keep investing ${inr(now)} a month from your pay`,
     reachable ? `That's what reaching ${fireAge} takes (you invest ${inr(now)} now${pfNote}). `
-      : t.gap < 0 ? `With your PF${pf ? ` (${inr(pf)} a month)` : ""}, this gets you to about ${age1(r.earliestAge)} with steady returns (${age1(r.chance.likelyAge)} for 75% of simulated paths to last). To get closer to ${fireAge}, combine the options above. `
+      : t.gap < 0 ? `With your PF${pf ? ` (${inr(pf)} a month)` : ""}, this gets you to about ${ageWhole(r.earliestAge)} with steady returns (about ${ageWhole(r.chance.likelyAge)} for 75% of simulated paths to last). To get closer to ${fireAge}, combine the options above. `
       : `You're on track${pfNote}. `,
     `Raise it ${pct(r.params.stepUp, 0)} every year, e.g. with each raise. Until ${prep}, keep about ${S.pack.assetClasses.map((a) => `${Math.round(a.targetBeforeFire * 100)}% ${a.label.toLowerCase()}`).filter((x) => !x.startsWith("0%")).join(", ")}.`);
   const efTarget = A["emergency.months"] * (r.derived.monthlyExpenses + r.derived.monthlyEmi);
@@ -748,7 +767,7 @@ function actionPlanCard(r) {
     l.instrumentId === "nps_tier1" ? "Change the exit age or lump sum under Life after FIRE. " : "",
     l.unlock.note || "");
   // The bucket and SWP steps describe stopping at the target; say so when the plan doesn't reach it yet.
-  const ifClosed = t.gap < 0 ? `This assumes you close the gap above; on today's path you'd stop around ${age1(r.earliestAge ?? i.planUntilAge)}. ` : "";
+  const ifClosed = t.gap < 0 ? `This assumes you close the gap above; on today's path you'd stop around ${ageWhole(r.earliestAge ?? i.planUntilAge)}. ` : "";
   if (w?.buckets && prep < fireAge)
     step(`From ${prep}`, "Build the buckets over three years",
       ifClosed, `Move new money and some equity gains into debt and cash so that by ${fireAge} you hold about ${inrShort(w.buckets.cash.amount)} in cash (3 years of spending) and ${inrShort(w.buckets.debt.amount)} in debt (the next 5). This protects you if markets fall just as you stop.`);
@@ -808,6 +827,7 @@ function breakdownCard(r) {
   const total = rows.reduce((a, x) => a + x[1], 0);
   return card(`What the ${inrShort(t.required)} pays for`,
     h("p", { class: "muted small" }, `Everything you'd spend from ${t.age} to ${r.inputs.planUntilAge}, valued at ${t.age}. If something looks too big, that's the number to question.`),
+    runsOutNote(r),
     h("div", { class: "stack-bar", role: "img", "aria-label": rows.map((x) => `${x[0]} ${inrShort(x[1])}`).join(", ") },
       ...rows.map((x) => h("span", { class: ["stack-seg", x[3]], "data-w": x[1] / total, title: `${x[0]}: ${inrShort(x[1])}` }))),
     h("div", { class: "table-wrap" }, h("table", { class: "breakdown" }, h("tbody", {},
@@ -816,6 +836,19 @@ function breakdownCard(r) {
       ...minus.map((x) => h("tr", { class: "minus" }, h("th", { scope: "row" }, x[0]), h("td", { class: "num" }, `−${inrShort(x[1])}`), h("td", {}))),
       h("tr", { class: "total-row" }, h("th", { scope: "row" }, `Corpus needed at ${t.age}`), h("td", { class: "num" }, inrShort(t.required)), h("td", {}))))),
     mathDetails(r));
+}
+
+/**
+ * The withdrawal strategy behind "money needed", in one sentence: an income rising with inflation,
+ * sized to run out at the plan-until age. And roughly what it would take never to run out.
+ */
+function runsOutNote(r) {
+  const t = r.target, rr = r.params.rPost, g = r.params.infl.general, w = t.firstYearWithdrawal;
+  const forever = w > 0 && rr - g > 0.005 ? (w * (1 + rr)) / (rr - g) : null;
+  return h("p", { class: "small strategy" }, h("strong", {}, "How it's sized: "),
+    `a yearly withdrawal that rises with inflation, from ${t.age} until ${r.inputs.planUntilAge}, when the money is planned to run out. `,
+    forever ? `Never running out (living off returns alone) would take roughly ${inrShort(forever)} at ${t.age}. ` : "",
+    `To plan for a longer life, raise "money should last until" under Life after FIRE.`);
 }
 
 /** The calculation chain, step by step, from today's spending to the gap at the target age. */
