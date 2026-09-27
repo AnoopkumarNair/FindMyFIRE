@@ -2514,10 +2514,10 @@
     },
     {
       "id": "rbi-hpi",
-      "title": "House Price Index, Q1 2026-27 (18 cities, base 2022-23 = 100)",
+      "title": "House Price Index, Q1 2026-27 (base 2022-23 = 100)",
       "publisher": "Reserve Bank of India",
       "url": "https://www.rbi.org.in",
-      "covers": "City and state price trends shown in the Property section; All-India 117.5, +1.1% on the quarter, +3.6% on the year (released Aug 2026)",
+      "covers": "The All-India price trend shown in the Property section: index 117.5, +1.1% on the quarter, +3.6% on the year (released Aug 2026)",
       "checkedOn": "2026-09-27"
     },
     {

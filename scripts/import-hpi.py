@@ -2,7 +2,10 @@
 """Turn RBI's city-wise House Price Index (a spreadsheet saved from the quarterly release) into
 data/house-price-index.json for the Property section.
 
-    python3 scripts/import-hpi.py <file.xlsx> [--release-url URL]
+    python3 scripts/import-hpi.py <file.xlsx> [--release-url URL] [--with-cities]
+
+By default only the All-India row is kept. Add --with-cities only for a table taken straight from
+RBI (a press-release attachment or DBIE), after checking a few city figures against the release.
 
 Expects one sheet with the columns City, State/Region, HPI_Q<n>_<yyyy>_<yy> (index, 2022-23 = 100),
 QoQ_Growth_Percent and YoY_Growth_Percent, and an 'ALL INDIA' row. Needs openpyxl.
@@ -22,7 +25,7 @@ def quarter_mid(q, fy_start):
     return date(year, (month - 1) % 12 + 1, 15)
 
 
-def main(path, release_url):
+def main(path, release_url, with_cities):
     ws = openpyxl.load_workbook(path, data_only=True).worksheets[0]
     rows = [r for r in ws.iter_rows(values_only=True) if any(c is not None for c in r)]
     head = [str(c).strip() for c in rows[0]]
@@ -47,6 +50,7 @@ def main(path, release_url):
         cities.append({"city": name, "state": STATE_NAMES.get(state, state), **entry(r)})
     assert all_india, "no ALL INDIA row"
     assert len(cities) >= 10, f"only {len(cities)} cities"
+    if not with_cities: cities = []
 
     states = {}
     for c in cities: states.setdefault(c["state"], []).append(c)
@@ -73,4 +77,4 @@ def main(path, release_url):
 if __name__ == "__main__":
     args = sys.argv[1:]
     url = args[args.index("--release-url") + 1] if "--release-url" in args else "https://www.rbi.org.in"
-    main(args[0], url)
+    main(args[0], url, "--with-cities" in args)

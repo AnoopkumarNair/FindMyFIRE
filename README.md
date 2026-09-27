@@ -87,11 +87,11 @@ All amounts are in nominal rupees, projected one year at a time.
 
 ### Property price data
 
-The Property section can compare your growth rate with RBI's House Price Index for your city, your state (the average of its RBI cities), or all of India. The data lives in `data/house-price-index.json`. It's a reference only; it never changes your number unless you press "Use".
+The Property section compares your growth rate with RBI's All-India House Price Index. The data lives in `data/house-price-index.json`. It's a reference only; it never changes your number unless you press "Use". City and state figures can be switched on later from RBI's own city table (the importer's `--with-cities` option); they're left out until that table is available, rather than using figures that can't be checked.
 
 To refresh it when RBI publishes a new quarter (about two months after each quarter ends):
 1. Save the city-wise table from RBI's House Price Index release as a spreadsheet with the columns City, State/Region, HPI_Q<n>_<yyyy>_<yy>, QoQ_Growth_Percent and YoY_Growth_Percent, plus an ALL INDIA row. Check the All-India figures against RBI's press release.
-2. Run `python3 scripts/import-hpi.py <file.xlsx>` (needs `pip install openpyxl`). It checks the rows and works out each city's yearly rate since the 2022-23 base.
+2. Run `python3 scripts/import-hpi.py <file.xlsx>` (needs `pip install openpyxl`); add `--with-cities` only for RBI's own table. It checks the rows and works out each city's yearly rate since the 2022-23 base.
 3. Update the `rbi-hpi` entry in the rules pack's sources, run `npm test`, and commit the JSON file. The spreadsheet itself isn't committed.
 
 ### Tests

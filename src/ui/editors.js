@@ -309,33 +309,35 @@ function inflowsEditor(ctx) {
 }
 
 /**
- * RBI House Price Index for a city, a state (average of its RBI cities) or all of India, next to
- * the growth rate the person chose. A reference only: it's applied only if they press "Use".
+ * RBI House Price Index next to the growth rate the person chose: All India, or a city or state
+ * when the data file has RBI's own city table. A reference only: applied only on "Use".
  */
 function priceReference(ctx, x) {
   const D = ctx.hpi, pct1 = (v) => `${(v * 100).toFixed(1)}%`;
-  const groups = [
-    { label: "India", options: [{ value: "all", label: "All India" }] },
-    { label: "States (average of their RBI cities)", options: D.states.map((s) => ({ value: `state:${s.state}`, label: s.cities.length > 1 ? `${s.state} (${s.cities.length} cities)` : s.state })) },
-    { label: "Cities", options: D.cities.map((c) => ({ value: `city:${c.city}`, label: `${c.city}, ${c.state}` })) },
-  ];
+  const hasCities = D.cities?.length > 0;
   const pick = (ref) => {
-    if (!ref) return null;
-    if (ref === "all") return { name: "All India", ...D.allIndia };
+    if (!hasCities || !ref || ref === "all") return { name: "All India", ...D.allIndia };
     const [kind, name] = ref.split(":");
     const hit = kind === "state" ? D.states.find((s) => s.state === name) : D.cities.find((c) => c.city === name);
-    return hit ? { name: kind === "state" && hit.cities.length > 1 ? `${name} (${hit.cities.join(", ")})` : name, ...hit } : null;
+    return hit ? { name: kind === "state" && hit.cities.length > 1 ? `${name} (${hit.cities.join(", ")})` : name, ...hit } : { name: "All India", ...D.allIndia };
   };
   const out = h("div", { class: "field wide price-ref" });
   const draw = () => {
     const ref = pick(x.hpiRef);
+    const groups = hasCities && [
+      { label: "India", options: [{ value: "all", label: "All India" }] },
+      { label: "States (average of their RBI cities)", options: D.states.map((s) => ({ value: `state:${s.state}`, label: s.cities.length > 1 ? `${s.state} (${s.cities.length} cities)` : s.state })) },
+      { label: "Cities", options: D.cities.map((c) => ({ value: `city:${c.city}`, label: `${c.city}, ${c.state}` })) },
+    ];
     out.replaceChildren(
-      field("Compare with official prices", "select", x.hpiRef, (v) => { x.hpiRef = v || undefined; ctx.save(); draw(); },
-        { groups, placeholder: "Choose your city or state…", help: `RBI House Price Index. No index for your state? Compare with All India.` }),
-      ref ? h("p", { class: "small" },
-        h("strong", {}, ref.name), `: prices rose ${pct1(ref.annualSinceBase)} a year since 2022-23 (about ${D.yearsSinceBase.toFixed(1)} years), and ${ref.yoyPercent}% in the last year, to ${D.source.quarter}. `,
+      hasCities
+        ? field("Compare with official prices", "select", x.hpiRef, (v) => { x.hpiRef = v || undefined; ctx.save(); draw(); },
+          { groups, placeholder: "Choose your city or state…", help: "RBI House Price Index. No index for your state? Compare with All India." })
+        : h("strong", { class: "small" }, "Compare with official prices"),
+      h("p", { class: "small" },
+        h("strong", {}, ref.name), `: home prices rose ${pct1(ref.annualSinceBase)} a year since 2022-23 (about ${D.yearsSinceBase.toFixed(1)} years), and ${ref.yoyPercent}% in the last year, to ${D.source.quarter}. `,
         h("button", { type: "button", class: "link", onClick: () => { x.growthRate = ref.annualSinceBase; ctx.redraw(); } }, `Use ${pct1(ref.annualSinceBase)}`),
-        h("small", { class: "help" }, `${D.note} Source: ${D.source.publisher}, ${D.source.title}.`)) : null);
+        h("small", { class: "help" }, `${hasCities ? "" : "Your city may differ a lot from the national average; check recent sale prices in your locality. "}${D.note} Source: ${D.source.publisher}, ${D.source.title}.`)));
   };
   draw();
   return out;
