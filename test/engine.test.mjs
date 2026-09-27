@@ -486,12 +486,12 @@ test("check-ins show the change since the previous one, and flag when the answer
 test("NPS lump sum follows the sector's cap, small-balance rules and the tax-free share", async () => {
   const { npsExit, npsExitAge } = await import("../src/engine/resolve.js");
   const U = pk().instruments.find((i) => i.id === "nps_tier1").unlock, tax = pk().incomeTax;
-  const big = 20000000; // big enough that the taxable 20% is above the rebate limit
+  const big = 20000000;
   assert.equal(npsExit(big, U, {}, { tax }).lump, 0.6 * big, "default: the tax-free 60%");
-  assert.equal(npsExit(big, U, {}, { tax }).tax, 0, "no tax within 60%");
+  assert.equal(npsExit(big, U, {}, { tax }).taxable, 0, "nothing taxable within 60%");
   const eighty = npsExit(big, U, { lumpShare: 0.8 }, { tax });
   assert.equal(eighty.lump, 0.8 * big, "private sector may take 80%");
-  assert.ok(eighty.tax > 0, "the 20% above the tax-free share is taxed");
+  assert.equal(eighty.taxable, 0.2 * big, "the 20% above the tax-free share is taxable");
   assert.equal(npsExit(big, U, { lumpShare: 0.8, sector: "government" }, { tax }).lump, 0.6 * big, "government stays at 60%");
   assert.equal(npsExit(big, U, { lumpShare: 1 }, { tax }).lump, 0.8 * big, "never above the cap");
   assert.equal(npsExit(700000, U, {}, { tax }).lump, 700000, "up to ₹8 lakh can come out in full");
@@ -508,7 +508,10 @@ test("choosing a later NPS exit or a bigger lump sum flows through the plan", as
   const L = (r) => r.inputs.locked[0];
   assert.equal(L(later).unlock.age, 65);
   assert.ok(L(later).atUnlock.total > L(base).atUnlock.total, "it keeps growing until the later exit");
-  assert.ok(Math.abs(L(bigger).atUnlock.lump - 0.8 * L(bigger).atUnlock.total) < 1 && L(bigger).atUnlock.tax > 0);
+  assert.ok(Math.abs(L(bigger).atUnlock.lump - 0.8 * L(bigger).atUnlock.total) < 1);
+  assert.ok(L(bigger).atUnlock.taxedWithIncome, "retired by 60, so it's taxed with that year's income");
+  const taxAt60 = (r) => r.inputs.taxableLumps.reduce((s, x) => s + x.amount, 0);
+  assert.ok(taxAt60(bigger) > 0 && taxAt60(base) === 0);
   assert.ok(L(bigger).atUnlock.pensionMonthly < L(base).atUnlock.pensionMonthly, "a bigger lump sum means a smaller pension");
 });
 
@@ -547,4 +550,21 @@ test("sensitivity moves the FIRE age the right way, and the math adds up", async
   assert.ok(Math.abs(m.savingsToday + m.contributions + m.lumps + m.growth - m.projected) < 1, "the projection adds up");
   assert.ok(Math.abs(m.firstYear.withdrawal - (m.firstYear.need + m.firstYear.tax - m.firstYear.inflow)) < 1, "the first year adds up");
   assert.ok(Math.abs(m.required - r.target.required) < 1);
+});
+
+test("the taxable part of an NPS lump sum is taxed together with that year's other income", async () => {
+  const { evaluatePlan, withdrawalParts } = await import("../src/engine/index.js");
+  const run = (lumpShare) => evaluatePlan({ ...quickBase, plan: { ...quickBase.plan, nps: { lumpShare } }, quick: { ...quickBase.quick, npsBalance: 5000000, npsMonthly: 25000 } }, pk(), { today: day, runs: 1000 });
+  const a = run(0.6), b = run(0.8);
+  const T = Math.floor(60 - a.inputs.age);
+  const partsA = withdrawalParts(a.inputs, a.params, {}, T), partsB = withdrawalParts(b.inputs, b.params, {}, T);
+  const extra = b.inputs.taxableLumps[0].amount;
+  assert.ok(partsB.tax > partsA.tax, "that year's tax goes up");
+  // Stacked on the year's other income, the extra tax is at least what the lump would pay alone.
+  const { slabTax } = await import("../src/engine/tax.js");
+  const deflate = (1 + a.params.infl.general) ** T;
+  assert.ok(partsB.tax - partsA.tax >= slabTax(extra / deflate, pk().incomeTax) * deflate - 1, "never less than taxing it alone");
+  // Still working at exit (target 62): salary fills the lower slabs, so the top rate applies.
+  const working = evaluatePlan({ ...quickBase, plan: { fireTargetAge: 62, nps: { lumpShare: 0.8 } }, quick: { ...quickBase.quick, npsBalance: 5000000, npsMonthly: 25000 } }, pk(), { today: day, runs: 1000 }).inputs.locked[0].atUnlock;
+  assert.ok(!working.taxedWithIncome && Math.abs(working.tax - working.taxable * 0.3 * 1.04) < 1);
 });

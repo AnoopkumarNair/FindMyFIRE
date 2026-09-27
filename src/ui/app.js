@@ -711,7 +711,7 @@ function actionPlanCard(r) {
   // Only money the person entered; the amounts are this plan's own projections.
   for (const l of i.locked || []) step(`At ${l.unlock.age}`, `${l.label} unlocks`,
     `From ${l.from || "your plan"}: ${inrShort(l.value)} today. `,
-    l.atUnlock ? `By ${l.unlock.age} the plan expects about ${inrShort(l.atUnlock.total)}: ${inrShort(l.atUnlock.lump)} to take out${l.atUnlock.tax > 0 ? ` (about ${inrShort(l.atUnlock.tax)} of it goes in tax, as it's above the tax-free share)` : ""}${l.atUnlock.pensionMonthly ? ` and ${inr(l.atUnlock.pensionMonthly)} a month as a pension` : ""}. ` : "",
+    l.atUnlock ? `By ${l.unlock.age} the plan expects about ${inrShort(l.atUnlock.total)}: ${inrShort(l.atUnlock.lump)} to take out${l.atUnlock.taxedWithIncome ? ` (${inrShort(l.atUnlock.taxable)} of it is above the tax-free share, so it's taxed with your other income that year; the plan adds that tax to the year's withdrawal)` : l.atUnlock.tax > 0 ? ` (about ${inrShort(l.atUnlock.tax)} of it goes in tax at the top slab rate, since your salary is still coming in)` : ""}${l.atUnlock.pensionMonthly ? ` and ${inr(l.atUnlock.pensionMonthly)} a month as a pension` : ""}. ` : "",
     l.instrumentId === "nps_tier1" ? "Change the exit age or lump sum under Life after FIRE. " : "",
     l.unlock.note || "");
   // The bucket and SWP steps describe stopping at the target; say so when the plan doesn't reach it yet.

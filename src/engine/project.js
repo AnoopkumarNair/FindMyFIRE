@@ -121,6 +121,9 @@ export function withdrawalParts(inp, p, tier, T) {
       income += rent - x.costsYearly * grow;
       slabIncome += 0.7 * rent; // 30% standard deduction on rent
     }
+  // Lump sums taxed with this year's income (the taxable part of an NPS lump sum): they raise the
+  // tax, but the money itself arrives as an inflow.
+  for (const x of inp.taxableLumps || []) if (Math.floor(x.atAge - p.age) === T) slabIncome += x.amount;
   if (tier.partTime && ageT < tier.partTime.untilAge) {
     const x = 12 * tier.partTime.monthly * (1 + p.infl.general) ** T;
     income += x; slabIncome += x;
