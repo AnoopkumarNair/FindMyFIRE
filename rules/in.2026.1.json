@@ -67,7 +67,11 @@
       "min": 0.02,
       "max": 0.12,
       "step": 0.005,
-      "help": "Long-run CPI assumption for household costs."
+      "help": "Long-run CPI assumption for household costs.",
+      "sourceIds": [
+        "worldbank-cpi",
+        "imf-weo"
+      ]
     },
     {
       "id": "inflation.health",
@@ -402,7 +406,10 @@
       "help": "Find the balance in the EPFO passbook / UMANG app.",
       "asOf": "8.25%, declared for FY2025-26 (the latest declared rate)",
       "verify": true,
-      "verifiedOn": "2026-09-27"
+      "verifiedOn": "2026-09-27",
+      "sourceIds": [
+        "pib-epf-2025-26"
+      ]
     },
     {
       "id": "vpf",
@@ -448,7 +455,11 @@
       ],
       "asOf": "Rate for Jul–Sep 2026 (Q2 FY2026-27), unchanged since Jan 2024",
       "verify": true,
-      "verifiedOn": "2026-09-27"
+      "verifiedOn": "2026-09-27",
+      "sourceIds": [
+        "dea-small-savings",
+        "nsi-rates"
+      ]
     },
     {
       "id": "ssy",
@@ -475,7 +486,11 @@
       "help": "Usually better modelled as funding a goal than as FIRE corpus.",
       "asOf": "Rate for Jul–Sep 2026 (Q2 FY2026-27), unchanged since Jan 2024",
       "verify": true,
-      "verifiedOn": "2026-09-27"
+      "verifiedOn": "2026-09-27",
+      "sourceIds": [
+        "dea-small-savings",
+        "nsi-rates"
+      ]
     },
     {
       "id": "nps_tier1",
@@ -522,7 +537,11 @@
         "verifiedOn": "2026-09-27"
       },
       "asOf": "PFRDA exit regulations, Dec 2025",
-      "verifiedOn": "2026-09-27"
+      "verifiedOn": "2026-09-27",
+      "sourceIds": [
+        "pfrda-exit-2025",
+        "pib-nps-exit"
+      ]
     },
     {
       "id": "nps_tier2",
@@ -785,7 +804,11 @@
       ],
       "verify": true,
       "asOf": "Rate for Jul–Sep 2026 (Q2 FY2026-27), unchanged since Jan 2024",
-      "verifiedOn": "2026-09-27"
+      "verifiedOn": "2026-09-27",
+      "sourceIds": [
+        "dea-small-savings",
+        "nsi-rates"
+      ]
     },
     {
       "id": "gold_etf",
@@ -1427,7 +1450,14 @@
     },
     "grandfatherBefore": "2024-07-23",
     "indexedRate": 0.2,
-    "ciiNote": "Cost Inflation Index, base FY2001-02 = 100; FY2026-27 = 384 (CBDT, Jul 2026). Future years are projected with general inflation. For property bought before April 2001, enter its value on 1 April 2001 as the price."
+    "ciiNote": "Cost Inflation Index, base FY2001-02 = 100; FY2026-27 = 384 (CBDT, Jul 2026). Future years are projected with general inflation. For property bought before April 2001, enter its value on 1 April 2001 as the price.",
+    "sourceIds": [
+      "cbdt-cg-faq",
+      "cbdt-cii-2026",
+      "cbdt-cii-table",
+      "rbi-hpi",
+      "nhb-residex"
+    ]
   },
   "healthCover": {
     "recommendedCover": 1500000,
@@ -1524,7 +1554,14 @@
     "ltcgForeignRate": 0.125,
     "ltcgForeignExemption": 0,
     "rebateMarginalRelief": true,
-    "verifiedOn": "2026-09-27"
+    "verifiedOn": "2026-09-27",
+    "sourceIds": [
+      "pib-budget-2026",
+      "budget-speech-2026",
+      "pib-12-lakh",
+      "pib-it-act-2025",
+      "cbdt-cg-faq"
+    ]
   },
   "resolution": [
     {
@@ -2361,5 +2398,135 @@
       "message": "Your answer is a rough estimate. Breaking down expenses improves it the most."
     }
   ],
-  "verifiedOn": "2026-09-27"
+  "verifiedOn": "2026-09-27",
+  "sources": [
+    {
+      "id": "pib-budget-2026",
+      "title": "Summary of Union Budget 2026-27",
+      "publisher": "Press Information Bureau, Government of India",
+      "url": "https://www.pib.gov.in/PressReleasePage.aspx?PRID=2221458&reg=48&lang=2",
+      "covers": "FY2026-27 tax proposals",
+      "checkedOn": "2026-09-27"
+    },
+    {
+      "id": "budget-speech-2026",
+      "title": "Budget 2026-27: Speech of the Finance Minister",
+      "publisher": "Ministry of Finance (indiabudget.gov.in)",
+      "url": "https://www.indiabudget.gov.in/doc/budget_speech.pdf",
+      "covers": "FY2026-27 tax proposals",
+      "checkedOn": "2026-09-27"
+    },
+    {
+      "id": "pib-12-lakh",
+      "title": "No income tax on annual income up to ₹12 lakh under the new tax regime",
+      "publisher": "Press Information Bureau, Government of India",
+      "url": "https://www.pib.gov.in/PressReleasePage.aspx?PRID=2098406&reg=48&lang=2",
+      "covers": "New-regime slabs and the Section 87A rebate",
+      "checkedOn": "2026-09-27"
+    },
+    {
+      "id": "pib-it-act-2025",
+      "title": "The Income Tax Act, 2025 to come into effect from 1 April 2026",
+      "publisher": "Press Information Bureau, Government of India",
+      "url": "https://www.pib.gov.in/PressReleasePage.aspx?PRID=2221416&reg=3&lang=1",
+      "covers": "The new Income-tax Act",
+      "checkedOn": "2026-09-27"
+    },
+    {
+      "id": "cbdt-cg-faq",
+      "title": "FAQs on the new capital gains tax regime (Budget 2024-25)",
+      "publisher": "CBDT, via Press Information Bureau",
+      "url": "https://www.pib.gov.in/PressReleasePage.aspx?PRID=2036604&reg=48&lang=2",
+      "covers": "12.5% LTCG, ₹1.25 lakh equity exemption, property bought before 23 Jul 2024",
+      "checkedOn": "2026-09-27"
+    },
+    {
+      "id": "cbdt-cii-2026",
+      "title": "Notification 85/2026: Cost Inflation Index for FY2026-27",
+      "publisher": "Income Tax Department, Government of India",
+      "url": "https://www.incometaxindia.gov.in/documents/d/guest/notification-no-85-2026-pdf",
+      "covers": "CII 384 for FY2026-27",
+      "checkedOn": "2026-09-27"
+    },
+    {
+      "id": "cbdt-cii-table",
+      "title": "Cost Inflation Index: all years",
+      "publisher": "Income Tax Department, Government of India",
+      "url": "https://www.incometaxindia.gov.in/w/view-all-cii",
+      "covers": "CII from FY2001-02",
+      "checkedOn": "2026-09-27"
+    },
+    {
+      "id": "pfrda-exit-2025",
+      "title": "PFRDA (Exits and Withdrawals under NPS) (Amendment) Regulations, 2025",
+      "publisher": "Pension Fund Regulatory and Development Authority",
+      "url": "https://pfrda.org.in/web/pfrda/w/pension-fund-regulatory-and-development-authority-exits-and-withdrawals-under-the-national-pension-system-amendment-regulations-2025",
+      "covers": "NPS exit age, lump-sum limits, small balances",
+      "checkedOn": "2026-09-27"
+    },
+    {
+      "id": "pib-nps-exit",
+      "title": "Key amendments in PFRDA (Exits and Withdrawals under the NPS) Regulations",
+      "publisher": "Press Information Bureau, Government of India",
+      "url": "https://www.pib.gov.in/PressReleasePage.aspx?PRID=2206763&reg=3&lang=1",
+      "covers": "Summary of the December 2025 NPS exit changes",
+      "checkedOn": "2026-09-27"
+    },
+    {
+      "id": "pib-epf-2025-26",
+      "title": "Central Board recommends 8.25% rate of interest on EPF for 2025-26",
+      "publisher": "Press Information Bureau, Government of India",
+      "url": "https://www.pib.gov.in/PressReleasePage.aspx?PRID=2234502&reg=3&lang=1",
+      "covers": "EPF interest rate",
+      "checkedOn": "2026-09-27"
+    },
+    {
+      "id": "dea-small-savings",
+      "title": "Small Savings: interest rate revisions",
+      "publisher": "Department of Economic Affairs, Ministry of Finance",
+      "url": "https://dea.gov.in/budget-division/475",
+      "covers": "PPF, SSY, SCSS and other small-savings rates, set each quarter",
+      "checkedOn": "2026-09-27"
+    },
+    {
+      "id": "nsi-rates",
+      "title": "Interest rates on National Savings Schemes",
+      "publisher": "National Savings Institute, Ministry of Finance",
+      "url": "https://www.nsiindia.gov.in/InternalPage.aspx?Id_Pk=132",
+      "covers": "Current small-savings rates",
+      "checkedOn": "2026-09-27"
+    },
+    {
+      "id": "worldbank-cpi",
+      "title": "Inflation, consumer prices (annual %): India",
+      "publisher": "World Bank",
+      "url": "https://data.worldbank.org/indicator/FP.CPI.TOTL.ZG?locations=IN",
+      "covers": "India's inflation history, fetched at every deploy",
+      "checkedOn": "2026-09-27"
+    },
+    {
+      "id": "imf-weo",
+      "title": "World Economic Outlook: inflation projections",
+      "publisher": "International Monetary Fund",
+      "url": "https://www.imf.org/external/datamapper/PCPIPCH@WEO/IND",
+      "covers": "India's inflation projections, fetched at every deploy",
+      "checkedOn": "2026-09-27"
+    },
+    {
+      "id": "rbi-hpi",
+      "title": "House Price Index (18 cities, quarterly)",
+      "publisher": "Reserve Bank of India",
+      "url": "https://www.rbi.org.in",
+      "covers": "Where to check price trends for your city",
+      "checkedOn": "2026-09-27"
+    },
+    {
+      "id": "nhb-residex",
+      "title": "NHB RESIDEX: housing price indices for 50 cities",
+      "publisher": "National Housing Bank",
+      "url": "https://residex.nhbonline.org.in/",
+      "covers": "Where to check price trends for your city",
+      "checkedOn": "2026-09-27"
+    }
+  ]
 }

@@ -109,6 +109,16 @@ for (const f of rulesFiles) {
     if (n.section && !ids.section.includes(n.section)) fail(file, `nudge ${n.id}: unknown section ${n.section}`);
   });
   if (r.confidence.bands.some((b, i, a) => i && b.min <= a[i - 1].min)) fail(file, "confidence bands not ascending");
+  // Every cited source exists, and every source is cited or listed for a reason.
+  const sourceIds = (r.sources || []).map((x) => x.id);
+  dupes(sourceIds).forEach((d) => fail(file, `duplicate source id '${d}'`));
+  const walkSources = (o, where) => {
+    if (Array.isArray(o)) return o.forEach((x, i) => walkSources(x, `${where}[${i}]`));
+    if (!o || typeof o !== "object") return;
+    for (const id of o.sourceIds || []) if (!sourceIds.includes(id)) fail(file, `${where}: unknown source '${id}'`);
+    for (const [k, v] of Object.entries(o)) if (k !== "sources") walkSources(v, `${where}.${k}`);
+  };
+  walkSources(r, "pack");
   ok(file, "integrity");
   packs[`${r.packId}@${r.packVersion}`] = { ...r, ids };
 }

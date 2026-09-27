@@ -465,5 +465,6 @@ function rulesProvenance(pack) {
   return h("details", { class: "provenance" },
     h("summary", {}, `Tax rules and rates used (rules ${pack.packId}.${pack.packVersion}, last checked ${date(pack.verifiedOn)})`),
     h("p", { class: "muted small" }, "These change with Budgets and government notices. Each shows what it's based on and when it was last checked against official sources. The plan is an estimate built on them, not tax advice."),
-    h("ul", {}, ...items.map((x) => h("li", {}, h("strong", {}, x.label), x.on ? ` · checked ${date(x.on)}` : " · not checked yet", h("small", { class: "help" }, x.note)))));
+    h("ul", {}, ...items.map((x) => h("li", {}, h("strong", {}, x.label), x.on ? ` · checked ${date(x.on)}` : " · not checked yet", h("small", { class: "help" }, x.note)))),
+    h("p", { class: "small" }, h("a", { href: "#/sources" }, "See the official sources behind these →")));
 }

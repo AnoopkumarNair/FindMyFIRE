@@ -101,16 +101,47 @@ function footer() {
   return h("footer", { class: "foot" },
     h("p", {}, "Your plan stays on this device. It's saved in this browser and in the file you download. Nothing is uploaded: no accounts, no analytics."),
     h("p", { class: "muted" }, `A planning tool, not investment, tax or legal advice. Rules ${S.pack?.packId}.${S.pack?.packVersion}, tax year 2026-27, last checked ${S.pack?.verifiedOn || "—"}. App v${APP_VERSION} (build ${BUILD}). `,
+      h("a", { href: "#/sources" }, "Sources"), " · ",
       h("a", { href: "https://github.com/AnoopkumarNair/FindMyFIRE", rel: "noopener" }, "Source code")));
+}
+
+/** Where the rules and rates come from: official sources, what each supports, when it was checked. */
+function sourcesView() {
+  const P = S.pack, list = P.sources || [];
+  const date = (d) => (d ? new Date(`${d}T00:00:00`).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" }) : "");
+  // What each source supports in this plan, from the rules that cite it.
+  const uses = {};
+  const cite = (label, o) => (o?.sourceIds || []).forEach((id) => (uses[id] ||= []).push(label));
+  cite("Income tax", P.incomeTax);
+  cite("Property capital gains", P.property);
+  for (const i of P.instruments) cite(i.label, i);
+  for (const a of P.assumptions) cite(a.label, a);
+  return h("section", { class: "sources-page" },
+    h("h1", { tabindex: -1 }, "Sources"),
+    h("p", { class: "lede" }, `The tax rules and rates in this planner come from these official sources. They were last checked on ${date(P.verifiedOn)}, for tax year 2026-27.`),
+    h("ul", { class: "sources" }, ...list.map((x) => h("li", {},
+      h("a", { href: x.url, rel: "noopener noreferrer", target: "_blank" }, x.title),
+      h("small", { class: "muted" }, ` · ${x.publisher}`),
+      x.covers ? h("p", { class: "small" }, x.covers) : null,
+      uses[x.id]?.length ? h("p", { class: "muted small" }, `Used for: ${[...new Set(uses[x.id])].join(", ")}`) : null,
+      x.checkedOn ? h("p", { class: "muted tiny" }, `Checked ${date(x.checkedOn)}`) : null))),
+    h("h2", {}, "What isn't from an official source"),
+    h("ul", {},
+      h("li", {}, "Future returns, inflation and market ups and downs are assumptions, not forecasts. You can see and change every one under Assumptions."),
+      h("li", {}, "Health insurance premiums by age are indicative figures for a family floater, not a quote. Enter your own quote under Insurance for a better answer."),
+      h("li", {}, "Property price growth is your own figure, with a suggested default. Check your city in the RBI House Price Index or NHB RESIDEX.")),
+    h("p", { class: "muted small" }, "A planning tool, not investment, tax or legal advice. If a rule has changed since the date above, the plan won't reflect it until the rules are updated."),
+    h("p", {}, h("a", { href: S.user?.profile?.birthYearMonth ? "#/results" : "#/", class: "btn" }, "Back")));
 }
 
 function route() {
   const [, view, arg] = (location.hash || "#/").split("/");
   let body;
-  if (!S.user?.profile?.birthYearMonth && view && view !== "quick") { location.hash = "#/"; return; }
+  if (!S.user?.profile?.birthYearMonth && view && view !== "quick" && view !== "sources") { location.hash = "#/"; return; }
   if (view === "quick") body = quickView(Number(arg) || 0);
   else if (view === "results") body = resultsView();
   else if (view === "refine") body = refineView(arg);
+  else if (view === "sources") body = sourcesView();
   else body = welcomeView();
   const key = `${view || "home"}/${arg || ""}`;
   const changed = key !== S.lastKey;
@@ -187,7 +218,8 @@ function welcomeView() {
         faq("Where is my data stored?", "Only in this browser on this device. Download it as a file (optionally locked with a passphrase) to keep it or move it to another device. Nothing is uploaded."),
         faq("I don't want to retire at 40. Is this still useful?", "Yes. FIRE is about having the choice: the same plan shows whether you're on track for 60, what a career break costs, or how much a cheaper city helps."),
         faq("Is there AI? Does it see my numbers?", "It's optional. On a laptop or desktop you can add an AI that runs entirely inside your browser (a one-time 3.1 GB download). It only rewords the planner's own numbers, every number is checked before it's shown, and nothing you type leaves your device. Phones get the same answers without the AI wording."),
-        faq("Is this financial advice?", "No. It's a planning tool that does the maths carefully and shows its working. Tax rules are for FY2026-27 and each shows when it was last checked (see Assumptions); check big decisions with a SEBI-registered adviser.")),
+        faq("Is this financial advice?", "No. It's a planning tool that does the maths carefully and shows its working. Check big decisions with a SEBI-registered adviser."),
+        faq("Where do the tax rules and rates come from?", "From official sources: the Budget, the Income Tax Department, PFRDA, EPFO and the Ministry of Finance, checked for FY2026-27. The Sources page (linked at the bottom of every page) lists each one and when it was last checked.")),
       h("div", { class: "closing" },
         h("p", {}, h("strong", {}, "Two minutes to your number.")),
         working ? h("a", { href: "#/results", class: "btn primary" }, "Continue your plan →")

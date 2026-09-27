@@ -869,3 +869,8 @@ body::before { inset: -12%; animation: dawn-drift 34s ease-in-out infinite alter
 .tside small { color: var(--muted); font-size: 0.8rem; }
 .math ol { padding-left: 1.2rem; display: grid; gap: 0.5rem; }
 .math summary { cursor: pointer; font-weight: 600; margin-top: 0.6rem; }
+.sources-page { max-width: 760px; margin: 0 auto; }
+.sources { list-style: none; padding: 0; display: grid; gap: 0.9rem; }
+.sources li { border: 1px solid var(--border); border-radius: 12px; padding: 0.8rem 1rem; background: var(--raised); }
+.sources li p { margin: 0.25rem 0 0; }
+.sources a { font-weight: 600; overflow-wrap: anywhere; }

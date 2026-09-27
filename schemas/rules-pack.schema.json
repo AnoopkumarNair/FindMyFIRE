@@ -160,6 +160,13 @@
         },
         "ciiNote": {
           "type": "string"
+        },
+        "sourceIds": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Ids from the pack's sources list."
         }
       }
     },
@@ -206,6 +213,13 @@
           "type": "string",
           "format": "date",
           "description": "When this item was last checked against an official source."
+        },
+        "sourceIds": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Ids from the pack's sources list."
         }
       }
     },
@@ -282,6 +296,13 @@
           "type": "string",
           "format": "date",
           "description": "When this item was last checked against an official source."
+        },
+        "sourceIds": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Ids from the pack's sources list."
         }
       }
     },
@@ -319,6 +340,42 @@
       "type": "string",
       "format": "date",
       "description": "When the tax and rate items were last checked against official sources."
+    },
+    "sources": {
+      "type": "array",
+      "description": "Primary sources behind the rules and rates, shown on the Sources page.",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "title",
+          "publisher",
+          "url"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "publisher": {
+            "type": "string"
+          },
+          "url": {
+            "type": "string",
+            "format": "uri"
+          },
+          "covers": {
+            "type": "string"
+          },
+          "checkedOn": {
+            "type": "string",
+            "format": "date"
+          }
+        }
+      }
     }
   },
   "$defs": {
@@ -487,6 +544,13 @@
           "type": "string",
           "format": "date",
           "description": "When this item was last checked against an official source."
+        },
+        "sourceIds": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Ids from the pack's sources list."
         }
       }
     },
@@ -586,6 +650,13 @@
           "type": "string",
           "format": "date",
           "description": "When this item was last checked against an official source."
+        },
+        "sourceIds": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Ids from the pack's sources list."
         }
       }
     },
@@ -779,6 +850,13 @@
           "type": "string",
           "format": "date",
           "description": "When this item was last checked against an official source."
+        },
+        "sourceIds": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Ids from the pack's sources list."
         }
       }
     },
@@ -1392,6 +1470,13 @@
           "type": "string",
           "format": "date",
           "description": "When this item was last checked against an official source."
+        },
+        "sourceIds": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Ids from the pack's sources list."
         }
       }
     }
