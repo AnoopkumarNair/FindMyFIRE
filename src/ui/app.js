@@ -921,7 +921,7 @@ function refineView(id) {
   const u = S.user;
   u.sectionsDone ||= [];
   const done = u.sectionsDone.includes(id);
-  const ctx = { user: u, pack: S.pack, market: S.market, save, redraw };
+  const ctx = { user: u, pack: S.pack, market: S.market, hpi: S.hpi, save, redraw };
   const toggle = (goNext) => {
     u.sectionsDone = done ? u.sectionsDone.filter((x) => x !== id) : [...u.sectionsDone, id];
     persist();
@@ -1100,6 +1100,10 @@ async function boot() {
     const res = await fetch("market/india.json");
     if (res.ok) S.market = await res.json();
   } catch { /* optional: published by the deploy workflow */ }
+  try {
+    const res = await fetch(`data/house-price-index.json?v=${BUILD}`);
+    if (res.ok) S.hpi = await res.json();
+  } catch { /* optional: price references for the Property section */ }
   S.user = migrate(store.loadWorking());
   if (S.user) store.saveWorking(S.user);
   recompute();

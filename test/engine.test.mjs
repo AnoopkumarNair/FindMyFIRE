@@ -568,3 +568,18 @@ test("the taxable part of an NPS lump sum is taxed together with that year's oth
   const working = evaluatePlan({ ...quickBase, plan: { fireTargetAge: 62, nps: { lumpShare: 0.8 } }, quick: { ...quickBase.quick, npsBalance: 5000000, npsMonthly: 25000 } }, pk(), { today: day, runs: 1000 }).inputs.locked[0].atUnlock;
   assert.ok(!working.taxedWithIncome && Math.abs(working.tax - working.taxable * 0.3 * 1.04) < 1);
 });
+
+test("house price index data is complete and its yearly rates match the index levels", () => {
+  const D = JSON.parse(readFileSync(new URL("../data/house-price-index.json", import.meta.url)));
+  assert.ok(D.allIndia && D.cities.length >= 10 && D.states.length >= 5);
+  for (const c of [D.allIndia, ...D.cities]) {
+    const implied = (c.index / 100) ** (1 / D.yearsSinceBase) - 1;
+    assert.ok(Math.abs(implied - c.annualSinceBase) < 1e-4, `${c.city || "All India"}`);
+    assert.ok(c.annualSinceBase > -0.1 && c.annualSinceBase < 0.2);
+  }
+  for (const s of D.states) {
+    const cs = D.cities.filter((c) => c.state === s.state);
+    assert.deepEqual(cs.map((c) => c.city).sort(), [...s.cities].sort(), s.state);
+    assert.ok(Math.abs(s.annualSinceBase - cs.reduce((a, c) => a + c.annualSinceBase, 0) / cs.length) < 1e-4);
+  }
+});

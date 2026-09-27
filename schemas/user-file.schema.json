@@ -777,6 +777,10 @@
             "type": "string",
             "pattern": "^\\d{4}-(0[1-9]|1[0-2])$",
             "description": "Month the property was bought (for capital-gains tax)."
+          },
+          "hpiRef": {
+            "type": "string",
+            "description": "Which RBI house price index this property is compared with: 'all', 'state:<name>' or 'city:<name>'."
           }
         }
       }

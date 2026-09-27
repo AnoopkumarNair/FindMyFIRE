@@ -85,6 +85,15 @@ All amounts are in nominal rupees, projected one year at a time.
 - **The corpus needed** at an age is the present value of every withdrawal from then until the age your money should last to. The earliest FIRE age is the first age at which your projected savings reach that amount.
 - **Withdrawals** come from three buckets: three years in cash, five in debt, the rest in equity.
 
+### Property price data
+
+The Property section can compare your growth rate with RBI's House Price Index for your city, your state (the average of its RBI cities), or all of India. The data lives in `data/house-price-index.json`. It's a reference only; it never changes your number unless you press "Use".
+
+To refresh it when RBI publishes a new quarter (about two months after each quarter ends):
+1. Save the city-wise table from RBI's House Price Index release as a spreadsheet with the columns City, State/Region, HPI_Q<n>_<yyyy>_<yy>, QoQ_Growth_Percent and YoY_Growth_Percent, plus an ALL INDIA row. Check the All-India figures against RBI's press release.
+2. Run `python3 scripts/import-hpi.py <file.xlsx>` (needs `pip install openpyxl`). It checks the rows and works out each city's yearly rate since the 2022-23 base.
+3. Update the `rbi-hpi` entry in the rules pack's sources, run `npm test`, and commit the JSON file. The spreadsheet itself isn't committed.
+
 ### Tests
 
 `npm test` covers:

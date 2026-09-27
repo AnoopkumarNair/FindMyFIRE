@@ -1416,7 +1416,7 @@
     "defaultGrowthRate": 0.05,
     "saleCostRate": 0.02,
     "ltcgRate": 0.125,
-    "growthHint": "Long-run residential prices in Indian cities have grown at roughly inflation to a little above it, with big differences by city and locality and long flat spells. Check your city in the RBI House Price Index or NHB RESIDEX, and your locality's recent sale prices, before using more than 5–6%.",
+    "growthHint": "Long-run residential prices in Indian cities have grown at roughly inflation to a little above it, with big differences by city and locality and long flat spells. Compare your city with the RBI House Price Index below, and with recent sale prices in your locality.",
     "asOf": "LTCG 12.5% without indexation. Bought before 23 Jul 2024: the lower of that and 20% with indexation (CII). CII FY2026-27 = 384.",
     "verify": true,
     "verifiedOn": "2026-09-27",
@@ -2514,10 +2514,10 @@
     },
     {
       "id": "rbi-hpi",
-      "title": "House Price Index (18 cities, quarterly)",
+      "title": "House Price Index, Q1 2026-27 (18 cities, base 2022-23 = 100)",
       "publisher": "Reserve Bank of India",
       "url": "https://www.rbi.org.in",
-      "covers": "Where to check price trends for your city",
+      "covers": "City and state price trends shown in the Property section; All-India 117.5, +1.1% on the quarter, +3.6% on the year (released Aug 2026)",
       "checkedOn": "2026-09-27"
     },
     {

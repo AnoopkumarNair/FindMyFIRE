@@ -43,7 +43,7 @@ jobs:
       - name: Stage site (app, rules pack, schemas, examples only)
         run: |
           mkdir _site
-          cp -r index.html src rules schemas examples _site/
+          cp -r index.html src rules schemas examples data _site/
           touch _site/.nojekyll
       - uses: actions/setup-node@v4
         with:
