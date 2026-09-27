@@ -584,3 +584,20 @@ test("house price index data is complete and its yearly rates match the index le
     assert.ok(Math.abs(s.annualSinceBase - cs.reduce((a, c) => a + c.annualSinceBase, 0) / cs.length) < 1e-4);
   }
 });
+
+test("PPF that matures after the FIRE age isn't spendable at FIRE; it arrives when it matures", async () => {
+  const { evaluatePlan } = await import("../src/engine/index.js");
+  const base = { ...quickBase, sectionsDone: ["holdings"], holdings: [
+    { id: "mf", instrumentId: "mf_equity_index", value: 20000000, monthlyContribution: 80000, asOf: "2026-09-01", source: "exact" }] };
+  const ppf = (openedOn) => ({ id: "p", instrumentId: "ppf", value: 1500000, annualContribution: 150000, openedOn, asOf: "2026-09-01", source: "exact" });
+  const run = (h) => evaluatePlan({ ...base, holdings: [...base.holdings, h] }, pk(), { today: day, runs: 1000 });
+  // Born Jan 1986, FIRE at 50 (2036). Opened 2023-05 (FY2023-24): matures April 2039, at 53.
+  const late = run(ppf("2023-05")), old = run(ppf("2008-05")), undated = run(ppf(undefined));
+  const L = late.inputs.locked.find((l) => l.instrumentId === "ppf");
+  assert.ok(L && Math.abs(L.unlock.age - 53.25) < 0.1, `matures at ${L?.unlock.age}`);
+  assert.equal(late.inputs.fireCorpus, 20000000, "not in the savings you can spend at 50");
+  assert.ok(late.inputs.inflows.some((x) => /PPF/.test(x.label) && x.net > 1500000), "arrives, grown, when it matures");
+  assert.equal(old.inputs.fireCorpus, 21500000, "already matured by FIRE: spendable");
+  assert.equal(undated.inputs.fireCorpus, 21500000, "no opening date: counted as before (and the plan asks for the date)");
+  assert.ok(late.earliestAge >= old.earliestAge, "locked money can only delay FIRE");
+});

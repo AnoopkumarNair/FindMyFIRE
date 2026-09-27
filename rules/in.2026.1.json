@@ -2437,7 +2437,7 @@
         "op": "hasInstrument",
         "value": "ppf"
       },
-      "message": "Add the PPF opening date to see whether it's accessible at your FIRE age."
+      "message": "PPF is locked for 15 full years. Add each account's opening date: one that matures after your FIRE age is kept aside until it does, instead of being counted as spendable."
     },
     {
       "id": "endowment_policy",

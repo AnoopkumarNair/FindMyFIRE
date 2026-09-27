@@ -636,7 +636,7 @@ function leversCard(r) {
 function balanceCard(r) {
   const b = r.balance, T = b.today;
   const row = (label, v, note, cls) => v ? h("tr", { class: cls }, h("th", { scope: "row" }, label, note ? h("small", { class: "help" }, note) : null), h("td", { class: "num" }, inrShort(v))) : null;
-  const locked = (r.inputs.locked || []).map((l) => `${l.label} unlocks at ${l.unlock.age}`).join("; ");
+  const locked = (r.inputs.locked || []).map((l) => `${l.label} unlocks at ${Math.floor(l.unlock.age)}`).join("; ");
   return card("Where you stand today",
     h("div", { class: "table-wrap" }, h("table", { class: "balance" }, h("tbody", {},
       row("Investments for FIRE", T.investments, "The corpus the plan grows and draws from."),
@@ -742,9 +742,9 @@ function actionPlanCard(r) {
   for (const x of i.properties || []) if (x.sale) step(`At ${Math.floor(x.sale.atAge)}`, `Sell ${x.label}`,
     `Expect about ${inrShort(x.sale.net)} after costs and about ${inrShort(x.sale.tax)} in capital-gains tax (${x.sale.method}). Put it straight into the cash and debt buckets, not a lump-sum equity bet.`);
   // Only money the person entered; the amounts are this plan's own projections.
-  for (const l of i.locked || []) step(`At ${l.unlock.age}`, `${l.label} unlocks`,
+  for (const l of i.locked || []) step(`At ${Math.floor(l.unlock.age)}`, `${l.label} unlocks`,
     `From ${l.from || "your plan"}: ${inrShort(l.value)} today. `,
-    l.atUnlock ? `By ${l.unlock.age} the plan expects about ${inrShort(l.atUnlock.total)}: ${inrShort(l.atUnlock.lump)} to take out${l.atUnlock.taxedWithIncome ? ` (${inrShort(l.atUnlock.taxable)} of it is above the tax-free share, so it's taxed with your other income that year; the plan adds that tax to the year's withdrawal)` : l.atUnlock.tax > 0 ? ` (about ${inrShort(l.atUnlock.tax)} of it goes in tax at the top slab rate, since your salary is still coming in)` : ""}${l.atUnlock.pensionMonthly ? ` and ${inr(l.atUnlock.pensionMonthly)} a month as a pension` : ""}. ` : "",
+    l.atUnlock ? `By ${Math.floor(l.unlock.age)} the plan expects about ${inrShort(l.atUnlock.total)}: ${inrShort(l.atUnlock.lump)} to take out${l.atUnlock.taxedWithIncome ? ` (${inrShort(l.atUnlock.taxable)} of it is above the tax-free share, so it's taxed with your other income that year; the plan adds that tax to the year's withdrawal)` : l.atUnlock.tax > 0 ? ` (about ${inrShort(l.atUnlock.tax)} of it goes in tax at the top slab rate, since your salary is still coming in)` : ""}${l.atUnlock.pensionMonthly ? ` and ${inr(l.atUnlock.pensionMonthly)} a month as a pension` : ""}. ` : "",
     l.instrumentId === "nps_tier1" ? "Change the exit age or lump sum under Life after FIRE. " : "",
     l.unlock.note || "");
   // The bucket and SWP steps describe stopping at the target; say so when the plan doesn't reach it yet.

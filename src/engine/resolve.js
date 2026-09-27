@@ -116,8 +116,24 @@ export function resolveInputs(user, pack, today = new Date()) {
         counts = false;
         overlaps.push({ section: "holdings", message: `"${h.label || inst.label}" is counted through its payout under Money coming in, so its surrender value isn't added again.` });
       }
+      // A lock-in (PPF: 15 full years) that ends after your FIRE age: the money isn't spendable
+      // when you stop, so it's treated like NPS: kept apart, growing, and arriving when it matures.
+      let lockedUntil = null;
+      if (counts && !h.isEmergencyFund && inst.access?.type === "lockInYears" && h.openedOn) {
+        const matures = `${fyStart(h.openedOn) + 1 + inst.access.years}-04`; // April after the full years
+        const at = Math.round(ageOnMonth(user.profile.birthYearMonth, matures) * 10) / 10;
+        if (at > (user.plan?.fireTargetAge ?? 0)) { counts = false; lockedUntil = { age: at, matures }; }
+      }
       if (h.isEmergencyFund) emergencyFund += h.value;
       else if (counts) fireCorpus += h.value;
+      else if (lockedUntil) {
+        excludedCorpus += h.value;
+        excluded.push({ label: h.label || inst.label, value: h.value, instrumentId: h.instrumentId });
+        locked.push({ label: h.label || inst.label, instrumentId: h.instrumentId, from: "your Investments list", value: h.value,
+          rate: inst.defaultReturn ?? 0.071, yearlyContribution: 12 * (h.monthlyContribution || 0) + (h.annualContribution || 0),
+          unlock: { age: lockedUntil.age, lumpSumShare: 1, annuityShare: 0,
+            note: `It matures in ${lockedUntil.matures.replace("-04", "")} (April), tax-free. Limited withdrawals are possible from year 7, but the plan doesn't count on them; you can also extend it in 5-year blocks.` } });
+      }
       else {
         excludedCorpus += h.value;
         excluded.push({ label: h.label || inst.label, value: h.value, instrumentId: h.instrumentId });
