@@ -971,3 +971,37 @@ details.more-steps > summary { cursor: pointer; font-weight: 600; color: var(--a
   .how-art { width: 3rem; height: 3rem; }
   .india-chip { flex-basis: calc(50% - 0.3rem); }
 }
+
+/* ---------- using the width on laptops and desktops ---------- */
+@media (min-width: 1300px) {
+  main, .foot { max-width: 1200px; }
+}
+@media (min-width: 1000px) {
+  /* simple view: answer and numbers side by side, then pairs of cards */
+  .results.simple { display: grid; grid-template-columns: 1.15fr 1fr; gap: 1rem 1.4rem; align-items: start; }
+  .results.simple > * { margin: 0; min-width: 0; }
+  .results.simple > .simple-hero { grid-row: span 2; }
+  .results.simple > .ask-fold, .results.simple > .simple-actions, .results.simple > .feedback { grid-column: 1 / -1; }
+  .results.simple .simple-numbers .big3 { grid-template-columns: 1fr 1fr 1fr; }
+  /* full plan: headline beside the four figures; each part's cards two to a row */
+  .top-row { display: grid; grid-template-columns: 1.25fr 1fr; gap: 1.4rem; align-items: center; }
+  .top-row > .kpis { grid-template-columns: 1fr 1fr; margin: 0; }
+  details.group > .group-body { display: grid; grid-template-columns: 1fr 1fr; gap: 0 0.8rem; align-items: start; padding: 0 0.6rem; }
+  details.group > .group-body > * { margin: 0 0 0.8rem; min-width: 0; }
+  details.group > .group-body > .wide { grid-column: 1 / -1; }
+  details.group > .group-body > .tall { grid-column: 2; grid-row: 1 / span 3; }
+}
+@media (min-width: 1200px) {
+  /* spending: categories in two columns; each row's label above its inputs */
+  .exp-groups { display: grid; grid-template-columns: 1fr 1fr; gap: 0 1rem; align-items: start; }
+  .exp-groups .exp-row { grid-template-columns: minmax(0, 1fr) auto auto auto; }
+  .exp-groups .exp-label { grid-column: 1 / -1; }
+  .exp-groups .exp-row .money { flex-wrap: nowrap; min-width: 0; }
+  .exp-groups .exp-row .money input { width: 100%; min-width: 0; }
+  .exp-groups .exp-row .money .words { display: none; }
+  .exp-groups .exp-row input.short { width: 7.8rem; }
+}
+@media (max-width: 999px) {
+  details.group > .group-body { padding: 0; }
+  details.group > .group-body > .card, details.group > .group-body > section { margin: 0 0.6rem 0.8rem; }
+}

@@ -134,12 +134,12 @@ function expensesEditor(ctx) {
   return h("div", {},
     h("p", { class: "total" }, "Total: ", total, quickNote),
     h("p", { class: "muted small" }, "Leave a category blank if it doesn't apply. Don't include loan EMIs (add them under Loans) or money you invest. If a cost will stop, such as an insurance premium or school fees, set the age it stops."),
-    ...groups.map((g) => h("details", { class: "group", open: true },
+    h("div", { class: "exp-groups" }, ...groups.map((g) => h("details", { class: "group exp-group", open: true },
       h("summary", {}, g.id.replace(/_/g, " ").replace(/^\w/, (s) => s.toUpperCase())),
       ...g.cats.flatMap((c) => {
         const items = user.expenses.filter((e) => e.categoryId === c.id);
         return items.length ? items.map((it) => row(c, it)) : [row(c, null)];
-      }))));
+      })))));
 }
 
 // ---------- generic list editor ----------

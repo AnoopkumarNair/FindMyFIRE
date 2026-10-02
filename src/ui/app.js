@@ -641,30 +641,34 @@ function resultsView() {
 
   // Four parts, each opening with a one-line summary, so the page reads as a story rather than
   // a wall of cards: how to get there (open), where you are, where you need to be, what could go wrong.
+  // On wide screens a part's cards sit two to a row; charts and tables (marked wide) take the full width.
   const group = (title, summary, open, ...cards) => h("details", { class: "group", open },
-    h("summary", {}, h("span", { class: "g-title" }, title), h("span", { class: "g-sum" }, summary)), ...cards);
+    h("summary", {}, h("span", { class: "g-title" }, title), h("span", { class: "g-sum" }, summary)),
+    h("div", { class: "group-body" }, ...cards));
+  const wide = (el) => { el?.classList.add("wide"); return el; };
+  const tall = (el) => { el?.classList.add("tall"); return el; };
   const crash = r.scenarios.find((x) => x.id === "crash_at_fire");
   return h("div", { class: "results" },
     h("p", { class: "back-simple" }, h("a", { href: "#/results", class: "link" }, "← Back to the simple view")),
-    hero, kpis,
+    h("div", { class: "top-row" }, hero, kpis),
     group("How to get there", r.levers?.onTrack ? "You're ahead: what that gives you, and your steps from this year on." : `Options that close the ${inrShort(Math.abs(t.gap))} gap, and your steps from this year on.`, true,
-      leversCard(r), actionPlanCard(r), confidenceCard(r)),
+      leversCard(r), tall(actionPlanCard(r)), confidenceCard(r)),
     group("Where you are today", `Net worth ${inrShort(r.balance.today.netWorth)}, of which ${inrShort(r.inputs.fireCorpus)} counts towards stopping work.`, false,
       balanceCard(r),
-      card("How your savings grow and last",
+      wide(card("How your savings grow and last",
         corpusChart(r.timeline, { targetAge: t.age, earliestAge: r.earliestAge }),
         r.depletesAtAge != null && r.depletesAtAge < r.inputs.planUntilAge
           ? h("p", { class: "warn-text" }, `⚠ Retiring at ${t.age} on the current path, the money runs out around age ${Math.floor(r.depletesAtAge)}.`)
-          : h("p", { class: "muted" }, `Retiring at ${t.age} on the current path, the money lasts past ${r.inputs.planUntilAge}.`)),
+          : h("p", { class: "muted" }, `Retiring at ${t.age} on the current path, the money lasts past ${r.inputs.planUntilAge}.`))),
       snapshotsCard()),
     group("Where you need to be", `${inrShort(t.required)} at ${t.age}: what it pays for, and how the money comes out after you stop.`, false,
       breakdownCard(r), swpCard(r)),
     group("What could go wrong", crash?.earliestAge != null && r.earliestAge != null
       ? `A 30% fall just after you stop moves your age to about ${ageWhole(crash.earliestAge)}; other risks and what moves the answer most.`
       : "Market falls, inflation, living longer, and what moves the answer most.", false,
-      stressLine(r), sensitivityCard(r), scenariosCard(r)),
+      stressLine(r), sensitivityCard(r), wide(scenariosCard(r))),
     askCard(askOptions),
-    group("Behind the numbers", "The assumptions used, and where the rules come from.", false, assumptionsSummary(r)),
+    group("Behind the numbers", "The assumptions used, and where the rules come from.", false, wide(assumptionsSummary(r))),
     feedbackBox());
 }
 
