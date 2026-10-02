@@ -67,7 +67,7 @@ function drawLive() {
   if (!r) { live.replaceChildren(h("span", { class: "muted" }, "Your result appears here as you answer.")); return; }
   live.replaceChildren(
     h("span", {}, "Earliest FIRE age ", h("strong", {}, r.earliestAge == null ? "not before " + r.inputs.planUntilAge : `about ${ageWhole(r.earliestAge)}`)),
-    h("span", {}, "Corpus needed at ", r.target.age, ": ", h("strong", {}, inrShort(r.target.required))),
+    h("span", {}, "Savings needed at ", r.target.age, ": ", h("strong", {}, inrShort(r.target.required))),
     h("span", {}, "Estimate quality ", h("strong", {}, `${r.confidence.score}`), ` (${r.confidence.band.label})`));
 }
 
@@ -104,6 +104,8 @@ function footer() {
     h("p", {}, "Your plan stays on this device. It's saved in this browser and in the file you download. Nothing is uploaded: no accounts, no analytics."),
     h("p", { class: "muted" }, `A planning tool, not investment, tax or legal advice. Rules ${S.pack?.packId}.${S.pack?.packVersion}, tax year 2026-27, last checked ${S.pack?.verifiedOn || "—"}. App v${APP_VERSION} (build ${BUILD}). `,
       h("a", { href: "#/sources" }, "Sources"), " · ",
+      h("a", FEEDBACK.email ? { href: `mailto:${FEEDBACK.email}?subject=${encodeURIComponent("FindMyFIRE feedback")}` }
+        : FEEDBACK.telegram ? { href: FEEDBACK.telegram, rel: "noopener", target: "_blank" } : { href: FEEDBACK.github, rel: "noopener", target: "_blank" }, "Feedback"), " · ",
       h("a", { href: "https://github.com/AnoopkumarNair/FindMyFIRE", rel: "noopener" }, "Source code")));
 }
 
@@ -610,7 +612,7 @@ function resultsView() {
       r.range.from != null && r.range.to != null && Math.ceil(r.range.to) - Math.floor(r.range.from) >= 1
         ? `Likely ${Math.floor(r.range.from)}–${Math.ceil(r.range.to)}, allowing for how exact your answers are.`
         : r.range.to == null ? "With pessimistic readings of your answers it may not be reachable." : "")
-      : h("p", { class: "sub" }, "With current savings and spending, the corpus doesn't catch up with what you'd need. Try the levers below."),
+      : h("p", { class: "sub" }, "With current savings and spending, your savings don't catch up with what you'd need. The options below show what helps."),
     chanceStrip(r),
     h("div", { class: "hero-actions" },
       h("p", { class: ["verdict", ahead ? "good" : "warn"] },
@@ -618,38 +620,43 @@ function resultsView() {
       reached ? h("button", { type: "button", class: "btn small share-btn", onClick: () => openShareDialog(r) }, icon("share"), "Share my FIRE age") : null));
 
   const kpis = h("div", { class: "kpis" },
-    kpi(`Corpus needed at ${t.age}`, inrShort(t.required), lumpsAtFire(r) > 0
+    kpi(`Savings needed at ${t.age}`, inrShort(t.required), lumpsAtFire(r) > 0
       ? `After ${inrShort(lumpsAtFire(r))} arriving in your first retirement year (${lumpLabels(r)}).`
       : t.firstYearWithdrawal > 0
-      ? `First-year withdrawal ${inrShort(t.firstYearWithdrawal)} (${pct(t.firstYearWithdrawal / t.required, 2)} of the corpus)`
+      ? `First-year withdrawal ${inrShort(t.firstYearWithdrawal)} (${pct(t.firstYearWithdrawal / t.required, 2)} of that)`
       : "Money coming in covers the first year's spending"),
-    kpi(`Projected at ${t.age}`, inrShort(t.projected), `From ${inrShort(r.inputs.fireCorpus)} today, plus ${inr(r.inputs.monthlySip)}/month you invest${r.inputs.epfMonthly ? ` and ${inr(r.inputs.epfMonthly)} into PF` : ""}`),
-    kpi(t.gap >= 0 ? "Surplus at target" : "Shortfall at target", inrShort(Math.abs(t.gap)), t.gap >= 0 ? "Ahead of plan" : "Gap to close", t.gap >= 0 ? "good" : "warn"),
+    kpi(`You'll have at ${t.age}`, inrShort(t.projected), `From ${inrShort(r.inputs.fireCorpus)} today, plus ${inr(r.inputs.monthlySip)}/month you invest${r.inputs.epfMonthly ? ` and ${inr(r.inputs.epfMonthly)} into PF` : ""}`),
+    kpi(t.gap >= 0 ? "Extra at your goal" : "Gap at your goal", inrShort(Math.abs(t.gap)), t.gap >= 0 ? "Ahead of plan" : "What the options above close", t.gap >= 0 ? "good" : "warn"),
     kpi(`Paths that last to ${r.inputs.planUntilAge}`, `${Math.round(r.chance.atTarget * 100)}%`,
       `Of ${r.chance.runs.toLocaleString("en-IN")} simulated market histories, if you stop at ${t.age} (±${Math.max(1, Math.round(r.chance.margin * 100))} pt).`, r.chance.atTarget >= 0.75 ? "good" : "warn"));
 
+  // Four parts, each opening with a one-line summary, so the page reads as a story rather than
+  // a wall of cards: how to get there (open), where you are, where you need to be, what could go wrong.
+  const group = (title, summary, open, ...cards) => h("details", { class: "group", open },
+    h("summary", {}, h("span", { class: "g-title" }, title), h("span", { class: "g-sum" }, summary)), ...cards);
+  const crash = r.scenarios.find((x) => x.id === "crash_at_fire");
   return h("div", { class: "results" },
     h("p", { class: "back-simple" }, h("a", { href: "#/results", class: "link" }, "← Back to the simple view")),
-    // The decision first: when, how much, and what changes it. Then how to sharpen it, questions,
-    // and the detail behind it.
     hero, kpis,
-    stressLine(r),
-    leversCard(r),
-    confidenceCard(r),
+    group("How to get there", r.levers?.onTrack ? "You're ahead: what that gives you, and your steps from this year on." : `Options that close the ${inrShort(Math.abs(t.gap))} gap, and your steps from this year on.`, true,
+      leversCard(r), actionPlanCard(r), confidenceCard(r)),
+    group("Where you are today", `Net worth ${inrShort(r.balance.today.netWorth)}, of which ${inrShort(r.inputs.fireCorpus)} counts towards stopping work.`, false,
+      balanceCard(r),
+      card("How your savings grow and last",
+        corpusChart(r.timeline, { targetAge: t.age, earliestAge: r.earliestAge }),
+        r.depletesAtAge != null && r.depletesAtAge < r.inputs.planUntilAge
+          ? h("p", { class: "warn-text" }, `⚠ Retiring at ${t.age} on the current path, the money runs out around age ${Math.floor(r.depletesAtAge)}.`)
+          : h("p", { class: "muted" }, `Retiring at ${t.age} on the current path, the money lasts past ${r.inputs.planUntilAge}.`)),
+      snapshotsCard()),
+    group("Where you need to be", `${inrShort(t.required)} at ${t.age}: what it pays for, and how the money comes out after you stop.`, false,
+      breakdownCard(r), swpCard(r)),
+    group("What could go wrong", crash?.earliestAge != null && r.earliestAge != null
+      ? `A 30% fall just after you stop moves your age to about ${ageWhole(crash.earliestAge)}; other risks and what moves the answer most.`
+      : "Market falls, inflation, living longer, and what moves the answer most.", false,
+      stressLine(r), sensitivityCard(r), scenariosCard(r)),
     askCard(askOptions),
-    sensitivityCard(r),
-    actionPlanCard(r),
-    card("How your corpus grows and lasts",
-      corpusChart(r.timeline, { targetAge: t.age, earliestAge: r.earliestAge }),
-      r.depletesAtAge != null && r.depletesAtAge < r.inputs.planUntilAge
-        ? h("p", { class: "warn-text" }, `⚠ Retiring at ${t.age} on the current path, the money runs out around age ${Math.floor(r.depletesAtAge)}.`)
-        : h("p", { class: "muted" }, `Retiring at ${t.age} on the current path, the money lasts past ${r.inputs.planUntilAge}.`)),
-    balanceCard(r),
-    scenariosCard(r),
-    breakdownCard(r),
-    swpCard(r),
-    assumptionsSummary(r),
-    snapshotsCard());
+    group("Behind the numbers", "The assumptions used, and where the rules come from.", false, assumptionsSummary(r)),
+    feedbackBox());
 }
 
 // ---------------- ask about your plan ----------------
@@ -752,7 +759,7 @@ function stressLine(r) {
         : later < 0.5 ? h("strong", {}, "your earliest age barely moves") : [h("strong", {}, `your earliest age moves from about ${ageWhole(r.earliestAge)} to about ${ageWhole(s.earliestAge)}`), ` (about ${Math.round(later)} year${Math.round(later) === 1 ? "" : "s"} later)`],
       ". ",
       r.chance.confidentAge != null ? `The safe planning age of about ${ageWhole(r.chance.confidentAge)} already allows for bad starts like this. ` : "",
-      "Holding 3 years of withdrawals in cash and 5 in debt when you stop (see Living off your corpus) is what lets you ride it out without selling equity at the bottom."));
+      "Holding 3 years of withdrawals in cash and 5 in debt when you stop (see Living off your savings) is what lets you ride it out without selling equity at the bottom."));
 }
 
 function leversCard(r) {
@@ -784,7 +791,7 @@ function balanceCard(r) {
   const locked = (r.inputs.locked || []).map((l) => `${l.label} unlocks at ${Math.floor(l.unlock.age)}`).join("; ");
   return card("Where you stand today",
     h("div", { class: "table-wrap" }, h("table", { class: "balance" }, h("tbody", {},
-      row("Investments for FIRE", T.investments, "The corpus the plan grows and draws from."),
+      row("Investments for FIRE", T.investments, "The savings the plan grows and draws from."),
       row("Emergency fund", T.emergency, "Kept aside, not in the plan."),
       row("Locked or earmarked", T.locked, locked || "Not counted toward FIRE."),
       row("Property", T.property, (r.inputs.properties || []).map((p) => `${p.label}${p.city ? ` (${p.city})` : ""}: grows ${pct(p.growth)} a year${p.sale ? `, sold at ${Math.floor(p.sale.atAge)} for ~${inrShort(p.sale.net)} after costs and tax` : ", kept"}`).join("; ")),
@@ -897,10 +904,10 @@ function actionPlanCard(r) {
   if (w?.buckets && prep < fireAge)
     step(`From ${prep}`, "Build the buckets over three years",
       ifClosed, `Move new money and some equity gains into debt and cash so that by ${fireAge} you hold about ${inrShort(w.buckets.cash.amount)} in cash (3 years of spending) and ${inrShort(w.buckets.debt.amount)} in debt (the next 5). This protects you if markets fall just as you stop.`);
-  if (w) step(`At ${fireAge}`, `Start an SWP of ${inr(w.firstMonthly)} a month`,
+  if (w) step(`At ${fireAge}`, `Start a monthly withdrawal (SWP) of ${inr(w.firstMonthly)}`,
     prep < fireAge ? "" : ifClosed, "From the cash bucket (liquid or arbitrage fund). Confirm your health policy is in your own name before leaving your job.");
   step(`Every year after`, "Refill and re-check",
-    "Move a year of withdrawals from debt to cash and top up debt from equity, but skip selling equity after a bad year. Raise the SWP with inflation, and re-run this plan.");
+    "Move a year of withdrawals from debt to cash and top up debt from equity, but skip selling equity after a bad year. Raise the withdrawal with inflation, and re-run this plan.");
 
   // Nudges the steps above already cover.
   const shown = new Set(["no_health_cover", "emergency_short", "low_confidence", "nps_locked"]);
@@ -960,7 +967,7 @@ function breakdownCard(r) {
       ...rows.map((x) => h("tr", {}, h("th", { scope: "row" }, h("span", { class: ["key-block", x[3]] }), x[0], h("small", { class: "help" }, x[2])),
         h("td", { class: "num" }, inrShort(x[1])), h("td", { class: "num muted" }, pct(x[1] / total, 0)))),
       ...minus.map((x) => h("tr", { class: "minus" }, h("th", { scope: "row" }, x[0]), h("td", { class: "num" }, `−${inrShort(x[1])}`), h("td", {}))),
-      h("tr", { class: "total-row" }, h("th", { scope: "row" }, `Corpus needed at ${t.age}`), h("td", { class: "num" }, inrShort(t.required)), h("td", {}))))),
+      h("tr", { class: "total-row" }, h("th", { scope: "row" }, `Savings needed at ${t.age}`), h("td", { class: "num" }, inrShort(t.required)), h("td", {}))))),
     mathDetails(r));
 }
 
@@ -987,7 +994,7 @@ function mathDetails(r) {
     `By ${m.fireAge}, in ${m.yearsToFire} years, prices rise ${pct(m.inflation.general)} a year (healthcare ${pct(m.inflation.health)}), and each cost is adjusted for life after work. Your first retired year costs ${costs.join(" + ")} = ${inrShort(f.spend)}.`,
     f.income > 0.5 ? `Income that continues (rent, pension, a spouse's pay…) covers ${inrShort(f.income)}, leaving ${inrShort(f.need)} to take from your savings.` : `Nothing else comes in, so all ${inrShort(f.need)} comes from your savings.`,
     `Tax on those withdrawals adds an estimated ${inrShort(f.tax)}${f.inflow > 0.5 ? `, and money arriving that year covers ${inrShort(f.inflow)}` : ""}: the first year's withdrawal is ${inrShort(f.withdrawal)}.`,
-    `Every later year is worked out the same way, up to ${i.planUntilAge} (${m.yearsRetired} years). Valued back to ${m.fireAge} at ${pct(m.returnAfter)} a year (the return after FIRE), they add up to ${inrShort(m.required)}: the corpus needed.`,
+    `Every later year is worked out the same way, up to ${i.planUntilAge} (${m.yearsRetired} years). Valued back to ${m.fireAge} at ${pct(m.returnAfter)} a year (the return after FIRE), they add up to ${inrShort(m.required)}: the savings needed.`,
     `On the other side: ${inrShort(m.savingsToday)} saved today, plus ${inrShort(m.contributions)} you'll invest over ${m.yearsToFire} years (monthly, rising each year)${Math.abs(m.lumps) > 0.5 ? `, ${m.lumps >= 0 ? "plus" : "less"} ${inrShort(Math.abs(m.lumps))} of lump sums and goals before then` : ""}, plus ${inrShort(m.growth)} of growth at ${pct(m.returnBefore)} a year = ${inrShort(m.projected)} by ${m.fireAge}.`,
     t.gap >= 0 ? `${inrShort(m.projected)} is more than ${inrShort(m.required)}: a surplus of ${inrShort(t.gap)}.` : `${inrShort(m.projected)} against ${inrShort(m.required)} needed: a shortfall of ${inrShort(-t.gap)}.`,
   ];
@@ -1005,8 +1012,8 @@ function swpCard(r) {
   const bucket = (cls, name, amount, what, where, rate, note) => h("div", { class: "bucket" },
     h("div", { class: "bucket-head" }, h("span", { class: ["key-block", cls], "aria-hidden": "true" }), h("strong", {}, name), h("span", { class: "num" }, inrShort(amount))),
     h("small", {}, what), h("small", { class: "muted" }, where), h("small", {}, rate), note);
-  return card("Living off your corpus",
-    h("p", {}, `From ${t.age} you stop investing and pay yourself a monthly `, h("strong", {}, "SWP (systematic withdrawal plan)"),
+  return card("Living off your savings",
+    h("p", {}, `From ${t.age} you stop investing and pay yourself a monthly `, h("strong", {}, "withdrawal (an SWP, systematic withdrawal plan)"),
       ` of about `, h("strong", {}, inr(w.firstMonthly)), ` in the first year`,
       Math.floor(w.firstAge) > Math.floor(w.startAge) ? ` of withdrawals (from ${Math.floor(w.firstAge)}; money coming in covers the years before)` : "",
       `. It rises with inflation every year. That needs `, h("strong", {}, inrShort(w.corpus)), ` at ${t.age}`,
@@ -1015,17 +1022,17 @@ function swpCard(r) {
     h("div", { class: "bucket-bar", role: "img", "aria-label": `Cash ${inrShort(b.cash.amount)}, debt ${inrShort(b.debt.amount)}, equity ${inrShort(b.equity.amount)}` },
       seg("s1", b.cash.amount), seg("s2", b.debt.amount), seg("s3", b.equity.amount)),
     h("div", { class: "buckets" },
-      bucket("s1", "1 · Cash", b.cash.amount, "The next 3 years of withdrawals. Your SWP is paid from here.",
+      bucket("s1", "1 · Cash", b.cash.amount, "The next 3 years of withdrawals. Your monthly withdrawal is paid from here.",
         "Liquid or arbitrage funds, sweep FD.", `Assumed ${pct(b.cash.return)} a year.`),
       bucket("s2", "2 · Debt", b.debt.amount, "Years 4 to 8. Refills the cash bucket once a year.",
         "Debt / target-maturity funds, G-Secs, SCSS after 60.", `Assumed ${pct(b.debt.return)} a year.`),
       bucket("s3", "3 · Equity", b.equity.amount, "Everything else. Grows to beat inflation and refills debt.",
-        "Index and flexi-cap funds.", b.equity.return == null ? "" : `Needs ${pct(b.equity.return)} a year for the whole corpus to average ${pct(w.blendedReturn)}.`,
+        "Index and flexi-cap funds.", b.equity.return == null ? "" : `Needs ${pct(b.equity.return)} a year for all your savings to average ${pct(w.blendedReturn)}.`,
         eqWarn ? h("small", { class: "warn-text" }, "⚠ That's a lot to expect from equity. Consider lowering the post-FIRE return in Assumptions.") : null)),
     h("p", { class: "small" }, h("strong", {}, "Each year: "),
       "move one year of withdrawals from debt to cash, and top up debt from equity. After a bad year for markets, skip the equity sale and let debt carry you; that's what the 8 years of cash and debt are for."),
-    h("p", { class: "muted small" }, "The buckets show how to hold and draw the money. The chance figures come from simulating the whole corpus with one blended return and its ups and downs, not each bucket separately, so treat the buckets as a way to act on the plan rather than part of the simulation."),
-    h("p", { class: "small" }, h("strong", {}, "Included in the SWP: "),
+    h("p", { class: "muted small" }, "The buckets show how to hold and draw the money. The chance figures come from simulating all your savings with one blended return and its ups and downs, not each bucket separately, so treat the buckets as a way to act on the plan rather than part of the simulation."),
+    h("p", { class: "small" }, h("strong", {}, "Included in the withdrawal: "),
       `an estimated ${inr(w.firstTax)} tax in the first year (${pct(w.firstTaxRate)} of withdrawals: interest and debt-fund gains at slab rates, equity gains at 12.5% above ₹1.25 lakh, assuming ${pct(r.inputs.assumptions["tax.equityGainShare"] ?? 0.5, 0)} of equity withdrawals is gain), and `,
       `${inr(w.firstHealthPremium)} for a family health policy once employer cover stops`,
       w.health?.estimated ? h("span", {}, " (an estimate: ", h("a", { href: "#/refine/protection" }, "enter your quote"), ")") : "",
@@ -1035,9 +1042,9 @@ function swpCard(r) {
         ? `On your current path you'd have ${inrShort(t.projected)} at ${t.age} instead, which runs out around ${Math.floor(r.depletesAtAge)}.`
         : ""),
     h("details", {},
-      h("summary", {}, "Year-by-year SWP"),
+      h("summary", {}, "Year by year"),
       h("div", { class: "table-wrap" }, h("table", { class: "dense" },
-        h("thead", {}, h("tr", {}, ...["Age", "Year", "Monthly SWP", "Corpus at start", "Taken out", "Growth", "Corpus at end"].map((x, i) => h("th", { class: i > 1 ? "num" : "" }, x)))),
+        h("thead", {}, h("tr", {}, ...["Age", "Year", "Monthly withdrawal", "Savings at start", "Taken out", "Growth", "Savings at end"].map((x, i) => h("th", { class: i > 1 ? "num" : "" }, x)))),
         h("tbody", {}, ...w.rows.map((x) => h("tr", {},
           h("td", {}, Math.floor(x.age)), h("td", {}, x.year),
           h("td", { class: "num" }, x.withdrawal < 0 ? "—" : inr(x.monthly)),

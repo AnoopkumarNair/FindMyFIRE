@@ -922,3 +922,13 @@ body::before { inset: -12%; animation: dawn-drift 34s ease-in-out infinite alter
 .fb-links { display: flex; gap: 0.5rem; justify-content: center; flex-wrap: wrap; }
 .back-simple { margin: 0 0 0.6rem; }
 @media (max-width: 640px) { .big3 strong { font-size: 1.15rem; } }
+/* ---------- full plan, grouped ---------- */
+details.group { margin: 1rem 0; border: 1px solid var(--border); border-radius: 16px; background: var(--surface); }
+details.group > summary { list-style: none; cursor: pointer; padding: 1rem 1.1rem; display: grid; gap: 0.2rem; }
+details.group > summary::-webkit-details-marker { display: none; }
+details.group > summary .g-title { font-family: var(--font-display); font-weight: 700; font-size: 1.2rem; }
+details.group > summary .g-title::after { content: " ▾"; color: var(--muted); font-size: 0.9rem; }
+details.group:not([open]) > summary .g-title::after { content: " ▸"; }
+details.group > summary .g-sum { color: var(--muted); font-size: 0.9rem; }
+details.group > .card { margin: 0 0.6rem 0.8rem; }
+details.group > section:not(.card) { margin: 0 0.6rem 0.8rem; }

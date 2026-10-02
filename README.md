@@ -94,6 +94,10 @@ To refresh it when RBI publishes a new quarter (about two months after each quar
 2. Run `python3 scripts/import-hpi.py <file.xlsx>` (needs `pip install openpyxl`); add `--with-cities` only for RBI's own table. It checks the rows and works out each city's yearly rate since the 2022-23 base.
 3. Update the `rbi-hpi` entry in the rules pack's sources, run `npm test`, and commit the JSON file. The spreadsheet itself isn't committed.
 
+### Feedback
+
+The results page asks "Was this clear?", and every page has a Feedback link. Nothing is sent automatically: "Not really" offers the ways to reach you that are set in `src/ui/config.js` (an email address, a Telegram link such as a forwarding bot, and GitHub issues as a fallback), with the app version and page filled in and no plan numbers.
+
 ### Tests
 
 `npm test` covers:
