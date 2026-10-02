@@ -124,14 +124,24 @@
       "help": "How much the portfolio's return typically swings in a year (standard deviation). Indian equity swings about 18–20%, debt 2–4%; a 65% equity mix is about 13%. Used for the 'chance your money lasts' simulation."
     },
     {
-      "id": "risk.volatilityAfterFire",
-      "label": "Yearly ups and downs after FIRE",
-      "value": 0.09,
+      "id": "risk.volatilityEquity",
+      "label": "Yearly ups and downs of equity after FIRE",
+      "value": 0.18,
       "unit": "percent",
-      "min": 0.02,
-      "max": 0.3,
+      "min": 0.05,
+      "max": 0.4,
       "step": 0.01,
-      "help": "Lower than before FIRE because less of the corpus is in equity."
+      "help": "How much the equity bucket's return typically swings in a year (standard deviation). Diversified Indian equity swings about 18–20%. After FIRE the cash, debt and equity buckets are simulated separately, so this and the debt figure replace one blended figure."
+    },
+    {
+      "id": "risk.volatilityDebt",
+      "label": "Yearly ups and downs of debt after FIRE",
+      "value": 0.03,
+      "unit": "percent",
+      "min": 0,
+      "max": 0.15,
+      "step": 0.005,
+      "help": "How much the debt bucket's return typically swings in a year. Short-duration debt funds and FDs move about 1–4%. The cash bucket is treated as steady."
     },
     {
       "id": "income.growth",

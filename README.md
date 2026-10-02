@@ -16,7 +16,7 @@ A few things it handles that simpler calculators don't:
 - **Income after you stop.** A spouse who keeps working, a pension, an annuity, rent or part-time work reduces what you draw, each taxed the right way and each with its own start and end age.
 - **Tax on withdrawals**, worked out every year under the new regime (FY2026-27 rules, including the ₹12 lakh rebate with marginal relief): slab rates on interest and pensions, 12.5% on equity gains above ₹1.25 lakh, and no exemption for foreign shares.
 - **Health cover after FIRE.** Once employer cover ends, a family floater premium is added. It rises with age and with medical inflation.
-- **Market ups and downs.** 10,000 simulated market histories show how often your money lasts, and the ages at which 75% and 90% of them last. The 90% age is the safe planning age.
+- **Market ups and downs.** 10,000 simulated market histories show how often your money lasts, and the ages at which 75% and 90% of them last. The 90% age is the safe planning age. After you stop, the cash, debt and equity buckets are simulated separately, the way the withdrawal plan says to run them.
 - **Property, goals and lump sums.** Rent, upkeep, planned sales (after capital-gains tax, using indexation where a pre-July-2024 purchase allows it), repeating goals such as a car every eight years, gratuity and policy payouts.
 - **What moves the answer.** A ranked view of which inputs shift your FIRE age most, and a step-by-step "show me the math" from today's spending to the corpus needed.
 
@@ -84,6 +84,7 @@ All amounts are in nominal rupees, projected one year at a time.
 - **After FIRE**, each year's withdrawal is the spending for that year: each expense rises at its own rate and is adjusted for life after work. Add health cover, EMIs still running and goals; subtract income that continues; then add tax on top.
 - **The corpus needed** at an age is the present value of every withdrawal from then until the age your money should last to. The earliest FIRE age is the first age at which your projected savings reach that amount.
 - **Withdrawals** come from three buckets: three years in cash, five in debt, the rest in equity.
+- **The simulation** grows savings before FIRE as one portfolio with its own ups and downs. From the FIRE year on, each bucket moves separately: cash steadily, debt and equity each with their own ups and downs (independent of each other). Withdrawals come out of cash. Each year cash is refilled to three years from debt, and debt to five years from equity, but only after a year in which equity didn't fall. Equity is sold in a bad year only if cash and debt have run out. Cash and debt earn their asset-class returns; equity earns whatever makes the starting split average the post-FIRE return you set, so the middle outcome stays close to the steady plan.
 
 ### Property price data
 
@@ -113,19 +114,18 @@ The results page asks "Was this clear?", and every page has a Feedback link. Not
 
 ## Roadmap
 
-**Done:** quick pass and live result; detailed sections with an estimate-quality score; nudges; save, open and encrypt; check-ins with changes since the last one; tax on withdrawals (FY2026-27, with marginal relief); income after FIRE; NPS exit choices under the December 2025 PFRDA rules; PPF and NPS kept apart until they unlock; property capital gains with indexation for pre-July-2024 purchases; 10,000-path market simulation with a safe planning age; sensitivity and "show me the math"; a Sources page; the RBI All-India house price trend; the on-device assistant.
+**Done:** quick pass and live result; detailed sections with an estimate-quality score; nudges; save, open and encrypt; check-ins with changes since the last one; tax on withdrawals (FY2026-27, with marginal relief); income after FIRE; NPS exit choices under the December 2025 PFRDA rules; PPF and NPS kept apart until they unlock; property capital gains with indexation for pre-July-2024 purchases; 10,000-path market simulation with a safe planning age, simulating the cash, debt and equity buckets separately after FIRE; sensitivity and "show me the math"; a Sources page; the RBI All-India house price trend; the on-device assistant.
 
 **Next steps**, roughly in order, with the thinking behind each:
 
-1. **Simulate the cash, debt and equity buckets separately.** Today the simulation uses one blended return and volatility for the whole corpus, while the withdrawal plan explains itself in three buckets (and says the buckets aren't simulated). Simulating each bucket, with its own returns and the yearly refill rule ("don't sell equity after a bad year"), would show sequence risk more realistically. It needs sourced return and volatility assumptions per asset class and how they move together, and it can't use the current one-pass speed-up, so it's a larger job. Expected effect: the chance figures move a few points, not the headline answer.
-2. **"Run down by 90" or "leave something behind".** The corpus is sized to run out at the plan-until age, and the app now says so and shows roughly what never running out would take. A choice to leave a set amount (for children, or as a longevity buffer) would make that explicit in the number itself.
-3. **City and state property trends.** The Property section shows RBI's All-India house price trend. City and state figures switch on automatically once RBI's own city table is imported with `scripts/import-hpi.py --with-cities`; a longer history (RBI's older 2010-11 base series) would allow 10-year rates instead of about 3.5 years. Figures that can't be checked against RBI's release aren't used.
-4. **Historical stress tests.** Replay Indian market and inflation history (for example 2008 or the early 2000s) instead of only random paths. Needs verified long-run series for Indian equity, debt and inflation.
-5. **Tax on actual gains.** Withdrawal tax assumes a share of each equity withdrawal is gain (an assumption you can change). Optional cost basis per holding would make it exact for people with very old or very new investments.
-6. **Work-optional scenarios as first-class plans.** Coast FIRE, part-time (barista) FIRE, career breaks and traditional retirement side by side; the engine already supports most of the parts.
-7. **Check-in trend chart.** A chart of savings, money needed, FIRE age and chance across check-ins, marking where answers changed rather than money.
-8. **Offline use (PWA)** and asset-allocation drift against the suggested mix.
-9. **Feedback and support.** A "Report a problem" email link with app and rules version (no plan numbers unless the person ticks a box), and a quiet UPI support link with the payee name shown for checking.
+1. **"Run down by 90" or "leave something behind".** The corpus is sized to run out at the plan-until age, and the app now says so and shows roughly what never running out would take. A choice to leave a set amount (for children, or as a longevity buffer) would make that explicit in the number itself.
+2. **City and state property trends.** The Property section shows RBI's All-India house price trend. City and state figures switch on automatically once RBI's own city table is imported with `scripts/import-hpi.py --with-cities`; a longer history (RBI's older 2010-11 base series) would allow 10-year rates instead of about 3.5 years. Figures that can't be checked against RBI's release aren't used.
+3. **Historical stress tests.** Replay Indian market and inflation history (for example 2008 or the early 2000s) instead of only random paths. Needs verified long-run series for Indian equity, debt and inflation.
+4. **Tax on actual gains.** Withdrawal tax assumes a share of each equity withdrawal is gain (an assumption you can change). Optional cost basis per holding would make it exact for people with very old or very new investments.
+5. **Work-optional scenarios as first-class plans.** Coast FIRE, part-time (barista) FIRE, career breaks and traditional retirement side by side; the engine already supports most of the parts.
+6. **Check-in trend chart.** A chart of savings, money needed, FIRE age and chance across check-ins, marking where answers changed rather than money.
+7. **Offline use (PWA)** and asset-allocation drift against the suggested mix.
+8. **Feedback and support.** A "Report a problem" email link with app and rules version (no plan numbers unless the person ticks a box), and a quiet UPI support link with the payee name shown for checking.
 
 **Kept deliberately simple:** one steady-return headline age with simulated ages beside it (rather than a single "probability"); whole-year headline ages; rules as data, refreshed and dated each Budget.
 

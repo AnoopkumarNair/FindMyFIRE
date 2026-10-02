@@ -332,6 +332,7 @@ export function resolveInputs(user, pack, today = new Date()) {
     fireTargetAge: plan.fireTargetAge,
     planUntilAge: A["plan.untilAge"],
     assumptions: A,
+    assetReturns: ret,
     detailed,
     takeHomeMonthly,
     expenses,

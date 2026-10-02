@@ -5,7 +5,7 @@ import { evaluate } from "./conditions.js";
 import { confidence, bandFor } from "./confidence.js";
 import { resolveInputs } from "./resolve.js";
 import { makeParams, analyse, requiredMonthlySip, withdrawalsFrom, withdrawalParts, drawdown, requiredAt } from "./project.js";
-import { chanceByFireYear, levers, SIMULATION_RUNS, simulationMargin } from "./risk.js";
+import { chanceModel, levers, SIMULATION_RUNS, simulationMargin } from "./risk.js";
 import { sensitivity, mathTrail } from "./explain.js";
 
 export { fv, pmt, nper, pvDue } from "./finance.js";
@@ -14,7 +14,7 @@ export { resolveInputs, assumptionValues, ageAt } from "./resolve.js";
 export { snapshotOf, withSnapshot, progress } from "./checkin.js";
 export { makeParams, accumulate, analyse, drawdown, withdrawalsFrom, withdrawalParts, requiredAt } from "./project.js";
 export { slabTax, yearTax } from "./tax.js";
-export { chanceByFireYear, levers, SIMULATION_RUNS, simulationMargin } from "./risk.js";
+export { chanceByFireYear, chanceModel, levers, SIMULATION_RUNS, simulationMargin } from "./risk.js";
 
 function tierSpec(tier, inp) {
   const A = inp.assumptions;
@@ -122,9 +122,9 @@ export function evaluatePlan(user, pack, { today = new Date(), runs = SIMULATION
   const swp = swpPlan(inp, p, pack, tFire, year0);
 
   // ---- market ups and downs: how often the money lasts, by FIRE age ----
-  const chances = chanceByFireYear(inp, p, { runs });
-  const at = (t) => chances[Math.min(Math.max(0, t), chances.length - 1)];
-  const firstWith = (x) => chances.find((c) => c.chance >= x) || null;
+  const chances = chanceModel(inp, p, { runs });
+  const at = (t) => chances.at(t);
+  const firstWith = (x) => chances.firstWith(x);
   const chance = {
     runs,
     // Sampling noise only: the model's own assumptions (returns, volatility) matter far more.
@@ -132,7 +132,9 @@ export function evaluatePlan(user, pack, { today = new Date(), runs = SIMULATION
     atTarget: at(tFire).chance,
     confidentAge: firstWith(0.9)?.age ?? null,
     likelyAge: firstWith(0.75)?.age ?? null,
-    byAge: chances,
+    // At the steady-returns age (the nearest whole year): roughly a coin flip, not exactly one.
+    atEarliest: base.earliestAge == null ? null : at(Math.round(base.earliestAge - inp.age)).chance,
+    get byAge() { return chances.all(); },
   };
 
   // ---- where you stand: everything you own and owe, today and at the target age ----

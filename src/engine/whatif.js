@@ -3,7 +3,7 @@
 
 import { resolveInputs } from "./resolve.js";
 import { makeParams, analyse } from "./project.js";
-import { chanceByFireYear, levers } from "./risk.js";
+import { chanceModel, levers } from "./risk.js";
 
 /**
  * Changes a what-if can make. All money is today's rupees a month unless noted.
@@ -43,9 +43,9 @@ function outcome(inp, ch) {
     generalInflationDelta: ch.inflationDelta || 0,
   });
   const a = analyse(inp, p);
-  const chances = chanceByFireYear(inp, p);
-  const at = chances[Math.min(Math.max(0, a.tTarget), chances.length - 1)];
-  const first = (x) => chances.find((c) => c.chance >= x)?.age ?? null;
+  const chances = chanceModel(inp, p);
+  const at = chances.at(a.tTarget);
+  const first = (x) => chances.firstWith(x)?.age ?? null;
   return {
     inp, p, a,
     summary: {

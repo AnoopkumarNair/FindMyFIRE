@@ -729,10 +729,10 @@ function chanceStrip(r) {
   return h("div", { class: "chance" },
     h("p", { class: "muted small" }, `How sure is that? Markets don't return the same every year, and a bad run early in retirement hurts most. Stopping at each age, how many of ${c.runs.toLocaleString("en-IN")} simulated market histories last to ${until}:`),
     h("div", { class: "pills" },
-      pill("steady returns: about half of the simulated paths last", r.earliestAge),
+      pill(c.atEarliest == null ? "steady returns" : `steady returns: ${Math.round(c.atEarliest * 100)}% of simulated paths last`, r.earliestAge),
       pill("75% of simulated paths last", c.likelyAge, "mid"),
       pill("90% of simulated paths last", c.confidentAge, "safe", "Safe planning age")),
-    h("p", { class: "muted tiny" }, "Simulations use the assumed returns and ups and downs under Assumptions: they show how sensitive the plan is, not a guarantee."));
+    h("p", { class: "muted tiny" }, "Simulations use the assumed returns and ups and downs under Assumptions. After you stop, your cash, debt and equity buckets are simulated separately, with equity left alone after a bad year. They show how sensitive the plan is, not a guarantee."));
 }
 
 /** Which inputs move the FIRE age most, each changed on its own by a realistic amount. */
@@ -1050,7 +1050,7 @@ function swpCard(r) {
         eqWarn ? h("small", { class: "warn-text" }, "⚠ That's a lot to expect from equity. Consider lowering the post-FIRE return in Assumptions.") : null)),
     h("p", { class: "small" }, h("strong", {}, "Each year: "),
       "move one year of withdrawals from debt to cash, and top up debt from equity. After a bad year for markets, skip the equity sale and let debt carry you; that's what the 8 years of cash and debt are for."),
-    h("p", { class: "muted small" }, "The buckets show how to hold and draw the money. The chance figures come from simulating all your savings with one blended return and its ups and downs, not each bucket separately, so treat the buckets as a way to act on the plan rather than part of the simulation."),
+    h("p", { class: "muted small" }, "The chance figures simulate these buckets as described: each with its own returns and ups and downs, withdrawals from cash, cash refilled from debt every year, and debt refilled from equity only after a year in which equity didn't fall. So a crash just after you stop is met from cash and debt, not by selling equity at a low."),
     h("p", { class: "small" }, h("strong", {}, "Included in the withdrawal: "),
       `an estimated ${inr(w.firstTax)} tax in the first year (${pct(w.firstTaxRate)} of withdrawals: interest and debt-fund gains at slab rates, equity gains at 12.5% above ₹1.25 lakh, assuming ${pct(r.inputs.assumptions["tax.equityGainShare"] ?? 0.5, 0)} of equity withdrawals is gain), and `,
       `${inr(w.firstHealthPremium)} for a family health policy once employer cover stops`,
