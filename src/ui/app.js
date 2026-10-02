@@ -104,8 +104,11 @@ function footer() {
     h("p", {}, "Your plan stays on this device. It's saved in this browser and in the file you download. Nothing is uploaded: no accounts, no analytics."),
     h("p", { class: "muted" }, `A planning tool, not investment, tax or legal advice. Rules ${S.pack?.packId}.${S.pack?.packVersion}, tax year 2026-27, last checked ${S.pack?.verifiedOn || "—"}. App v${APP_VERSION} (build ${BUILD}). `,
       h("a", { href: "#/sources" }, "Sources"), " · ",
-      h("a", FEEDBACK.email ? { href: `mailto:${FEEDBACK.email}?subject=${encodeURIComponent("FindMyFIRE feedback")}` }
-        : FEEDBACK.telegram ? { href: FEEDBACK.telegram, rel: "noopener", target: "_blank" } : { href: FEEDBACK.github, rel: "noopener", target: "_blank" }, "Feedback"), " · ",
+      "Feedback: ",
+      ...[FEEDBACK.email && h("a", { href: feedbackMail("general") }, "Email"),
+        FEEDBACK.telegram && h("a", { href: FEEDBACK.telegram, rel: "noopener", target: "_blank" }, "Telegram"),
+        !FEEDBACK.email && !FEEDBACK.telegram && h("a", { href: FEEDBACK.github, rel: "noopener", target: "_blank" }, "GitHub")]
+        .filter(Boolean).flatMap((a, i) => (i ? [" · ", a] : [a])), " · ",
       h("a", { href: "https://github.com/AnoopkumarNair/FindMyFIRE", rel: "noopener" }, "Source code")));
 }
 
@@ -577,18 +580,31 @@ function simpleView() {
     feedbackBox());
 }
 
+/**
+ * A feedback email with a few prompts (a blank email gets few replies), plus the app version, page
+ * and device so problems can be reproduced. Never any plan numbers.
+ */
+function feedbackMail(kind) {
+  const prompts = kind === "unclear"
+    ? ["Which part was confusing?", "", "What did you expect to see instead?", ""]
+    : ["What were you trying to do?", "", "What worked well, or didn't?", "", "Anything you'd like added?", ""];
+  const footer = [`---`, `App ${APP_VERSION} (build ${BUILD}), rules ${S.pack?.packId}.${S.pack?.packVersion}`,
+    `Page: ${location.hash || "#/"} · Device: ${navigator.userAgent.match(/(Android|iPhone|iPad|Windows|Mac OS X|Linux)/)?.[0] || "unknown"}`,
+    "(No numbers from your plan are included.)"];
+  const subject = kind === "unclear" ? "FindMyFIRE: something was unclear" : "FindMyFIRE feedback";
+  return `mailto:${FEEDBACK.email}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent([...prompts, "", ...footer].join("\n"))}`;
+}
+
 /** "Was this clear?" and how to reach us. Nothing is sent unless the person chooses to. */
 function feedbackBox() {
   const done = h("p", { class: "muted small", hidden: true }, "Thank you! That helps.");
-  const body = encodeURIComponent(`\n\n---\nApp ${APP_VERSION} (build ${BUILD}), rules ${S.pack?.packId}.${S.pack?.packVersion}, page ${location.hash || "#/"}, ${navigator.userAgent.match(/(Android|iPhone|iPad|Windows|Mac OS X|Linux)/)?.[0] || "device"}\n(No plan numbers are included.)`);
-  const mail = (subject) => FEEDBACK.email ? `mailto:${FEEDBACK.email}?subject=${encodeURIComponent(subject)}&body=${body}` : null;
-  const links = (subject) => [
-    FEEDBACK.email && h("a", { href: mail(subject), class: "btn small" }, "Email us"),
+  const links = () => [
+    FEEDBACK.email && h("a", { href: feedbackMail("unclear"), class: "btn small" }, "Email us"),
     FEEDBACK.telegram && h("a", { href: FEEDBACK.telegram, class: "btn small", rel: "noopener", target: "_blank" }, "Message on Telegram"),
     h("a", { href: FEEDBACK.github, class: "link small", rel: "noopener", target: "_blank" }, "Report on GitHub"),
   ].filter(Boolean);
   const more = h("div", { class: "fb-more", hidden: true },
-    h("p", { class: "small" }, "Sorry about that. What was confusing? A line or two helps a lot."), h("div", { class: "fb-links" }, ...links("FindMyFIRE: what was unclear")));
+    h("p", { class: "small" }, "Sorry about that. What was confusing? A line or two helps a lot."), h("div", { class: "fb-links" }, ...links()));
   return h("section", { class: "feedback" },
     h("span", { class: "small" }, "Was this clear?"),
     h("button", { type: "button", class: "btn small ghost", onClick: (e) => { e.currentTarget.parentElement.querySelectorAll("button").forEach((b) => (b.disabled = true)); done.hidden = false; } }, "Yes"),
