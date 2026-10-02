@@ -1,7 +1,7 @@
 // Two ways of explaining a result: which inputs move it most (sensitivity), and the chain of
 // calculations from today's spending to the corpus needed (the math). Steady returns throughout.
 
-import { analyse, withdrawalParts, preFireFlows } from "./project.js";
+import { analyse, withdrawalParts, preFireFlows, legacyAt } from "./project.js";
 
 /**
  * How much the earliest FIRE age and the corpus needed change when one input moves by a
@@ -39,7 +39,12 @@ export function mathTrail(inp, p, base = analyse(inp, p)) {
   const flows = preFireFlows(inp, p, T);
   const contributions = flows.contributions.reduce((s, x) => s + x, 0);
   const lumps = flows.lumps.reduce((s, x) => s + x, 0); // money received less goals paid, before FIRE
+  // Money left behind at the end, valued back to the FIRE year (part of the savings needed).
+  const endT = Math.floor(p.planUntilAge - p.age) + 1;
+  const legacy = legacyAt(inp, p, endT);
+  const legacyValue = legacy / (1 + p.rPost) ** Math.max(0, endT - T);
   return {
+    legacy, legacyValue,
     fireAge: p.fireTargetAge, yearsToFire: T, yearsRetired,
     inflation: p.infl, returnBefore: p.rPre, returnAfter: p.rPost,
     firstYear: first,

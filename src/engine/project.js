@@ -170,14 +170,23 @@ export function withdrawalsFrom(inp, p, tier, t) {
 }
 
 /**
+ * Money to leave behind, in rupees of year T (the year after the last withdrawal): the amount in
+ * today's money, grown with general inflation. Zero means the plan spends down to nothing.
+ */
+export function legacyAt(inp, p, T) {
+  return (inp.legacyToday || 0) * (1 + p.infl.general) ** T;
+}
+
+/**
  * Smallest corpus at the start of each year t that pays every withdrawal until plan-until age.
  * Without inflows this is the present value of the withdrawals. With a late inflow the early
  * years must still be covered on their own, so it is the largest running present value. Worked
- * backwards in one pass: best(t) = w(t) + max(0, best(t+1)) / (1 + r).
+ * backwards in one pass: best(t) = w(t) + max(0, best(t+1)) / (1 + r), starting from the amount
+ * to leave behind (zero by default).
  */
 export function requiredAll(inp, p, tier = {}) {
   const ws = withdrawalSchedule(inp, p, tier), out = new Array(ws.length);
-  let best = 0;
+  let best = legacyAt(inp, p, ws.length);
   for (let t = ws.length - 1; t >= 0; t--) {
     best = ws[t] + Math.max(0, best) / (1 + p.rPost);
     out[t] = Math.max(0, best);
@@ -203,15 +212,21 @@ export function analyse(inp, p, tier = {}) {
   const path = accumulate(inp, p, maxT, tier);
   const all = requiredAll(inp, p, tier);
   const req = path.map((_, t) => all[t] ?? 0);
-  // Scenario: a crash in the first year of retirement hits whatever corpus you retire with.
-  const hit = (x) => x * (1 - (p.fireCrash || 0));
+  // Scenario: a market crash in the first year of retirement. It hits the equity bucket; the
+  // year's withdrawal and the 3 years in cash and 5 in debt are already out of the market.
+  const ws = p.fireCrash ? withdrawalSchedule(inp, p, tier) : null;
+  const hit = (x, t) => {
+    if (!p.fireCrash) return x;
+    const w = Math.max(0, ws[t] ?? 0);
+    return x - p.fireCrash * Math.max(0, x - w - 8 * w);
+  };
   let earliestT = null;
   for (let t = 0; t <= maxT; t++) {
-    const gap = hit(path[t]) - req[t];
+    const gap = hit(path[t], t) - req[t];
     if (gap >= 0) {
       if (t === 0) earliestT = 0;
       else {
-        const prev = hit(path[t - 1]) - req[t - 1];
+        const prev = hit(path[t - 1], t - 1) - req[t - 1];
         earliestT = t - 1 + prev / (prev - gap);
       }
       break;
@@ -220,7 +235,7 @@ export function analyse(inp, p, tier = {}) {
   // The target is valued at a whole plan year (the one containing the target age), so the headline,
   // the breakdown, the SWP plan and the chart all describe the same moment.
   const tTarget = Math.min(Math.max(0, Math.round(p.fireTargetAge - p.age)), maxT);
-  const projected = hit(lerp(path, tTarget));
+  const projected = hit(lerp(path, tTarget), Math.min(Math.round(tTarget), maxT));
   const required = lerp(req, tTarget);
   return {
     path, req, tTarget, projected, required,

@@ -67,3 +67,20 @@ test("with no ups and downs after FIRE, the money lasts when the savings cover t
   assert.equal(m.at(t - 2).chance, 0, "well before the steady-returns age it fails");
   assert.equal(m.at(t + 2).chance, 1, "well after it lasts");
 });
+
+test("money left for the children: needed in full at the end, and the simulation keeps it aside", () => {
+  const { user } = households().find((h) => h.name === "quick-typical");
+  const plain = evaluatePlan(user, pack, { today });
+  const legacyToday = 5000000;
+  const leave = evaluatePlan({ ...user, plan: { ...user.plan, legacyToday } }, pack, { today });
+  const p = plain.params, endT = Math.floor(p.planUntilAge - p.age) + 1, t = plain.math.yearsToFire;
+  const atEnd = legacyToday * (1 + p.infl.general) ** endT;
+  assert.ok(Math.abs(leave.legacyAtEnd - atEnd) < 1);
+  const extra = leave.target.required - plain.target.required, expected = atEnd / (1 + p.rPost) ** (endT - t);
+  assert.ok(Math.abs(extra - expected) < 1, `needed ${extra}, expected ${expected}`);
+  assert.ok(Math.abs(leave.math.legacyValue - expected) < 1, "show-the-math says the same");
+  const last = leave.swp.rows.at(-1);
+  assert.ok(Math.abs(last.end - atEnd) / atEnd < 1e-6, `the drawdown ends with what's left behind: ${last.end} vs ${atEnd}`);
+  assert.ok(leave.chance.atTarget <= plain.chance.atTarget && leave.chance.confidentAge >= plain.chance.confidentAge, "keeping money aside never helps the chance");
+  assert.ok(leave.earliestAge > plain.earliestAge);
+});

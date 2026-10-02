@@ -4,7 +4,7 @@
 import { evaluate } from "./conditions.js";
 import { confidence, bandFor } from "./confidence.js";
 import { resolveInputs } from "./resolve.js";
-import { makeParams, analyse, requiredMonthlySip, withdrawalsFrom, withdrawalParts, drawdown, requiredAt } from "./project.js";
+import { makeParams, analyse, requiredMonthlySip, withdrawalsFrom, withdrawalParts, drawdown, requiredAt, legacyAt } from "./project.js";
 import { chanceModel, levers, SIMULATION_RUNS, simulationMargin } from "./risk.js";
 import { sensitivity, mathTrail } from "./explain.js";
 
@@ -180,6 +180,7 @@ export function evaluatePlan(user, pack, { today = new Date(), runs = SIMULATION
     get sensitivity() { return (this._sens ??= sensitivity(inp, p, base)); },
     get math() { return (this._math ??= mathTrail(inp, p, base)); },
     balance,
+    legacyAtEnd: legacyAt(inp, p, Math.floor(p.planUntilAge - p.age) + 1),
     depletesAtAge: depletedRow ? inp.age + tFire + depletedRow.k : null,
     nudges,
   };

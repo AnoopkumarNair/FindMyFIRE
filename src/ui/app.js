@@ -104,11 +104,8 @@ function footer() {
     h("p", {}, "Your plan stays on this device. It's saved in this browser and in the file you download. Nothing is uploaded: no accounts, no analytics."),
     h("p", { class: "muted" }, `A planning tool, not investment, tax or legal advice. Rules ${S.pack?.packId}.${S.pack?.packVersion}, tax year 2026-27, last checked ${S.pack?.verifiedOn || "—"}. App v${APP_VERSION} (build ${BUILD}). `,
       h("a", { href: "#/sources" }, "Sources"), " · ",
-      "Feedback: ",
-      ...[FEEDBACK.email && h("a", { href: feedbackMail("general") }, "Email"),
-        FEEDBACK.telegram && h("a", { href: FEEDBACK.telegram, rel: "noopener", target: "_blank" }, "Telegram"),
-        !FEEDBACK.email && !FEEDBACK.telegram && h("a", { href: FEEDBACK.github, rel: "noopener", target: "_blank" }, "GitHub")]
-        .filter(Boolean).flatMap((a, i) => (i ? [" · ", a] : [a])), " · ",
+      "Feedback or a problem: ",
+      ...contactLinks("general").flatMap((a, i) => (i ? [" · ", a] : [a])), " · ",
       h("a", { href: "https://github.com/AnoopkumarNair/FindMyFIRE", rel: "noopener" }, "Source code")));
 }
 
@@ -219,7 +216,7 @@ function welcomeView() {
         indiaChip("health", "Health cover", "Premiums that rise with age once your employer's cover ends."),
         indiaChip("receipt", "Tax", "Worked out every year under the FY2026-27 new regime."),
         indiaChip("gift", "Lump sums", "Gratuity, policy payouts, ESOPs still to vest, inheritance."),
-        indiaChip("umbrella", "Market crashes", "Tested against 10,000 market histories, including a crash just as you stop."),
+        indiaChip("umbrella", "Market crashes", "10,000 simulated market histories, plus a 30% fall just as you stop. Cash and debt buckets carry you through the bad years."),
         indiaChip("ask", "Ask questions", "“Why 53?” “What if I invest ₹10k more?” Answered from your own numbers; an optional private AI on laptops puts it in words."))),
 
     h("section", { class: "band" },
@@ -568,28 +565,35 @@ function simpleView() {
 }
 
 /**
- * A feedback email with a few prompts (a blank email gets few replies), plus the app version, page
- * and device so problems can be reproduced. Never any plan numbers.
+ * One email for feedback and problems alike, with a few prompts (a blank email gets few replies)
+ * plus the app version, page and device so a problem can be reproduced. Never any plan numbers.
+ * `kind`: "general", "unclear" (from "Was this clear?") or "error" (with the error message).
  */
-function feedbackMail(kind) {
-  const prompts = kind === "unclear"
-    ? ["Which part was confusing?", "", "What did you expect to see instead?", ""]
-    : ["What were you trying to do?", "", "What worked well, or didn't?", "", "Anything you'd like added?", ""];
+function feedbackMail(kind, error) {
+  const prompts = kind === "unclear" ? ["Which part was confusing?", "", "What did you expect to see instead?", ""]
+    : kind === "error" ? ["What were you doing when this happened?", ""]
+    : ["Feedback, or something that went wrong? Tell us either way.", "", "What were you trying to do?", "", "What happened, or what would you like added?", ""];
   const footer = [`---`, `App ${APP_VERSION} (build ${BUILD}), rules ${S.pack?.packId}.${S.pack?.packVersion}`,
     `Page: ${location.hash || "#/"} · Device: ${navigator.userAgent.match(/(Android|iPhone|iPad|Windows|Mac OS X|Linux)/)?.[0] || "unknown"}`,
+    ...(error ? [`Error: ${String(error.message || error).slice(0, 300)}`] : []),
     "(No numbers from your plan are included.)"];
-  const subject = kind === "unclear" ? "FindMyFIRE: something was unclear" : "FindMyFIRE feedback";
+  const subject = { unclear: "FindMyFIRE: something was unclear", error: "FindMyFIRE: something went wrong" }[kind] || "FindMyFIRE: feedback or a problem";
   return `mailto:${FEEDBACK.email}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent([...prompts, "", ...footer].join("\n"))}`;
+}
+
+/** The ways to reach us, as links: email (with a template) and Telegram; GitHub if neither is set. */
+function contactLinks(kind, { error, cls = "" } = {}) {
+  return [
+    FEEDBACK.email && h("a", { href: feedbackMail(kind, error), class: cls }, "Email"),
+    FEEDBACK.telegram && h("a", { href: FEEDBACK.telegram, class: cls, rel: "noopener", target: "_blank" }, "Telegram"),
+    !FEEDBACK.email && !FEEDBACK.telegram && h("a", { href: FEEDBACK.github, class: cls, rel: "noopener", target: "_blank" }, "GitHub"),
+  ].filter(Boolean);
 }
 
 /** "Was this clear?" and how to reach us. Nothing is sent unless the person chooses to. */
 function feedbackBox() {
   const done = h("p", { class: "muted small", hidden: true }, "Thank you! That helps.");
-  const links = () => [
-    FEEDBACK.email && h("a", { href: feedbackMail("unclear"), class: "btn small" }, "Email us"),
-    FEEDBACK.telegram && h("a", { href: FEEDBACK.telegram, class: "btn small", rel: "noopener", target: "_blank" }, "Message on Telegram"),
-    h("a", { href: FEEDBACK.github, class: "link small", rel: "noopener", target: "_blank" }, "Report on GitHub"),
-  ].filter(Boolean);
+  const links = () => contactLinks("unclear", { cls: "btn small" });
   const more = h("div", { class: "fb-more", hidden: true },
     h("p", { class: "small" }, "Sorry about that. What was confusing? A line or two helps a lot."), h("div", { class: "fb-links" }, ...links()));
   return h("section", { class: "feedback" },
@@ -604,7 +608,8 @@ function resultsView() {
   const r = S.result;
   if (!r) {
     return h("section", {}, h("h1", { tabindex: -1 }, "A few answers are missing"),
-      S.error ? h("p", { class: "error" }, `Something went wrong: ${S.error.message}`) : null,
+      S.error ? h("p", { class: "error" }, `Something went wrong: ${S.error.message}. `,
+        "Please tell us so we can fix it: ", ...contactLinks("error", { error: S.error }).flatMap((a, i) => (i ? [" · ", a] : [a])), ".") : null,
       h("p", {}, "Answer the quick questions to see your result."), h("a", { href: "#/quick/0", class: "btn primary" }, "Go to questions"));
   }
   const u = S.user, t = r.target, bym = u.profile.birthYearMonth;
@@ -767,7 +772,7 @@ function stressLine(r) {
   const later = s.earliestAge == null ? null : s.earliestAge - r.earliestAge;
   return h("section", { class: "card stress" },
     h("h2", {}, "What if retirement starts badly?"),
-    h("p", {}, "If markets fall 30% in your first year after stopping, ",
+    h("p", {}, "If markets fall 30% in your first year after stopping (your equity drops; the cash and debt buckets don't), ",
       s.earliestAge == null ? h("strong", {}, `the money wouldn't last to ${r.inputs.planUntilAge} at any age`)
         : later < 0.5 ? h("strong", {}, "your earliest age barely moves") : [h("strong", {}, `your earliest age moves from about ${ageWhole(r.earliestAge)} to about ${ageWhole(s.earliestAge)}`), ` (about ${Math.round(later)} year${Math.round(later) === 1 ? "" : "s"} later)`],
       ". ",
@@ -998,9 +1003,13 @@ function runsOutNote(r) {
   const t = r.target, rr = r.params.rPost, g = r.params.infl.general, w = t.firstYearWithdrawal;
   const forever = w > 0 && rr - g > 0.005 ? (w * (1 + rr)) / (rr - g) : null;
   return h("p", { class: "small strategy" }, h("strong", {}, "How it's sized: "),
-    `a yearly withdrawal that rises with inflation, from ${t.age} until ${r.inputs.planUntilAge}, when the money is planned to run out. `,
+    `a yearly withdrawal that rises with inflation, from ${t.age} until ${r.inputs.planUntilAge}, `,
+    r.inputs.legacyToday > 0
+      ? `leaving ${inrShort(r.inputs.legacyToday)} in today's money (about ${inrShort(r.legacyAtEnd)} by then) for your children or others. `
+      : "when the money is planned to run out. ",
     forever ? `Never running out (living off returns alone) would take roughly ${inrShort(forever)} at ${t.age}. ` : "",
-    `To plan for a longer life, raise "money should last until" under Life after FIRE.`);
+    r.inputs.legacyToday > 0 ? `Change the amount to leave behind, or the age, under Life after FIRE.`
+      : `To plan for a longer life or to leave something behind, see Life after FIRE.`);
 }
 
 /** The calculation chain, step by step, from today's spending to the gap at the target age. */
@@ -1013,7 +1022,7 @@ function mathDetails(r) {
     `By ${m.fireAge}, in ${m.yearsToFire} years, prices rise ${pct(m.inflation.general)} a year (healthcare ${pct(m.inflation.health)}), and each cost is adjusted for life after work. Your first retired year costs ${costs.join(" + ")} = ${inrShort(f.spend)}.`,
     f.income > 0.5 ? `Income that continues (rent, pension, a spouse's pay…) covers ${inrShort(f.income)}, leaving ${inrShort(f.need)} to take from your savings.` : `Nothing else comes in, so all ${inrShort(f.need)} comes from your savings.`,
     `Tax on those withdrawals adds an estimated ${inrShort(f.tax)}${f.inflow > 0.5 ? `, and money arriving that year covers ${inrShort(f.inflow)}` : ""}: the first year's withdrawal is ${inrShort(f.withdrawal)}.`,
-    `Every later year is worked out the same way, up to ${i.planUntilAge} (${m.yearsRetired} years). Valued back to ${m.fireAge} at ${pct(m.returnAfter)} a year (the return after FIRE), they add up to ${inrShort(m.required)}: the savings needed.`,
+    `Every later year is worked out the same way, up to ${i.planUntilAge} (${m.yearsRetired} years). Valued back to ${m.fireAge} at ${pct(m.returnAfter)} a year (the return after FIRE), they add up to ${m.legacy > 0.5 ? `${inrShort(m.required - m.legacyValue)}. Add ${inrShort(m.legacyValue)} at ${m.fireAge} that grows to the ${inrShort(m.legacy)} you'll leave behind, and you get ${inrShort(m.required)}` : inrShort(m.required)}: the savings needed.`,
     `On the other side: ${inrShort(m.savingsToday)} saved today, plus ${inrShort(m.contributions)} you'll invest over ${m.yearsToFire} years (monthly, rising each year)${Math.abs(m.lumps) > 0.5 ? `, ${m.lumps >= 0 ? "plus" : "less"} ${inrShort(Math.abs(m.lumps))} of lump sums and goals before then` : ""}, plus ${inrShort(m.growth)} of growth at ${pct(m.returnBefore)} a year = ${inrShort(m.projected)} by ${m.fireAge}.`,
     t.gap >= 0 ? `${inrShort(m.projected)} is more than ${inrShort(m.required)}: a surplus of ${inrShort(t.gap)}.` : `${inrShort(m.projected)} against ${inrShort(m.required)} needed: a shortfall of ${inrShort(-t.gap)}.`,
   ];

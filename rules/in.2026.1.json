@@ -2106,6 +2106,13 @@
             "defaultFrom": "plan.untilAge"
           },
           {
+            "id": "r.legacy",
+            "prompt": "Leave behind for your children or others (today's money)",
+            "input": "currency",
+            "bind": "/plan/legacyToday",
+            "help": "Without this, the plan spends your savings down to zero by the age above. Enter an amount in today's rupees to keep it aside instead: it grows with inflation and is still there at that age. Leave blank for none. Your home isn't counted, so leave it out if the home is what you'll pass on."
+          },
+          {
             "id": "r.post_fire_spending",
             "prompt": "Spending after FIRE compared with today",
             "input": "percent",
@@ -2316,7 +2323,7 @@
     {
       "id": "crash_at_fire",
       "label": "Crash just after you retire",
-      "description": "Corpus falls 30% in your first year of retirement. The biggest real-world risk.",
+      "description": "Equity falls 30% in your first year of retirement; the cash and debt buckets don't. The biggest real-world risk.",
       "changes": {
         "crashAtFire": 0.3
       }

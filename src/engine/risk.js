@@ -5,7 +5,7 @@
 // many possible market histories and counts how often the money lasts, with the cash, debt and
 // equity buckets of the withdrawal plan each simulated separately after FIRE.
 
-import { preFireFlows, withdrawalsFrom, analyse, requiredMonthlySip } from "./project.js";
+import { preFireFlows, withdrawalsFrom, analyse, requiredMonthlySip, legacyAt } from "./project.js";
 
 // Small seeded generator so the same plan always shows the same percentage.
 function mulberry32(seed) {
@@ -111,7 +111,10 @@ export function chanceModel(inp, p, { runs = SIMULATION_RUNS, seed = 20260925 } 
   const ws = withdrawalsFrom(inp, p, {}, 0);
   const W = ws.length;
   // Steady money needed from each year on, to size the starting buckets for each FIRE year.
+  // What must still be there at the end (money left for children; zero by default).
+  const L = legacyAt(inp, p, W);
   const steady = new Float64Array(W + 1);
+  steady[W] = L;
   for (let T = W - 1; T >= 0; T--) steady[T] = ws[T] + Math.max(0, steady[T + 1]) / (1 + p.rPost);
 
   // The savings at each year before FIRE don't depend on when you stop: built once per history.
@@ -130,7 +133,6 @@ export function chanceModel(inp, p, { runs = SIMULATION_RUNS, seed = 20260925 } 
     }
   }
 
-  const lo = new Float64Array(W + 1), hi = new Float64Array(W + 1);
   const simulate = (t, R) => {
     if (t >= W) return 1;
     const br = bucketReturns(bucketSplit(Math.max(0, steady[t] - ws[t]), ws[t]), p.rPost, ret);
@@ -138,10 +140,6 @@ export function chanceModel(inp, p, { runs = SIMULATION_RUNS, seed = 20260925 } 
     let ok = 0;
     for (let r = 0; r < R; r++) {
       const zr = r * horizon, start = pre[r * P + t];
-      // Shortcut: a year's growth on the whole pot lies between its worst and best bucket's.
-      // The money needed from year T on if every year went the best way (lo) or the worst way
-      // (hi) brackets the real answer: below lo always fails, at or above hi always lasts.
-      // Only histories in between are followed bucket by bucket, and only until it's settled.
       if (start < ws[t]) continue;
       const s = bucketSplit(start - ws[t], ws[t]);
       let cash = s.cash, debt = s.debt, eq = s.equity, alive = true;
@@ -164,7 +162,8 @@ export function chanceModel(inp, p, { runs = SIMULATION_RUNS, seed = 20260925 } 
         }
         cash *= cg; debt *= dg * S.debt[zr + T]; eq *= eg * S.eq[zr + T];
       }
-      if (alive) ok++;
+      // Whatever is meant to be left behind must still be there at the end.
+      if (alive && (L === 0 || cash + debt + eq >= L)) ok++;
     }
     return ok / R;
   };

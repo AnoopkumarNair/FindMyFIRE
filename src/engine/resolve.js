@@ -331,6 +331,7 @@ export function resolveInputs(user, pack, today = new Date()) {
     overlaps,
     fireTargetAge: plan.fireTargetAge,
     planUntilAge: A["plan.untilAge"],
+    legacyToday: Math.max(0, user.plan?.legacyToday || 0),
     assumptions: A,
     assetReturns: ret,
     detailed,

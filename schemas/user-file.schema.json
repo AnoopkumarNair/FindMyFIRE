@@ -157,6 +157,11 @@
           "minimum": 60,
           "maximum": 110
         },
+        "legacyToday": {
+          "type": "number",
+          "minimum": 0,
+          "description": "Amount in today's rupees to leave behind at plan-until age; grows with general inflation."
+        },
         "partTimeIncomeMonthly": {
           "type": "number",
           "minimum": 0
