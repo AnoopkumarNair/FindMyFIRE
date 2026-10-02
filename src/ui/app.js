@@ -9,6 +9,7 @@ import { openShareDialog } from "./share.js";
 import { askCard, aiChip, askNow } from "./ask.js";
 import { journey, jar } from "./infographics.js";
 import { FEEDBACK } from "./config.js";
+import { historyRows, replayHistory, historySafe, MIN_HISTORY_YEARS } from "../engine/history.js";
 import * as ai from "../assistant/client.js";
 import * as store from "./store.js";
 import { evaluatePlan, evaluate, getPointer, setPointer, ageAt, snapshotOf, withSnapshot, progress } from "../engine/index.js";
@@ -671,7 +672,7 @@ function resultsView() {
     group("What could go wrong", crash?.earliestAge != null && r.earliestAge != null
       ? `A 30% fall just after you stop moves your age to about ${ageWhole(crash.earliestAge)}; other risks and what moves the answer most.`
       : "Market falls, inflation, living longer, and what moves the answer most.", false,
-      stressLine(r), sensitivityCard(r), wide(scenariosCard(r))),
+      stressLine(r), historyCard(r), sensitivityCard(r), wide(scenariosCard(r))),
     askCard(askOptions),
     group("Behind the numbers", "The assumptions used, and where the rules come from.", false, wide(assumptionsSummary(r))),
     feedbackBox());
@@ -760,6 +761,44 @@ function sensitivityCard(r) {
               h("span", { class: "tside hi" }, bar(x.hi.ageDelta, "hi"), h("small", {}, `${x.hi.label}: ${years(x.hi.ageDelta)}`)))
           : h("p", { class: "small muted" }, `Doesn't change the earliest age. Money needed at your target: ${money(x.lo.requiredDelta)} if ${x.lo.label}, ${money(x.hi.requiredDelta)} if ${x.hi.label}.`));
     })));
+}
+
+/**
+ * Real history instead of random paths: stopping at the steady-returns age at the start of each
+ * past year, then living through the markets and prices that followed. Shown only when the
+ * market history file is published with the app.
+ */
+const historyMemo = new WeakMap();
+function historyCard(r) {
+  if (!S.history) return null;
+  let x = historyMemo.get(r);
+  if (!x) {
+    const inflation = S.market?.inflation?.actual?.values || {};
+    const rows = historyRows(S.history, inflation);
+    const p = r.params, i = r.inputs;
+    const t = r.earliestAge != null ? Math.ceil(r.earliestAge - i.age - 1e-9) : Math.round(p.fireTargetAge - i.age);
+    const at = replayHistory(i, p, rows, t);
+    x = at && { rows, at, safe: at.lasted === at.total ? at : historySafe(i, p, rows, t + 1),
+      inflationYears: rows.filter((y) => y.inflation != null).length };
+    historyMemo.set(r, x);
+  }
+  if (!x) return null;
+  const { at, safe, rows } = x, src = S.history.source || {}, lastStart = at.starts.at(-1).year;
+  const yearChip = (s) => h("span", { class: ["hist-year", s.lasts ? "ok" : "bad"],
+    title: s.lasts ? `${s.year}: lasts to ${r.inputs.planUntilAge}` : `${s.year}: runs out around ${Math.floor(s.runsOutAge)}` }, String(s.year));
+  return h("section", { class: "card history" },
+    h("h2", {}, "What if you'd stopped in a bad year?"),
+    h("p", {}, `Say you had stopped at ${ageWhole(at.age)} at the start of any year from ${at.from} to ${lastStart}, and lived through the markets and prices that actually followed. `,
+      h("strong", {}, at.lasted === at.total ? `The money lasted every time (${at.total} of ${at.total} start years).`
+        : `The money lasted in ${at.lasted} of ${at.total} start years.`),
+      at.worst ? ` Worst start: ${at.worst.year}, when it runs out around ${Math.floor(at.worst.runsOutAge)}.` : ""),
+    h("div", { class: "hist-years", role: "img", "aria-label": `${at.lasted} of ${at.total} start years last` }, ...at.starts.map(yearChip)),
+    at.lasted < at.total ? h("p", {}, safe ? [`Stopping at about `, h("strong", {}, ageWhole(safe.age)), ` would have lasted from every one of these start years.`]
+      : `No stopping age before ${r.inputs.planUntilAge} lasts from every start year.`) : null,
+    h("p", { class: "muted tiny" },
+      `Equity: ${src.equity?.name || "index history"}${x.inflationYears ? "; prices: India's yearly inflation (World Bank)" : "; prices: your assumed inflation (yearly data not loaded)"}; `,
+      src.debt ? `debt: ${src.debt.name}; cash keeps its assumed return above inflation. ` : "debt and cash keep their assumed return above inflation. ",
+      `Before you stop, the plan grows with steady returns; after ${rows.at(-1).year} its assumptions take over. Start years need at least ${MIN_HISTORY_YEARS} years of history. Past markets don't repeat exactly.`));
 }
 
 /**
@@ -1295,6 +1334,10 @@ async function boot() {
     const res = await fetch("market/india.json");
     if (res.ok) S.market = await res.json();
   } catch { /* optional: published by the deploy workflow */ }
+  try {
+    const res = await fetch(`data/market-history.json?v=${BUILD}`);
+    if (res.ok) S.history = await res.json();
+  } catch { /* optional: past market returns for the history replay */ }
   try {
     const res = await fetch(`data/house-price-index.json?v=${BUILD}`);
     if (res.ok) S.hpi = await res.json();

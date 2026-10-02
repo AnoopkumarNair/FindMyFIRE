@@ -1005,3 +1005,9 @@ details.more-steps > summary { cursor: pointer; font-weight: 600; color: var(--a
   details.group > .group-body { padding: 0; }
   details.group > .group-body > .card, details.group > .group-body > section { margin: 0 0.6rem 0.8rem; }
 }
+
+/* history replay: one chip per start year */
+.hist-years { display: flex; flex-wrap: wrap; gap: 4px; margin: 0.6rem 0 0.8rem; }
+.hist-year { font-size: 0.75rem; font-variant-numeric: tabular-nums; padding: 0.15rem 0.4rem; border-radius: 6px; }
+.hist-year.ok { background: var(--good-bg); color: var(--good); }
+.hist-year.bad { background: var(--warn-bg); color: var(--warn); font-weight: 700; }

@@ -16,6 +16,7 @@ A few things it handles that simpler calculators don't:
 - **Income after you stop.** A spouse who keeps working, a pension, an annuity, rent or part-time work reduces what you draw, each taxed the right way and each with its own start and end age.
 - **Tax on withdrawals**, worked out every year under the new regime (FY2026-27 rules, including the ₹12 lakh rebate with marginal relief): slab rates on interest and pensions, 12.5% on equity gains above ₹1.25 lakh, and no exemption for foreign shares.
 - **Health cover after FIRE.** Once employer cover ends, a family floater premium is added. It rises with age and with medical inflation.
+- **Leaving something behind.** An amount in today's money to keep for children or others; the plan keeps it aside instead of spending down to zero.
 - **Market ups and downs.** 10,000 simulated market histories show how often your money lasts, and the ages at which 75% and 90% of them last. The 90% age is the safe planning age. After you stop, the cash, debt and equity buckets are simulated separately, the way the withdrawal plan says to run them.
 - **Property, goals and lump sums.** Rent, upkeep, planned sales (after capital-gains tax, using indexation where a pre-July-2024 purchase allows it), repeating goals such as a car every eight years, gratuity and policy payouts.
 - **What moves the answer.** A ranked view of which inputs shift your FIRE age most, and a step-by-step "show me the math" from today's spending to the corpus needed.
@@ -95,9 +96,18 @@ To refresh it when RBI publishes a new quarter (about two months after each quar
 2. Run `python3 scripts/import-hpi.py <file.xlsx>` (needs `pip install openpyxl`); add `--with-cities` only for RBI's own table. It checks the rows and works out each city's yearly rate since the 2022-23 base.
 3. Update the `rbi-hpi` entry in the rules pack's sources, run `npm test`, and commit the JSON file. The spreadsheet itself isn't committed.
 
+### Market history
+
+The full plan's "What if you'd stopped in a bad year?" card replays real Indian markets: stopping at your steady-returns age at the start of each past year, then living through the equity returns and inflation that followed, with the same buckets and refill rule as the simulation. It also finds the first age that would have lasted from every start year. Inflation comes from the World Bank file fetched at deploy time; equity (and optionally debt) comes from `data/market-history.json`. The card stays hidden until that file exists.
+
+To create or refresh it:
+1. Download daily or monthly levels of a total-returns equity index from the provider, for example NIFTY 50 Total Returns Index from NSE Indices' historical data (several files, such as one per year, are fine). Optionally do the same for a debt index such as NIFTY 10 yr Benchmark G-Sec.
+2. Run `python3 scripts/import-market-history.py --equity <files…> [--debt <files…>]`. It works out calendar-year returns (December to December), checks overlapping files agree, and prints the worst years to check against the provider's own figures.
+3. Run `npm test` and commit the JSON file. The downloads themselves aren't committed.
+
 ### Feedback
 
-The results page asks "Was this clear?", and every page has a Feedback link. Nothing is sent automatically: "Not really" offers the ways to reach you that are set in `src/ui/config.js` (an email address, a Telegram link such as a forwarding bot, and GitHub issues as a fallback), with the app version and page filled in and no plan numbers.
+The results page asks "Was this clear?", and every page has one "Feedback or a problem" link for both. Nothing is sent automatically: the links are the ways to reach you set in `src/ui/config.js` (an email address and a Telegram link such as a forwarding bot; GitHub issues only if neither is set). The email comes with a short template, the app and rules version, page and device filled in, and no plan numbers. If the app hits an error, the error page offers the same links with the error message added.
 
 ### Tests
 
@@ -114,18 +124,16 @@ The results page asks "Was this clear?", and every page has a Feedback link. Not
 
 ## Roadmap
 
-**Done:** quick pass and live result; detailed sections with an estimate-quality score; nudges; save, open and encrypt; check-ins with changes since the last one; tax on withdrawals (FY2026-27, with marginal relief); income after FIRE; NPS exit choices under the December 2025 PFRDA rules; PPF and NPS kept apart until they unlock; property capital gains with indexation for pre-July-2024 purchases; 10,000-path market simulation with a safe planning age, simulating the cash, debt and equity buckets separately after FIRE; sensitivity and "show me the math"; a Sources page; the RBI All-India house price trend; the on-device assistant.
+**Done:** quick pass and live result; detailed sections with an estimate-quality score; nudges; save, open and encrypt; check-ins with changes since the last one; tax on withdrawals (FY2026-27, with marginal relief); income after FIRE; NPS exit choices under the December 2025 PFRDA rules; PPF and NPS kept apart until they unlock; property capital gains with indexation for pre-July-2024 purchases; 10,000-path market simulation with a safe planning age, simulating the cash, debt and equity buckets separately after FIRE; a replay of real market history; money to leave behind for children; a 30% crash scenario that hits equity only; one feedback-or-problem link; sensitivity and "show me the math"; a Sources page; the RBI All-India house price trend; the on-device assistant.
 
 **Next steps**, roughly in order, with the thinking behind each:
 
-1. **"Run down by 90" or "leave something behind".** The corpus is sized to run out at the plan-until age, and the app now says so and shows roughly what never running out would take. A choice to leave a set amount (for children, or as a longevity buffer) would make that explicit in the number itself.
-2. **City and state property trends.** The Property section shows RBI's All-India house price trend. City and state figures switch on automatically once RBI's own city table is imported with `scripts/import-hpi.py --with-cities`; a longer history (RBI's older 2010-11 base series) would allow 10-year rates instead of about 3.5 years. Figures that can't be checked against RBI's release aren't used.
-3. **Historical stress tests.** Replay Indian market and inflation history (for example 2008 or the early 2000s) instead of only random paths. Needs verified long-run series for Indian equity, debt and inflation.
-4. **Tax on actual gains.** Withdrawal tax assumes a share of each equity withdrawal is gain (an assumption you can change). Optional cost basis per holding would make it exact for people with very old or very new investments.
-5. **Work-optional scenarios as first-class plans.** Coast FIRE, part-time (barista) FIRE, career breaks and traditional retirement side by side; the engine already supports most of the parts.
-6. **Check-in trend chart.** A chart of savings, money needed, FIRE age and chance across check-ins, marking where answers changed rather than money.
-7. **Offline use (PWA)** and asset-allocation drift against the suggested mix.
-8. **Feedback and support.** A "Report a problem" email link with app and rules version (no plan numbers unless the person ticks a box), and a quiet UPI support link with the payee name shown for checking.
+1. **City and state property trends.** The Property section shows RBI's All-India house price trend. City and state figures switch on automatically once RBI's own city table is imported with `scripts/import-hpi.py --with-cities`; a longer history (RBI's older 2010-11 base series) would allow 10-year rates instead of about 3.5 years. Figures that can't be checked against RBI's release aren't used.
+2. **Tax on actual gains.** Withdrawal tax assumes a share of each equity withdrawal is gain (an assumption you can change). Optional cost basis per holding would make it exact for people with very old or very new investments.
+3. **Work-optional scenarios as first-class plans.** Coast FIRE, part-time (barista) FIRE, career breaks and traditional retirement side by side; the engine already supports most of the parts.
+4. **Check-in trend chart.** A chart of savings, money needed, FIRE age and chance across check-ins, marking where answers changed rather than money.
+5. **Offline use (PWA)** and asset-allocation drift against the suggested mix.
+6. **Support link.** A quiet UPI link for people who want to support the project, with the payee name shown for checking.
 
 **Kept deliberately simple:** one steady-return headline age with simulated ages beside it (rather than a single "probability"); whole-year headline ages; rules as data, refreshed and dated each Budget.
 
