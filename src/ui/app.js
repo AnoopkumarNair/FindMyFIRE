@@ -176,6 +176,8 @@ function welcomeView() {
     : [h("button", { type: "button", class: "btn primary big", onClick: start }, "Find my FIRE age →"),
        h("button", { type: "button", class: "btn big ghost", onClick: loadExample }, "See an example")];
   const step = (num, title, text) => h("li", { class: "step" }, h("span", { class: "num" }, num), h("div", {}, h("h3", {}, title), h("p", {}, text)));
+  const howStep = (ic, title, text) => h("li", {}, h("span", { class: "how-art" }, art(ic)), h("strong", {}, title), h("small", {}, text));
+  const indiaChip = (ic, title, text) => h("details", { class: "india-chip" }, h("summary", {}, art(ic), h("span", {}, title)), h("p", {}, text));
   const feature = (ic, title, text) => h("li", { class: "feature" }, h("span", { class: "ficon" }, art(ic)), h("div", {}, h("h3", {}, title), h("p", {}, text)));
   const faq = (q, a) => h("details", { class: "faq" }, h("summary", {}, q), h("p", {}, a));
   const tick = (t) => h("li", {}, h("span", { class: "tick", "aria-hidden": "true" }, "✓"), t);
@@ -188,6 +190,8 @@ function welcomeView() {
         h("h1", { tabindex: -1 }, "Find out when work becomes ", h("em", {}, "optional"), "."),
         h("p", { class: "lede" }, `FIRE (Financial Independence, Retire Early) is when your investments can pay your bills for life. Answer ${n} questions to see the age you could get there, how likely it is, and your plan.`),
         h("div", { class: "cta" }, ...cta),
+        h("p", { class: "trust" }, "FY2026-27 tax rules", h("span", { "aria-hidden": "true" }, " · "), "Official sources",
+          h("span", { "aria-hidden": "true" }, " · "), "10,000 market scenarios", h("span", { "aria-hidden": "true" }, " · "), "Stays on your device"),
         h("div", { class: "privacy-card" },
           h("span", { class: "privacy-art" }, art("lock")),
           h("div", {},
@@ -199,35 +203,35 @@ function welcomeView() {
       heroDemo(),
       embers()),
 
-    h("section", { class: "band two-col" },
-      h("div", {},
-        h("h2", {}, "How it works"),
-        h("ol", { class: "steps" },
-          step("1", "Enter the basics", "Age, pay, spending, savings. Round numbers are fine."),
-          step("2", "See your FIRE age", "And how sure it is, tested against 10,000 simulated market histories."),
-          step("3", "Get your plan", "What to invest now, how to build a cash cushion, what to withdraw later."))),
-      h("div", {},
-        h("h2", {}, "What it counts that others leave out"),
-        h("ul", { class: "features" },
-          h("li", { class: "feature featured" }, h("span", { class: "ficon" }, art("ask")),
-            h("div", {}, h("h3", {}, "Ask about your plan ", h("span", { class: "new-pill small" }, "New")),
-              h("p", {}, "“Why 53?” “What if I invest ₹10k more?” Answers come from your own numbers. On a laptop or desktop, an optional AI puts them into words, running privately inside your browser."))),
-          feature("pillars", "EPF, PPF and NPS", "Including locked money and when it unlocks."),
-          feature("house", "Your property", "Rent, upkeep, or a sale in any year."),
-          feature("health", "Health cover after work", "Premiums that rise once your employer's cover ends."),
-          feature("receipt", "Tax on withdrawals", "Worked out every year, new regime."),
-          feature("gift", "Money coming in", "Gratuity, policy payouts, inheritance."),
-          feature("umbrella", "A crash at the worst time", "Markets falling just as you stop.")))),
+    h("section", { class: "band how" },
+      h("h2", {}, "How it works"),
+      h("ol", { class: "how-steps" },
+        howStep("pen", "Answer 9 questions", "Round numbers are fine"),
+        howStep("target", "See your FIRE age", "And how sure it is"),
+        howStep("path", "Get your plan", "What to do, year by year"))),
+
+    h("section", { class: "band india" },
+      h("h2", {}, "Made for India"),
+      h("p", { class: "muted small" }, "What most calculators leave out. Tap any to see how it's handled."),
+      h("div", { class: "india-chips" },
+        indiaChip("pillars", "EPF, PPF, NPS", "Including locked money and when it unlocks, under PFRDA's latest NPS exit rules."),
+        indiaChip("house", "Your home", "Rent, upkeep, or a sale in any year, with capital-gains tax."),
+        indiaChip("health", "Health cover", "Premiums that rise with age once your employer's cover ends."),
+        indiaChip("receipt", "Tax", "Worked out every year under the FY2026-27 new regime."),
+        indiaChip("gift", "Lump sums", "Gratuity, policy payouts, ESOPs still to vest, inheritance."),
+        indiaChip("umbrella", "Market crashes", "Tested against 10,000 market histories, including a crash just as you stop."),
+        indiaChip("ask", "Ask questions", "“Why 53?” “What if I invest ₹10k more?” Answered from your own numbers; an optional private AI on laptops puts it in words."))),
 
     h("section", { class: "band" },
       h("h2", {}, "Questions people ask"),
       h("div", { class: "faqs" },
-        faq("Do I need exact numbers?", "No. Start rough and mark answers as estimates. The app shows how accurate the result is and which one section to fill in next."),
+        faq("Do I need exact numbers?", "No. Start rough and mark answers as estimates. The app shows how reliable the result is and which section to fill in next."),
         faq("Where is my data stored?", "Only in this browser on this device. Download it as a file (optionally locked with a passphrase) to keep it or move it to another device. Nothing is uploaded."),
         faq("I don't want to retire at 40. Is this still useful?", "Yes. FIRE is about having the choice: the same plan shows whether you're on track for 60, what a career break costs, or how much a cheaper city helps."),
-        faq("Is there AI? Does it see my numbers?", "It's optional. On a laptop or desktop you can add an AI that runs entirely inside your browser (a one-time 3.1 GB download). It only rewords the planner's own numbers, every number is checked before it's shown, and nothing you type leaves your device. Phones get the same answers without the AI wording."),
         faq("Is this financial advice?", "No. It's a planning tool that does the maths carefully and shows its working. Check big decisions with a SEBI-registered adviser."),
-        faq("Where do the tax rules and rates come from?", "From official sources: the Budget, the Income Tax Department, PFRDA, EPFO and the Ministry of Finance, checked for FY2026-27. The Sources page (linked at the bottom of every page) lists each one and when it was last checked.")),
+        h("details", { class: "faq more-faqs" }, h("summary", {}, "More questions"),
+          faq("Is there AI? Does it see my numbers?", "It's optional. On a laptop or desktop you can add an AI that runs entirely inside your browser (a one-time 3.1 GB download). It only rewords the planner's own numbers, every number is checked before it's shown, and nothing you type leaves your device. Phones get the same answers without the AI wording."),
+          faq("Where do the tax rules and rates come from?", "From official sources: the Budget, the Income Tax Department, PFRDA, EPFO and the Ministry of Finance, checked for FY2026-27. The Sources page (linked at the bottom of every page) lists each one and when it was last checked."))),
       h("div", { class: "closing" },
         h("p", {}, h("strong", {}, "Two minutes to your number.")),
         working ? h("a", { href: "#/results", class: "btn primary" }, "Continue your plan →")
@@ -255,7 +259,7 @@ function embers(count = 9) {
 /** Sections and tiles rise gently into view as you scroll (once each). */
 function revealOnScroll(root) {
   if (calm() || !("IntersectionObserver" in window)) return;
-  const items = root.querySelectorAll(".band, .feature, .step, .faq, .closing");
+  const items = root.querySelectorAll(".band, .closing");
   const io = new IntersectionObserver((entries) => {
     for (const en of entries) if (en.isIntersecting) { en.target.classList.add("in"); io.unobserve(en.target); }
   }, { rootMargin: "0px 0px -8% 0px" });
@@ -265,39 +269,22 @@ function revealOnScroll(root) {
     el.style.setProperty("--i", String(i % 6));
     io.observe(el);
   });
+  // Safety net: whatever hasn't appeared after a few seconds (no scrolling, a print, a
+  // screenshot, an observer that never fires) is shown anyway.
+  setTimeout(() => items.forEach((el) => el.classList.add("in")), 4000);
 }
 
 /** The landing page's example: a corpus that grows, then carries you, drawn as the page loads. */
 function heroDemo() {
-  const W = 520, H = 300, pad = 24;
-  const pts = [];
-  for (let a = 35; a <= 90; a++) {
-    const v = a <= 53 ? Math.pow((a - 33) / 20, 2.1) : Math.max(0, 1 - Math.pow((a - 53) / 38, 1.6) * 0.92);
-    pts.push([pad + ((a - 35) / 55) * (W - 2 * pad), H - pad - v * (H - 3 * pad)]);
-  }
-  const d = pts.map(([x, y], i) => `${i ? "L" : "M"}${x.toFixed(1)},${y.toFixed(1)}`).join("");
-  const sx = pts[18][0], sy = pts[18][1];
   return h("div", { class: "demo", "aria-hidden": "true" },
     h("div", { class: "demo-card" },
       h("p", { class: "demo-tag" }, "Example"),
-      h("svg:svg", { viewBox: `0 0 ${W} ${H}`, class: "demo-svg" },
-        h("svg:defs", {},
-          h("svg:linearGradient", { id: "demoFill", x1: 0, y1: 0, x2: 0, y2: 1 },
-            h("svg:stop", { offset: "0%", class: "stop-a" }), h("svg:stop", { offset: "100%", class: "stop-b" }))),
-        h("svg:line", { x1: pad, x2: W - pad, y1: H - pad, y2: H - pad, class: "demo-axis" }),
-        h("svg:path", { d: `${d}L${W - pad},${H - pad}L${pad},${H - pad}Z`, class: "demo-area", fill: "url(#demoFill)" }),
-        h("svg:path", { d, class: "demo-line", pathLength: 1 }),
-        h("svg:line", { x1: sx, x2: sx, y1: pad, y2: H - pad, class: "demo-mark" }),
-        h("svg:circle", { cx: sx, cy: sy, r: 9, class: "demo-sun" }),
-        calm() ? null : h("svg:circle", { r: 4, class: "demo-tracer" },
-          h("svg:animateMotion", { dur: "9s", begin: "2.2s", repeatCount: "indefinite", path: d, calcMode: "linear" })),
-        h("svg:text", { x: pad, y: H - 6, class: "demo-tick" }, "35"),
-        h("svg:text", { x: sx - 8, y: H - 6, class: "demo-tick" }, "53"),
-        h("svg:text", { x: W - pad - 14, y: H - 6, class: "demo-tick" }, "90")),
+      h("p", { class: "demo-age" }, h("span", {}, "Around "), h("strong", {}, "53")),
+      h("p", { class: "demo-line-text" }, "Good news: on today's path you could stop working around 53, ahead of your goal of 55."),
+      journey({ age: 35, goal: 55, stop: 53, until: 90 }),
       h("div", { class: "demo-chips" },
-        h("span", { class: "chip-pop c1" }, h("b", {}, "53"), " could stop working"),
-        h("span", { class: "chip-pop c2" }, h("b", {}, "₹4.9 Cr"), " needed by then"),
-        h("span", { class: "chip-pop c3" }, h("b", {}, "90%"), " of market paths last by 61"))));
+        h("span", { class: "chip-pop c1" }, h("b", {}, "₹4.9 Cr"), " needed by then"),
+        h("span", { class: "chip-pop c3" }, h("b", {}, "9 in 10"), " market paths last by 61"))));
 }
 
 /** Small line icons for the header (drawn with SVG, no icon font). */
@@ -550,7 +537,7 @@ function simpleView() {
       h("ul", { class: "ways" }, ...ways.filter(Boolean).map(([pic, a, b]) => h("li", {}, pic, h("div", {}, h("strong", {}, a), h("p", { class: "small" }, b)))))),
     h("section", { class: "card simple-month" },
       h("h2", {}, "This month"),
-      h("ol", { class: "steps" }, ...thisMonth.map((x) => h("li", {}, x)))),
+      h("ol", { class: "month-steps" }, ...thisMonth.map((x) => h("li", {}, x)))),
     quick && todo.length ? h("section", { class: "card simple-sharpen" },
       h("h2", {}, "Make this answer more reliable"),
       h("div", { class: "meter-row" },

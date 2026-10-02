@@ -911,7 +911,7 @@ body::before { inset: -12%; animation: dawn-drift 34s ease-in-out infinite alter
 .ways li { display: flex; gap: 0.8rem; align-items: center; }
 .ways .art { width: 44px; height: 44px; flex: none; }
 .ways p { margin: 0.15rem 0 0; color: var(--muted); }
-.steps { padding-left: 1.2rem; display: grid; gap: 0.5rem; margin: 0.4rem 0 0; }
+.month-steps { padding-left: 1.2rem; display: grid; gap: 0.5rem; margin: 0.4rem 0 0; }
 .sharpen { list-style: none; padding: 0; display: grid; gap: 0.5rem; }
 .simple-calm { display: flex; gap: 0.9rem; align-items: center; }
 .simple-calm .art { width: 52px; height: 52px; flex: none; }
@@ -939,3 +939,35 @@ details.ask-fold > summary::after { content: " ▸"; color: var(--muted); }
 details.ask-fold[open] > summary::after { content: " ▾"; }
 details.ask-fold > .card { margin: 0 0.5rem 0.6rem; }
 details.more-steps > summary { cursor: pointer; font-weight: 600; color: var(--accent); margin: 0.4rem 0 0.6rem; }
+
+/* ---------- landing: compact sections ---------- */
+.trust { margin: 0.9rem 0 0; font-size: 0.85rem; color: var(--muted); font-weight: 600; }
+.how-steps { list-style: none; padding: 0; margin: 0; display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.8rem; counter-reset: how; }
+.how-steps li { position: relative; display: flex; flex-direction: column; align-items: center; text-align: center; gap: 0.25rem; }
+.how-steps li:not(:last-child)::after { content: "→"; position: absolute; right: -0.75rem; top: 1.5rem; color: var(--sun); font-weight: 700; font-size: 1.2rem; }
+.how-art { width: 3.6rem; height: 3.6rem; }
+.how-art .art { width: 100%; height: 100%; }
+.how-steps small { color: var(--muted); font-size: 0.82rem; }
+.india-chips { display: flex; flex-wrap: wrap; gap: 0.6rem; }
+.india-chip { flex: 1 1 8.5rem; background: var(--surface); border: 1px solid var(--border); border-radius: 14px; transition: border-color 0.2s; }
+.india-chip[open] { flex-basis: 100%; border-color: color-mix(in srgb, var(--accent) 40%, var(--border)); }
+.india-chip > summary { list-style: none; cursor: pointer; display: flex; align-items: center; gap: 0.55rem; padding: 0.55rem 0.8rem; font-weight: 600; font-size: 0.95rem; }
+.india-chip > summary::-webkit-details-marker { display: none; }
+.india-chip > summary .art { width: 2rem; height: 2rem; flex: none; }
+.india-chip > p { margin: 0 0.9rem 0.8rem 3.4rem; color: var(--ink-2); font-size: 0.92rem; }
+.more-faqs > summary { color: var(--accent); }
+.more-faqs > .faq { margin: 0.5rem 0 0 0.6rem; }
+.demo-age { margin: 0.2rem 0 0; font-family: var(--font-display); font-size: 1.1rem; color: var(--ink-2); }
+.demo-age strong { font-size: 3rem; color: var(--ink); letter-spacing: -0.03em; }
+.demo-line-text { margin: 0.2rem 0 0.4rem; color: var(--good); font-weight: 600; }
+/* a warmer sunrise behind the top of the landing page */
+.landing { overflow-x: clip; }
+.landing-hero::before { content: ""; position: absolute; inset: -2rem -1rem 0; z-index: 0; pointer-events: none;
+  background: radial-gradient(60% 70% at 85% 0%, color-mix(in srgb, var(--sun) 22%, transparent), transparent 70%),
+              radial-gradient(50% 60% at 10% 10%, color-mix(in srgb, var(--accent) 10%, transparent), transparent 70%); }
+@media (max-width: 640px) {
+  .how-steps { gap: 0.4rem; }
+  .how-steps li:not(:last-child)::after { right: -0.45rem; font-size: 1rem; }
+  .how-art { width: 3rem; height: 3rem; }
+  .india-chip { flex-basis: calc(50% - 0.3rem); }
+}
