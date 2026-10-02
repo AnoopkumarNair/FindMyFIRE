@@ -6,7 +6,9 @@ import { sectionEditor } from "./editors.js";
 import { marketNote } from "./market.js";
 import { art, questionArt } from "./art.js";
 import { openShareDialog } from "./share.js";
-import { askCard, aiChip } from "./ask.js";
+import { askCard, aiChip, askNow } from "./ask.js";
+import { journey, jar } from "./infographics.js";
+import { FEEDBACK } from "./config.js";
 import * as ai from "../assistant/client.js";
 import * as store from "./store.js";
 import { evaluatePlan, evaluate, getPointer, setPointer, ageAt, snapshotOf, withSnapshot, progress } from "../engine/index.js";
@@ -140,7 +142,7 @@ function route() {
   let body;
   if (!S.user?.profile?.birthYearMonth && view && view !== "quick" && view !== "sources") { location.hash = "#/"; return; }
   if (view === "quick") body = quickView(Number(arg) || 0);
-  else if (view === "results") body = resultsView();
+  else if (view === "results") body = arg === "full" ? resultsView() : simpleView();
   else if (view === "refine") body = refineView(arg);
   else if (view === "sources") body = sourcesView();
   else body = welcomeView();
@@ -464,6 +466,129 @@ function quickView(i) {
 }
 
 // ---------------- results ----------------
+// ---------------- simple results (the default) ----------------
+// One screen a non-financial person can take in: when, how sure, what to do. Everything else is
+// one tap away under "See the full plan".
+const SECTION_MINUTES = { expenses: 5, holdings: 5, goals: 3, inflows: 2, property: 3, family: 2, income: 3, loans: 2, protection: 2, retirement: 2, assumptions: 2 };
+
+function simpleView() {
+  const r = S.result;
+  if (!r) return resultsView();
+  const u = S.user, t = r.target, L = r.levers, E = r.earliestAge, i = r.inputs;
+  const reached = E != null, ahead = reached && E <= t.age;
+  const tone = !reached ? "far" : ahead ? "good" : E - t.age <= 3 ? "close" : "far";
+  const verdict = !reached
+    ? "With today's numbers your savings don't stretch far enough yet. That's common at this stage, and small changes add up quickly."
+    : ahead ? `Good news: on today's path you could stop working around ${ageWhole(E)}, ahead of your goal of ${t.age}.`
+    : tone === "close" ? `You're close. On today's path you could stop working around ${ageWhole(E)}, just after your goal of ${t.age}.`
+    : `On today's path you could stop working around ${ageWhole(E)}. Your goal of ${t.age} needs a few changes, and the steps below show how.`;
+  const quick = r.confidence.score < 75;
+  const range = r.range.from != null && r.range.to != null ? `${Math.floor(r.range.from)}–${Math.ceil(r.range.to)}` : null;
+
+  // How much one more ₹10,000 a month is worth, from the plan's own sensitivity.
+  const inv = r.sensitivity.find((x) => x.id === "investing");
+  const yearsPer10k = inv && i.monthlySip > 0 && inv.hi.ageDelta != null ? (Math.abs(inv.hi.ageDelta) / (0.2 * i.monthlySip)) * 10000 : null;
+
+  // Steps a person can actually take, each with where it gets them. (The exact amounts that close
+  // the whole gap on their own are in the full plan; alone they're often unrealistic.)
+  const spend = r.sensitivity.find((x) => x.id === "spending");
+  const surplus = Math.max(0, r.derived.monthlySurplus ?? 0);
+  const ageAfter = (delta) => (E == null || delta == null ? null : Math.max(i.age, E + delta));
+  const withSurplus = yearsPer10k && surplus >= 1000 ? ageAfter(-(yearsPer10k * surplus) / 10000) : null;
+  const ways = L?.onTrack
+    ? [
+        [art("sunrise"), `Stop earlier, around ${ageWhole(L.retireAt)}`, "if you'd like to: the money would still last."],
+        L.spendAfterFire && [art("basket"), "Or spend more after you stop", `up to ${inr(L.spendAfterFire.to)} a month in today's money.`],
+      ]
+    : [
+        withSurplus != null && [art("seedling"), `Invest the ${inr(Math.round(surplus / 500) * 500)} you have left over each month`, `That alone brings it to about ${ageWhole(withSurplus)}.`],
+        spend?.lo.ageDelta != null && E != null && [art("basket"), "Plan to spend 10% less after you stop", `A simpler city or no rent by then: about ${ageWhole(ageAfter(spend.lo.ageDelta))}.`],
+        inv?.hi.ageDelta != null && E != null && i.monthlySip > 0 && [art("pillars"), "Raise your monthly investing by a fifth", `${inr(Math.round((0.2 * i.monthlySip) / 500) * 500)} more a month: about ${ageWhole(ageAfter(inv.hi.ageDelta))}.`],
+      ];
+  // Not reachable yet: the first moves, in plain words, without numbers that can't be met.
+  if (!L?.onTrack && !ways.some(Boolean)) ways.push(
+    [art("basket"), "Free up some money each month", (r.derived.monthlySurplus ?? 0) < 0 ? `Right now about ${inr(-r.derived.monthlySurplus)} more goes out than comes in. Closing that is the first step.` : "Look at the biggest monthly costs first: rent, EMIs, eating out."],
+    [art("seedling"), "Start investing a fixed amount every month", "Even ₹2,000 a month. Starting matters more than the amount."],
+    [art("sunrise"), "Plan to work a few years longer", "Each extra year adds savings and shortens the years the money must last."]);
+  const efTarget = i.assumptions["emergency.months"] * (r.derived.monthlyExpenses + r.derived.monthlyEmi);
+  const thisMonth = [
+    L?.investMore != null && !L.onTrack && i.takeHomeMonthly > 0 && L.investMore <= Math.max(0, r.derived.monthlySurplus ?? 0)
+      ? `Start an extra SIP of ${inr(Math.round(L.investMore / 500) * 500)} a month: you have about that much left over each month.`
+      : i.monthlySip > 0 ? `Keep investing ${inr(i.monthlySip)} a month, and raise it each year with your salary.`
+      : (r.derived.monthlySurplus ?? 0) > 0 ? `Set up a monthly SIP with part of the ${inr(r.derived.monthlySurplus)} left over each month.`
+      : "Write down where the money goes this month: it's the quickest way to find savings.",
+    (i.emergencyFund || 0) >= efTarget ? `Keep ${inrShort(efTarget)} aside for emergencies, separate from your investments.` : `Build an emergency fund of ${inrShort(efTarget)} (6 months of spending) before anything else.`,
+    !(u.insurance?.healthCover >= (S.pack.healthCover?.recommendedCover ?? 1500000)) && "Check you have your own family health insurance, not just your employer's.",
+  ].filter(Boolean).slice(0, 3);
+  const todo = [...r.confidence.sections].filter((x) => !x.done && x.potential > 0).sort((a, b) => b.potential - a.potential).slice(0, 2);
+
+  return h("div", { class: "results simple" },
+    h("section", { class: ["hero", "simple-hero", tone] },
+      embers(5),
+      h("p", { class: "eyebrow" }, "Your FIRE plan"),
+      h("h1", { tabindex: -1, class: "big-age" }, reached
+        ? [h("span", { class: "unit" }, "Around "), h("span", { "data-count": Math.round(E), "data-dec": 0 }, ageWhole(E))]
+        : "Not yet"),
+      h("p", { class: "verdict-line" }, verdict),
+      quick && range ? h("p", { class: "muted small" }, `A first estimate from your quick answers: likely ${range}. The more you add, the sharper it gets.`) : null,
+      journey({ age: i.age, goal: t.age, stop: E, until: i.planUntilAge })),
+    h("section", { class: "card simple-numbers" },
+      h("div", { class: "big3" },
+        h("div", {}, h("small", {}, "Work optional"), h("strong", {}, reached ? `around ${ageWhole(E)}` : "not yet")),
+        h("div", {}, h("small", {}, "Your goal"), h("strong", {}, String(t.age))),
+        h("div", { class: "jar-box" }, jar(t.funded), h("small", {}, `of what ${t.age} needs`))),
+      !ahead && yearsPer10k && yearsPer10k >= 0.3 ? h("p", { class: "cheer" }, art("seedling"),
+        `Every extra ₹10,000 a month you invest brings this about ${yearsPer10k >= 1.5 ? `${Math.round(yearsPer10k)} years` : `${age1(yearsPer10k)} year${yearsPer10k >= 1.05 ? "s" : ""}`} closer.`) : null),
+    h("section", { class: "card simple-ways" },
+      h("h2", {}, L?.onTrack ? "You have room" : "Ways to bring it closer"),
+      h("p", { class: "muted small" }, L?.onTrack ? "You're ahead. Here's what that gives you." : `Each one helps on its own, and together they add up. To reach ${t.age} exactly, the full plan shows what it takes.`),
+      h("ul", { class: "ways" }, ...ways.filter(Boolean).map(([pic, a, b]) => h("li", {}, pic, h("div", {}, h("strong", {}, a), h("p", { class: "small" }, b)))))),
+    h("section", { class: "card simple-month" },
+      h("h2", {}, "This month"),
+      h("ol", { class: "steps" }, ...thisMonth.map((x) => h("li", {}, x)))),
+    quick && todo.length ? h("section", { class: "card simple-sharpen" },
+      h("h2", {}, "Make this answer more reliable"),
+      h("div", { class: "meter-row" },
+        h("span", { class: "small" }, `Plan detail ${r.confidence.score}%`),
+        h("div", { class: "meter", role: "meter", "aria-valuemin": 0, "aria-valuemax": 100, "aria-valuenow": r.confidence.score, "aria-label": "Plan detail" },
+          h("span", { class: "fill", "data-w": r.confidence.score / 100 }))),
+      h("p", { class: "small" }, "Right now this rests on a few rough answers, so it could be a few years out either way. These two sharpen it most:"),
+      h("ul", { class: "sharpen" }, ...todo.map((x) => h("li", {},
+        h("a", { href: `#/refine/${x.id}`, class: "btn small" }, `${x.title} →`),
+        h("span", { class: "muted small" }, ` about ${SECTION_MINUTES[x.id] ?? 3} minutes`)))),
+      h("p", { class: "muted tiny" }, "Everything you enter stays on this device.")) : null,
+    r.chance.confidentAge != null ? h("section", { class: "card simple-calm" },
+      art("umbrella"),
+      h("p", {}, h("strong", {}, "Worried about a market crash? "),
+        `Markets do fall sometimes. Even if they fall just as you stop, planning to stop around ${ageWhole(r.chance.confidentAge)} kept the money lasting in 9 out of 10 of the market histories we tested.`)) : null,
+    askCard({ ...askOptions, compact: true }),
+    h("div", { class: "simple-actions" },
+      h("button", { type: "button", class: "btn", onClick: () => askNow("Give me the big picture") }, "Explain my result in plain words"),
+      h("a", { href: "#/results/full", class: "btn primary" }, "See the full plan →"),
+      reached ? h("button", { type: "button", class: "btn ghost share-btn", onClick: () => openShareDialog(r) }, icon("share"), "Share") : null),
+    feedbackBox());
+}
+
+/** "Was this clear?" and how to reach us. Nothing is sent unless the person chooses to. */
+function feedbackBox() {
+  const done = h("p", { class: "muted small", hidden: true }, "Thank you! That helps.");
+  const body = encodeURIComponent(`\n\n---\nApp ${APP_VERSION} (build ${BUILD}), rules ${S.pack?.packId}.${S.pack?.packVersion}, page ${location.hash || "#/"}, ${navigator.userAgent.match(/(Android|iPhone|iPad|Windows|Mac OS X|Linux)/)?.[0] || "device"}\n(No plan numbers are included.)`);
+  const mail = (subject) => FEEDBACK.email ? `mailto:${FEEDBACK.email}?subject=${encodeURIComponent(subject)}&body=${body}` : null;
+  const links = (subject) => [
+    FEEDBACK.email && h("a", { href: mail(subject), class: "btn small" }, "Email us"),
+    FEEDBACK.telegram && h("a", { href: FEEDBACK.telegram, class: "btn small", rel: "noopener", target: "_blank" }, "Message on Telegram"),
+    h("a", { href: FEEDBACK.github, class: "link small", rel: "noopener", target: "_blank" }, "Report on GitHub"),
+  ].filter(Boolean);
+  const more = h("div", { class: "fb-more", hidden: true },
+    h("p", { class: "small" }, "Sorry about that. What was confusing? A line or two helps a lot."), h("div", { class: "fb-links" }, ...links("FindMyFIRE: what was unclear")));
+  return h("section", { class: "feedback" },
+    h("span", { class: "small" }, "Was this clear?"),
+    h("button", { type: "button", class: "btn small ghost", onClick: (e) => { e.currentTarget.parentElement.querySelectorAll("button").forEach((b) => (b.disabled = true)); done.hidden = false; } }, "Yes"),
+    h("button", { type: "button", class: "btn small ghost", onClick: (e) => { e.currentTarget.parentElement.querySelectorAll("button").forEach((b) => (b.disabled = true)); more.hidden = false; } }, "Not really"),
+    done, more);
+}
+
+// ---------------- full results ----------------
 function resultsView() {
   const r = S.result;
   if (!r) {
@@ -504,6 +629,7 @@ function resultsView() {
       `Of ${r.chance.runs.toLocaleString("en-IN")} simulated market histories, if you stop at ${t.age} (±${Math.max(1, Math.round(r.chance.margin * 100))} pt).`, r.chance.atTarget >= 0.75 ? "good" : "warn"));
 
   return h("div", { class: "results" },
+    h("p", { class: "back-simple" }, h("a", { href: "#/results", class: "link" }, "← Back to the simple view")),
     // The decision first: when, how much, and what changes it. Then how to sharpen it, questions,
     // and the detail behind it.
     hero, kpis,

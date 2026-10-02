@@ -877,3 +877,48 @@ body::before { inset: -12%; animation: dawn-drift 34s ease-in-out infinite alter
 .card.stress { border-left: 4px solid var(--sun); }
 .card.stress h2 { font-size: 1.05rem; }
 .strategy { margin: 0.4rem 0 0.8rem; }
+
+/* ---------- simple results view ---------- */
+.simple-hero .verdict-line { font-size: 1.15rem; line-height: 1.45; max-width: 36rem; margin: 0.4rem 0; }
+.simple-hero.good .verdict-line { color: var(--good); }
+.simple-hero .big-age { margin-bottom: 0.2rem; }
+.info.journey { width: 100%; max-width: 560px; height: auto; margin: 0.8rem 0 0; display: block; }
+.journey .j-track { stroke: var(--grid); stroke-width: 6; stroke-linecap: round; fill: none; }
+.journey .j-work { stroke: var(--accent); stroke-width: 6; stroke-linecap: round; fill: none; }
+.journey .j-free { stroke: var(--sun); stroke-width: 6; stroke-linecap: round; fill: none; }
+.journey .j-dot { fill: var(--accent); }
+.journey .j-end { fill: var(--sun); }
+.journey .j-pole { stroke: var(--ink); stroke-width: 2; }
+.journey .j-flag { fill: var(--accent); }
+.journey .j-sun circle { fill: var(--sun); }
+.journey .j-sun path { stroke: var(--sun); stroke-width: 2.5; stroke-linecap: round; }
+.journey .jl { fill: var(--muted); font-size: 11px; font-family: inherit; }
+.journey .jl2 { fill: var(--ink); font-weight: 700; font-size: 12px; }
+.journey .jl-strong { fill: var(--ink); font-weight: 600; }
+.journey .jl-goal { fill: var(--accent); font-weight: 700; font-size: 11px; }
+.big3 { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0.6rem; align-items: end; text-align: center; }
+.big3 small { display: block; color: var(--muted); font-size: 0.8rem; }
+.big3 strong { font-family: var(--font-display); font-size: 1.45rem; }
+.jar-box { display: flex; flex-direction: column; align-items: center; }
+.info.jar { width: 54px; height: auto; }
+.jar .jar-glass { fill: none; stroke: var(--ink); stroke-width: 2.2; }
+.jar .jar-lid { fill: var(--accent); }
+.jar .jar-fill { fill: var(--sun); opacity: 0.85; }
+.jar .jar-text { fill: var(--ink); font-size: 13px; font-weight: 700; font-family: inherit; }
+.cheer { display: flex; gap: 0.6rem; align-items: center; margin: 1rem 0 0; font-weight: 600; }
+.cheer .art { width: 40px; height: 40px; flex: none; }
+.ways { list-style: none; padding: 0; margin: 0.6rem 0 0; display: grid; gap: 0.8rem; }
+.ways li { display: flex; gap: 0.8rem; align-items: center; }
+.ways .art { width: 44px; height: 44px; flex: none; }
+.ways p { margin: 0.15rem 0 0; color: var(--muted); }
+.steps { padding-left: 1.2rem; display: grid; gap: 0.5rem; margin: 0.4rem 0 0; }
+.sharpen { list-style: none; padding: 0; display: grid; gap: 0.5rem; }
+.simple-calm { display: flex; gap: 0.9rem; align-items: center; }
+.simple-calm .art { width: 52px; height: 52px; flex: none; }
+.simple-calm p { margin: 0; }
+.simple-actions { display: flex; flex-wrap: wrap; gap: 0.6rem; justify-content: center; margin: 1.2rem 0; }
+.feedback { display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: center; justify-content: center; padding: 0.8rem; border-top: 1px solid var(--border); }
+.feedback .fb-more, .feedback > p { flex-basis: 100%; text-align: center; }
+.fb-links { display: flex; gap: 0.5rem; justify-content: center; flex-wrap: wrap; }
+.back-simple { margin: 0 0 0.6rem; }
+@media (max-width: 640px) { .big3 strong { font-size: 1.15rem; } }

@@ -75,7 +75,8 @@ function engineStatus(s, opts = statusOpts) {
       body = [];
   }
   // The offer to add AI (or why it isn't available) only matters before the first question.
-  const quiet = (s.status === "none" || s.status === "unavailable") && thread.length > 0;
+  // In the simple view, why the AI isn't available here is just noise.
+  const quiet = ((s.status === "none" || s.status === "unavailable") && thread.length > 0) || (opts?.compact && s.status === "unavailable");
   return h("div", { class: ["ai-status", quiet && "quiet", (s.status === "downloaded" || s.status === "ready") && "on"] }, ...body);
 }
 let statusOpts = null;
@@ -178,6 +179,13 @@ async function ask(q, opts) {
     drawThread(opts);
     if (inputEl?.isConnected) inputEl.focus({ preventScroll: true });
   }
+}
+
+/** Asks a question from elsewhere on the page (e.g. "Explain my result simply"), in the Ask card. */
+export function askNow(q) {
+  if (!statusOpts || !threadEl?.isConnected) return;
+  threadEl.closest(".ask")?.scrollIntoView({ block: "start", behavior: "smooth" });
+  ask(q, statusOpts);
 }
 
 /**
