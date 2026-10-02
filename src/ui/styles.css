@@ -932,3 +932,10 @@ details.group:not([open]) > summary .g-title::after { content: " ▸"; }
 details.group > summary .g-sum { color: var(--muted); font-size: 0.9rem; }
 details.group > .card { margin: 0 0.6rem 0.8rem; }
 details.group > section:not(.card) { margin: 0 0.6rem 0.8rem; }
+details.ask-fold { margin: 1rem 0; border: 1px solid var(--border); border-radius: 16px; background: var(--surface); }
+details.ask-fold > summary { cursor: pointer; padding: 0.9rem 1.1rem; font-weight: 600; list-style: none; }
+details.ask-fold > summary::-webkit-details-marker { display: none; }
+details.ask-fold > summary::after { content: " ▸"; color: var(--muted); }
+details.ask-fold[open] > summary::after { content: " ▾"; }
+details.ask-fold > .card { margin: 0 0.5rem 0.6rem; }
+details.more-steps > summary { cursor: pointer; font-weight: 600; color: var(--accent); margin: 0.4rem 0 0.6rem; }

@@ -563,9 +563,15 @@ function simpleView() {
       art("umbrella"),
       h("p", {}, h("strong", {}, "Worried about a market crash? "),
         `Markets do fall sometimes. Even if they fall just as you stop, planning to stop around ${ageWhole(r.chance.confidentAge)} kept the money lasting in 9 out of 10 of the market histories we tested.`)) : null,
-    askCard({ ...askOptions, compact: true }),
+    h("details", { class: "ask-fold" },
+      h("summary", {}, h("span", { class: "spark", "aria-hidden": "true" }, "✦ "), "Have a question? Ask about your plan"),
+      askCard({ ...askOptions, compact: true })),
     h("div", { class: "simple-actions" },
-      h("button", { type: "button", class: "btn", onClick: () => askNow("Give me the big picture") }, "Explain my result in plain words"),
+      h("button", { type: "button", class: "btn", onClick: (e) => {
+        const fold = e.currentTarget.closest(".results")?.querySelector(".ask-fold");
+        if (fold) fold.open = true;
+        askNow("Give me the big picture");
+      } }, "Explain my result in plain words"),
       h("a", { href: "#/results/full", class: "btn primary" }, "See the full plan →"),
       reached ? h("button", { type: "button", class: "btn ghost share-btn", onClick: () => openShareDialog(r) }, icon("share"), "Share") : null),
     feedbackBox());
@@ -919,7 +925,13 @@ function actionPlanCard(r) {
       : n),
   ];
   return card("Your plan, step by step",
-    h("ol", { class: "timeline" }, ...steps.sort((a, b) => a.at - b.at || a.n - b.n).map((x) => x.el)),
+    (() => {
+      // The first three steps are what matters now; the rest fold away.
+      const all = steps.sort((a, b) => a.at - b.at || a.n - b.n).map((x) => x.el);
+      return all.length <= 4 ? h("ol", { class: "timeline" }, ...all)
+        : [h("ol", { class: "timeline" }, ...all.slice(0, 3)),
+           h("details", { class: "more-steps" }, h("summary", {}, `Show all ${all.length} steps`), h("ol", { class: "timeline", start: 4 }, ...all.slice(3)))];
+    })(),
     extra.length ? h("div", { class: "also" }, h("p", { class: "small" }, h("strong", {}, "Also check")),
       h("ul", { class: "nudges" }, ...extra.map((n) => h("li", { class: n.severity },
         h("span", { class: "icon", "aria-hidden": "true" }, icon[n.severity]), h("span", { class: "sr" }, `${n.severity}: `),
