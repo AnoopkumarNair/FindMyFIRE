@@ -8,6 +8,8 @@ A FIRE (financial independence, retire early) planner for India that runs entire
 
 Answer nine quick questions: your ages, take-home pay, spending, EMIs, savings, monthly investments, PF, NPS, and any income that continues after you stop working. You get the earliest age you could stop working, how much money that needs, and the chance it lasts. From there you can fill in as much detail as you like: expenses by category, each investment, goals, loans, property, family, other income and insurance. Each section you complete makes the answer more accurate, and the estimate-quality score shows how complete your answers are.
 
+Results open in a **simple view**: the verdict, a timeline from today to the age the money lasts to, how far your savings are on the way, three realistic ways to get closer, what to do this month, and a calm word on market crashes. **See the full plan** has everything else, in parts you can open one at a time: how to get there, where you are today, where you need to be, what could go wrong, and the numbers behind it. On laptops both views use two columns.
+
 A few things it handles that simpler calculators don't:
 
 - **Emergency fund.** You give one total for your savings, and the planner keeps six months of spending and EMIs aside before counting the rest.
@@ -18,6 +20,8 @@ A few things it handles that simpler calculators don't:
 - **Health cover after FIRE.** Once employer cover ends, a family floater premium is added. It rises with age and with medical inflation.
 - **Leaving something behind.** An amount in today's money to keep for children or others; the plan keeps it aside instead of spending down to zero.
 - **Market ups and downs.** 10,000 simulated market histories show how often your money lasts, and the ages at which 75% and 90% of them last. The 90% age is the safe planning age. After you stop, the cash, debt and equity buckets are simulated separately, the way the withdrawal plan says to run them.
+- **Bad starts.** Three checks on the risk that hurts most, a fall just as you stop: a 30% equity crash in your first year (cash and debt aren't hit); 2008 replayed the year you stop, with NIFTY 50's real 51% fall and the years after it; and real market history replayed from every start year since 2000. Each says how much later you'd need to stop to come through it.
+- **Check-ins.** Save a dated snapshot now and then; the next one shows what changed (savings, money needed, FIRE age, chance) and flags when the change came from new answers rather than progress.
 - **Property, goals and lump sums.** Rent, upkeep, planned sales (after capital-gains tax, using indexation where a pre-July-2024 purchase allows it), repeating goals such as a car every eight years, gratuity and policy payouts.
 - **What moves the answer.** A ranked view of which inputs shift your FIRE age most, and a step-by-step "show me the math" from today's spending to the corpus needed.
 
@@ -49,7 +53,7 @@ The model was chosen by running several candidates (Gemma 4, Qwen 3 and 3.5, Lla
 
 - It's a static site with a strict Content-Security-Policy. The page can only fetch from itself and, for the optional AI, the Hugging Face file hosts. Those hosts only serve file downloads and never see your plan.
 - Your working copy autosaves to the browser. **Save** and **Open** read and write a JSON file on your device, which you can optionally encrypt with a passphrase (AES-GCM).
-- Inflation reference data (World Bank CPI and IMF projections) is fetched when the site is built and served from the same site. The browser never calls outside APIs.
+- Reference data is served from the same site: inflation (World Bank CPI and IMF projections, fetched when the site is built), market history (`data/market-history.json`) and house prices (`data/house-price-index.json`). The browser never calls outside APIs.
 - The AI runs locally. Your questions and answers stay on the device.
 
 ## Running it locally
@@ -83,9 +87,11 @@ All amounts are in nominal rupees, projected one year at a time.
 
 - **Before FIRE**, savings grow with your monthly investments (stepping up each year) and PF contributions, both paid month by month, less any goals that fall due.
 - **After FIRE**, each year's withdrawal is the spending for that year: each expense rises at its own rate and is adjusted for life after work. Add health cover, EMIs still running and goals; subtract income that continues; then add tax on top.
-- **The corpus needed** at an age is the present value of every withdrawal from then until the age your money should last to. The earliest FIRE age is the first age at which your projected savings reach that amount.
+- **The corpus needed** at an age is the present value of every withdrawal from then until the age your money should last to, plus anything you want to leave behind (grown with inflation to that age). The earliest FIRE age is the first age at which your projected savings reach that amount.
 - **Withdrawals** come from three buckets: three years in cash, five in debt, the rest in equity.
-- **The simulation** grows savings before FIRE as one portfolio with its own ups and downs. From the FIRE year on, each bucket moves separately: cash steadily, debt and equity each with their own ups and downs (independent of each other). Withdrawals come out of cash. Each year cash is refilled to three years from debt, and debt to five years from equity, but only after a year in which equity didn't fall. Equity is sold in a bad year only if cash and debt have run out. Cash and debt earn their asset-class returns; equity earns whatever makes the starting split average the post-FIRE return you set, so the middle outcome stays close to the steady plan.
+- **The simulation** grows savings before FIRE as one portfolio with its own ups and downs. From the FIRE year on, each bucket moves separately: cash steadily, debt and equity each with their own ups and downs (independent of each other). Withdrawals come out of cash. Each year cash is refilled to three years from debt, and debt to five years from equity, but only after a year in which equity didn't fall. Equity is sold in a bad year only if cash and debt have run out. Cash and debt earn their asset-class returns; equity earns whatever makes the starting split average the post-FIRE return you set, so the middle outcome stays close to the steady plan. Equity and debt each have their own yearly ups and downs (18% and 3% by default, under Assumptions). Only the stopping ages the page shows are simulated, and the 75% and 90% ages are found by search and confirmed on all 10,000 histories, so a recalculation takes a few tens of milliseconds.
+- **The crash scenario** takes 30% off the equity bucket in the first year after you stop; the year's withdrawal and the cash and debt buckets are out of the market.
+- **The history replays** use the same buckets and refill rule, but each year after you stop takes that calendar year's actual equity return and inflation. Spending follows actual prices instead of the assumed inflation. Debt uses its own history when there is one; otherwise debt and cash keep their assumed return above inflation. After the last year of data, the plan's assumptions take over. Before you stop, savings grow with steady returns, as in the headline.
 
 ### Property price data
 
@@ -98,12 +104,17 @@ To refresh it when RBI publishes a new quarter (about two months after each quar
 
 ### Market history
 
-The full plan's "What if you'd stopped in a bad year?" card replays real Indian markets: stopping at your steady-returns age at the start of each past year, then living through the equity returns and inflation that followed, with the same buckets and refill rule as the simulation. It also finds the first age that would have lasted from every start year. Inflation comes from the World Bank file fetched at deploy time; equity (and optionally debt) comes from `data/market-history.json`. The card stays hidden until that file exists.
+Two parts of the results replay real Indian markets, using `data/market-history.json` (NIFTY 50 Total Returns Index, calendar years 2000–2025, from NSE Indices' daily data) and India's yearly CPI inflation from the World Bank file fetched at deploy time:
 
-To create or refresh it:
-1. Download daily or monthly levels of a total-returns equity index from the provider, for example NIFTY 50 Total Returns Index from NSE Indices' historical data (several files, such as one per year, are fine). Optionally do the same for a debt index such as NIFTY 10 yr Benchmark G-Sec.
-2. Run `python3 scripts/import-market-history.py --equity <files…> [--debt <files…>]`. It works out calendar-year returns (December to December), checks overlapping files agree, and prints the worst years to check against the provider's own figures.
-3. Run `npm test` and commit the JSON file. The downloads themselves aren't committed.
+- **"If 2008 happened the year you stop"** (in "What if retirement starts badly?" and, in one sentence, on the simple view's crash card). It stops at your target age, or at the steady-returns age if the plan doesn't reach the target yet, then lives through 2008 (a 51% fall), 2009 (a 78% rebound), the 2011 dip and the rest, and says whether the money lasts and the first age that would have lasted through it.
+- **"What if you'd stopped in a bad year?"** (full plan, under What could go wrong). It stops at your steady-returns age at the start of every year from 2000 to 2016 (each start needs at least 10 years of data), shows which start years last, the worst one, and the first age that lasts from all of them.
+
+Indian shares did well over this period (about 13% a year with dividends), better than the plan assumes, so history is kinder than the simulation. The card says so when it is, and the safe planning age stays the guide. Both parts stay hidden if the data file is missing; without the deploy-time inflation file they use the assumed inflation and say so.
+
+To refresh it (each January, once December's levels are out):
+1. Download daily levels of NIFTY 50 Total Returns Index from NSE Indices' historical data (Reports → Historical Data → Total Returns Index), from 1999 to today. A file per year is fine. Optionally do the same for a debt index such as NIFTY 10 yr Benchmark G-Sec.
+2. Run `python3 scripts/import-market-history.py --equity <files…> [--debt <files…>]`. It merges the files, checks they agree where they overlap, works out calendar-year returns (December to December), and prints the worst years to check against the provider's own figures.
+3. Update the `nse-nifty50-tri` entry in the rules pack's sources, run `npm test` (it checks the file is complete and plausible), and commit the JSON file. The downloads aren't committed.
 
 ### Feedback
 
@@ -116,6 +127,8 @@ The results page asks "Was this clear?", and every page has one "Feedback or a p
 - **Golden tests** reproduce the original spreadsheet this started from. `scripts/golden-from-sheet.py` recalculates the workbook in LibreOffice and records its outputs. The workbook itself is never committed. (The sheet puts a year's investments in at its start; the planner invests monthly, and the golden tests use the sheet's timing.)
 - **Example tests** cover specific cases: tax slabs, NPS and superannuation unlocking, emergency fund, income after FIRE, foreign-share tax, repeating goals and each double-counting rule.
 - **Maths tests** check that monthly investing matches month-by-month compounding, zero and negative returns, tax continuity at every slab edge and the rebate limit, boundary ages, a 110-year horizon, and that money arriving later can't pay for earlier years.
+- **Bucket tests** check the 3-and-5-year split, that bucket returns average the post-FIRE return, that the search for the 75% and 90% ages gives the same answer as checking every age, that equity and debt each move the chance, and that money left behind is kept aside in the corpus, the simulation and the drawdown.
+- **History tests** use made-up histories (steady years, one crash) to check the replays: a crash in the first year hurts more than later, faster price rises hurt, and the "lasts from every start year" age is the first that does. When `data/market-history.json` exists, it's checked for gaps and implausible years.
 - **Regression households** (`test/fixtures/households/`) are six typical plans whose key results are recorded. Any engine or rules change that moves them fails the tests until it's reviewed and re-recorded with `node scripts/regression.mjs --update`; `node scripts/regression.mjs --rules <file>` compares a new rules pack before release.
 - **Property tests** generate 150 random households and check that the results move in the right direction. More spending never needs less money, more savings never delays FIRE, and quick and detailed entry of the same household give the same answer. The breakdown must also add up.
 - **Assistant tests** check question matching, amounts written in different ways, and the answer checker against mistakes small models have actually made.
@@ -124,7 +137,7 @@ The results page asks "Was this clear?", and every page has one "Feedback or a p
 
 ## Roadmap
 
-**Done:** quick pass and live result; detailed sections with an estimate-quality score; nudges; save, open and encrypt; check-ins with changes since the last one; tax on withdrawals (FY2026-27, with marginal relief); income after FIRE; NPS exit choices under the December 2025 PFRDA rules; PPF and NPS kept apart until they unlock; property capital gains with indexation for pre-July-2024 purchases; 10,000-path market simulation with a safe planning age, simulating the cash, debt and equity buckets separately after FIRE; a replay of real market history (NIFTY 50 TRI 2000–2025); money to leave behind for children; a 30% crash scenario that hits equity only; one feedback-or-problem link; sensitivity and "show me the math"; a Sources page; the RBI All-India house price trend; the on-device assistant.
+**Done:** quick pass and live result; detailed sections with an estimate-quality score; nudges; save, open and encrypt; check-ins with changes since the last one; tax on withdrawals (FY2026-27, with marginal relief); income after FIRE; NPS exit choices under the December 2025 PFRDA rules; PPF and NPS kept apart until they unlock; property capital gains with indexation for pre-July-2024 purchases; 10,000-path market simulation with a safe planning age, simulating the cash, debt and equity buckets separately after FIRE; a replay of real market history (NIFTY 50 TRI 2000–2025) from every start year and 2008 replayed the year you stop; money to leave behind for children; a 30% crash scenario that hits equity only; a simple results view with the full plan in parts; one feedback-or-problem link; sensitivity and "show me the math"; a Sources page; the RBI All-India house price trend; the on-device assistant.
 
 **Next steps**, roughly in order, with the thinking behind each:
 
@@ -133,9 +146,10 @@ The results page asks "Was this clear?", and every page has one "Feedback or a p
 3. **Work-optional scenarios as first-class plans.** Coast FIRE, part-time (barista) FIRE, career breaks and traditional retirement side by side; the engine already supports most of the parts.
 4. **Check-in trend chart.** A chart of savings, money needed, FIRE age and chance across check-ins, marking where answers changed rather than money.
 5. **Offline use (PWA)** and asset-allocation drift against the suggested mix.
-6. **Support link.** A quiet UPI link for people who want to support the project, with the payee name shown for checking.
+6. **More market history.** Debt history (NIFTY 10 yr Benchmark G-Sec) in place of the assumed debt return, and a longer equity series (the SENSEX goes back to 1979, though as a price index without dividends) for more start years, including the high-inflation 1980s and 1990s.
+7. **Support link.** A quiet UPI link for people who want to support the project, with the payee name shown for checking.
 
-**Kept deliberately simple:** one steady-return headline age with simulated ages beside it (rather than a single "probability"); whole-year headline ages; rules as data, refreshed and dated each Budget.
+**Kept deliberately simple:** one steady-return headline age with simulated ages beside it (rather than a single "probability"); whole-year headline ages; history replays as a check beside the safe planning age, not a replacement for it; rules as data, refreshed and dated each Budget.
 
 ## Disclaimer
 
