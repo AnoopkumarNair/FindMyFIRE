@@ -688,6 +688,9 @@ table.breakdown .total-row th, table.breakdown .total-row td { font-weight: 700;
 }
 @media (max-width: 640px) {
   .private-chip > summary { margin-left: 0.4rem; padding: 0.3rem 0.55rem; }
+  /* the chip sits mid-header on phones: hang the panel from the header, edge to edge */
+  .private-chip { position: static; }
+  .private-chip .private-body { left: 16px; right: 16px; top: calc(100% + 6px); width: auto; min-width: 0; max-height: calc(100vh - 6rem); overflow-y: auto; transform-origin: top center; }
   .features, .faqs { grid-template-columns: 1fr; }
   .feature, .step { grid-template-columns: auto 1fr; }
   .feature .ficon, .step .num { grid-row: auto; }
