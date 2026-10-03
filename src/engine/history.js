@@ -102,3 +102,29 @@ export function historySafe(inp, p, rows, fromT = 0) {
   }
   return null;
 }
+
+/**
+ * One past year replayed from the year you stop (year t from today): markets and prices from
+ * `year` on, then the plan's assumptions. Null if that year isn't in the history.
+ */
+export function replayYear(inp, p, rows, year, t, path) {
+  const i = rows.findIndex((r) => r.year === year);
+  if (i < 0) return null;
+  const ws = withdrawalSchedule(inp, p, {});
+  const maxT = ws.length - 1;
+  t = Math.min(Math.max(0, t), maxT);
+  path = path || accumulate(inp, p, maxT);
+  const ret = { equity: 0.11, debt: 0.07, cash: 0.05, ...(inp.assetReturns || {}) };
+  return { year, t, age: p.age + t, saved: path[t], ...replay(inp, p, rows, i, t, path[t], ws, ret) };
+}
+
+/** The first stopping year from `fromT` on that lasts if `year` happens the year you stop. */
+export function survivesYear(inp, p, rows, year, fromT = 0) {
+  const maxT = withdrawalSchedule(inp, p, {}).length - 1, path = accumulate(inp, p, maxT);
+  for (let t = Math.max(0, fromT); t <= maxT; t++) {
+    const r = replayYear(inp, p, rows, year, t, path);
+    if (!r) return null;
+    if (r.lasts) return r;
+  }
+  return null;
+}

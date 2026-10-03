@@ -9,7 +9,7 @@ import { openShareDialog } from "./share.js";
 import { askCard, aiChip, askNow } from "./ask.js";
 import { journey, jar } from "./infographics.js";
 import { FEEDBACK } from "./config.js";
-import { historyRows, replayHistory, historySafe, MIN_HISTORY_YEARS } from "../engine/history.js";
+import { historyRows, replayHistory, historySafe, replayYear, survivesYear, MIN_HISTORY_YEARS } from "../engine/history.js";
 import * as ai from "../assistant/client.js";
 import * as store from "./store.js";
 import { evaluatePlan, evaluate, getPointer, setPointer, ageAt, snapshotOf, withSnapshot, progress } from "../engine/index.js";
@@ -549,8 +549,10 @@ function simpleView() {
       h("p", { class: "muted tiny" }, "Everything you enter stays on this device.")) : null,
     r.chance.confidentAge != null ? h("section", { class: "card simple-calm" },
       art("umbrella"),
-      h("p", {}, h("strong", {}, "Worried about a market crash? "),
-        `Markets do fall sometimes. Even if they fall just as you stop, planning to stop around ${ageWhole(r.chance.confidentAge)} kept the money lasting in 9 out of 10 of the market histories we tested.`)) : null,
+      h("div", {},
+        h("p", {}, h("strong", {}, "Worried about a market crash? "),
+          `Markets do fall sometimes. Even if they fall just as you stop, planning to stop around ${ageWhole(r.chance.confidentAge)} kept the money lasting in 9 out of 10 of the market histories we tested.`),
+        crisisLine(r, { short: true }))) : null,
     h("details", { class: "ask-fold" },
       h("summary", {}, h("span", { class: "spark", "aria-hidden": "true" }, "✦ "), "Have a question? Ask about your plan"),
       askCard({ ...askOptions, compact: true })),
@@ -768,7 +770,45 @@ function sensitivityCard(r) {
  * past year, then living through the markets and prices that followed. Shown only when the
  * market history file is published with the app.
  */
-const historyMemo = new WeakMap();
+const historyMemo = new WeakMap(), crisisMemo = new WeakMap();
+const CRISIS_YEAR = 2008;
+
+/**
+ * 2008 replayed the year you stop: at your target age if the plan reaches it, else at the
+ * steady-returns age. Also the first age that would have lasted through it. Null without data.
+ */
+function crisisReplay(r) {
+  if (!S.history) return null;
+  if (crisisMemo.has(r)) return crisisMemo.get(r);
+  const rows = historyRows(S.history, S.market?.inflation?.actual?.values || {});
+  const i = r.inputs, p = r.params, t0 = r.target.gap >= 0 ? Math.round(p.fireTargetAge - i.age)
+    : r.earliestAge != null ? Math.ceil(r.earliestAge - i.age - 1e-9) : null;
+  let out = null;
+  if (t0 != null) {
+    const at = replayYear(i, p, rows, CRISIS_YEAR, t0);
+    if (at) {
+      const fall = rows.find((x) => x.year === CRISIS_YEAR).equity;
+      out = { at, fall, onTarget: r.target.gap >= 0, safe: at.lasts ? at : survivesYear(i, p, rows, CRISIS_YEAR, t0 + 1) };
+    }
+  }
+  crisisMemo.set(r, out);
+  return out;
+}
+
+/** One paragraph: what 2008 would do if it came the year you stop. */
+function crisisLine(r, { short = false } = {}) {
+  const c = crisisReplay(r);
+  if (!c) return null;
+  const { at, safe, fall } = c, until = r.inputs.planUntilAge;
+  const when = c.onTarget ? `stop at ${ageWhole(at.age)} as planned` : `stop at ${ageWhole(at.age)}, your steady-returns age`;
+  const outcome = at.lasts ? h("strong", {}, `the money still lasts to ${until}`)
+    : h("strong", {}, `the money runs out around ${Math.floor(at.runsOutAge)}`);
+  const fix = at.lasts ? "" : safe ? ` Stopping at about ${ageWhole(safe.age)} would have lasted through it${r.chance.confidentAge != null && safe.age <= r.chance.confidentAge + 0.5 ? `, and your safe planning age of about ${ageWhole(r.chance.confidentAge)} already covers that` : ""}.`
+    : ` No stopping age before ${until} lasts through it.`;
+  if (short) return h("p", { class: "small" }, `If a ${CRISIS_YEAR}-style crash came the year you ${when}, `, outcome, ".", fix);
+  return h("p", {}, h("strong", {}, `If ${CRISIS_YEAR} happened the year you stop: `),
+    `say you ${when}, and shares then fall ${pct(-fall, 0)} as NIFTY 50 did in ${CRISIS_YEAR}, followed by the real years after it: `, outcome, ".", fix);
+}
 function historyCard(r) {
   if (!S.history) return null;
   let x = historyMemo.get(r);
@@ -822,7 +862,8 @@ function stressLine(r) {
         : later < 0.5 ? h("strong", {}, "your earliest age barely moves") : [h("strong", {}, `your earliest age moves from about ${ageWhole(r.earliestAge)} to about ${ageWhole(s.earliestAge)}`), ` (about ${Math.round(later)} year${Math.round(later) === 1 ? "" : "s"} later)`],
       ". ",
       r.chance.confidentAge != null ? `The safe planning age of about ${ageWhole(r.chance.confidentAge)} already allows for bad starts like this. ` : "",
-      "Holding 3 years of withdrawals in cash and 5 in debt when you stop (see Living off your savings) is what lets you ride it out without selling equity at the bottom."));
+      "Holding 3 years of withdrawals in cash and 5 in debt when you stop (see Living off your savings) is what lets you ride it out without selling equity at the bottom."),
+    crisisLine(r));
 }
 
 function leversCard(r) {

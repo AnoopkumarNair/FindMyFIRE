@@ -4,7 +4,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync, existsSync } from "node:fs";
 import { evaluatePlan } from "../src/engine/index.js";
-import { historyRows, replayHistory, historySafe, MIN_HISTORY_YEARS } from "../src/engine/history.js";
+import { historyRows, replayHistory, historySafe, replayYear, survivesYear, MIN_HISTORY_YEARS } from "../src/engine/history.js";
 import { households } from "./regression/households.mjs";
 
 const pack = JSON.parse(readFileSync(new URL("../rules/in.2026.1.json", import.meta.url)));
@@ -77,4 +77,21 @@ test("the published market history, when present, is complete and plausible", { 
     if (x.debt != null) assert.ok(x.debt > -0.3 && x.debt < 0.5, `${y} debt ${x.debt}`);
   }
   assert.equal(historyRows(h).length, years.length);
+});
+
+test("one crash year replayed the year you stop, and the first age that lasts through it", () => {
+  const r = plan(), p = r.params;
+  const rows = made(20, 0.1, p.infl.general, { 2000: { equity: -0.5 }, 2001: { equity: 0.6 } });
+  const t = Math.ceil(r.earliestAge - p.age);
+  assert.equal(replayYear(r.inputs, p, rows, 1980, t), null, "a year outside the history");
+  const at = replayYear(r.inputs, p, rows, 2000, t);
+  assert.equal(at.year, 2000);
+  assert.equal(at.t, t);
+  const same = replayHistory(r.inputs, p, rows, t).starts.find((s) => s.year === 2000);
+  assert.equal(at.lasts, same.lasts, "the same replay as the start-year table");
+  const ok = survivesYear(r.inputs, p, rows, 2000, t);
+  assert.ok(ok && ok.lasts && ok.t >= t);
+  if (ok.t > t) assert.equal(replayYear(r.inputs, p, rows, 2000, ok.t - 1).lasts, false, "a year earlier it doesn't");
+  const calm = replayYear(r.inputs, p, rows, 2005, t);
+  assert.ok(calm.lasts || !at.lasts, "a calm start does at least as well as the crash");
 });

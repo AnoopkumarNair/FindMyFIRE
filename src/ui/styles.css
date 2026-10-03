@@ -1011,3 +1011,4 @@ details.more-steps > summary { cursor: pointer; font-weight: 600; color: var(--a
 .hist-year { font-size: 0.75rem; font-variant-numeric: tabular-nums; padding: 0.15rem 0.4rem; border-radius: 6px; }
 .hist-year.ok { background: var(--good-bg); color: var(--good); }
 .hist-year.bad { background: var(--warn-bg); color: var(--warn); font-weight: 700; }
+.simple-calm p + p { margin-top: 0.45rem; }
