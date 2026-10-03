@@ -778,7 +778,9 @@ function historyCard(r) {
     const p = r.params, i = r.inputs;
     const t = r.earliestAge != null ? Math.ceil(r.earliestAge - i.age - 1e-9) : Math.round(p.fireTargetAge - i.age);
     const at = replayHistory(i, p, rows, t);
+    const growth = rows.reduce((g, y) => g * (1 + y.equity), 1);
     x = at && { rows, at, safe: at.lasted === at.total ? at : historySafe(i, p, rows, t + 1),
+      cagr: growth ** (1 / rows.length) - 1,
       inflationYears: rows.filter((y) => y.inflation != null).length };
     historyMemo.set(r, x);
   }
@@ -795,6 +797,10 @@ function historyCard(r) {
     h("div", { class: "hist-years", role: "img", "aria-label": `${at.lasted} of ${at.total} start years last` }, ...at.starts.map(yearChip)),
     at.lasted < at.total ? h("p", {}, safe ? [`Stopping at about `, h("strong", {}, ageWhole(safe.age)), ` would have lasted from every one of these start years.`]
       : `No stopping age before ${r.inputs.planUntilAge} lasts from every start year.`) : null,
+    // The replayed years may have been better than the plan assumes; say so rather than let them reassure.
+    x.cagr > r.params.rPre + 0.01 && r.chance.confidentAge != null && (!safe || safe.age < r.chance.confidentAge)
+      ? h("p", { class: "small" }, `Indian shares did well over ${rows[0].year}–${rows.at(-1).year} (about ${pct(x.cagr)} a year), better than this plan assumes, so history is kinder than the simulation. The safe planning age of about ${ageWhole(r.chance.confidentAge)} is still the better guide.`)
+      : null,
     h("p", { class: "muted tiny" },
       `Equity: ${src.equity?.name || "index history"}${x.inflationYears ? "; prices: India's yearly inflation (World Bank)" : "; prices: your assumed inflation (yearly data not loaded)"}; `,
       src.debt ? `debt: ${src.debt.name}; cash keeps its assumed return above inflation. ` : "debt and cash keep their assumed return above inflation. ",

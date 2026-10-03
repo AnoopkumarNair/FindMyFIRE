@@ -124,7 +124,7 @@ The results page asks "Was this clear?", and every page has one "Feedback or a p
 
 ## Roadmap
 
-**Done:** quick pass and live result; detailed sections with an estimate-quality score; nudges; save, open and encrypt; check-ins with changes since the last one; tax on withdrawals (FY2026-27, with marginal relief); income after FIRE; NPS exit choices under the December 2025 PFRDA rules; PPF and NPS kept apart until they unlock; property capital gains with indexation for pre-July-2024 purchases; 10,000-path market simulation with a safe planning age, simulating the cash, debt and equity buckets separately after FIRE; a replay of real market history; money to leave behind for children; a 30% crash scenario that hits equity only; one feedback-or-problem link; sensitivity and "show me the math"; a Sources page; the RBI All-India house price trend; the on-device assistant.
+**Done:** quick pass and live result; detailed sections with an estimate-quality score; nudges; save, open and encrypt; check-ins with changes since the last one; tax on withdrawals (FY2026-27, with marginal relief); income after FIRE; NPS exit choices under the December 2025 PFRDA rules; PPF and NPS kept apart until they unlock; property capital gains with indexation for pre-July-2024 purchases; 10,000-path market simulation with a safe planning age, simulating the cash, debt and equity buckets separately after FIRE; a replay of real market history (NIFTY 50 TRI 2000–2025); money to leave behind for children; a 30% crash scenario that hits equity only; one feedback-or-problem link; sensitivity and "show me the math"; a Sources page; the RBI All-India house price trend; the on-device assistant.
 
 **Next steps**, roughly in order, with the thinking behind each:
 

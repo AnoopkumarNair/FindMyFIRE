@@ -2603,6 +2603,14 @@
       "checkedOn": "2026-09-27"
     },
     {
+      "id": "nse-nifty50-tri",
+      "title": "NIFTY 50 Total Returns Index, historical data",
+      "publisher": "NSE Indices Ltd",
+      "url": "https://www.niftyindices.com/reports/historical-data",
+      "covers": "Yearly equity returns 2000-2025 for the market history replay",
+      "checkedOn": "2026-10-03"
+    },
+    {
       "id": "rbi-hpi",
       "title": "House Price Index, Q1 2026-27 (base 2022-23 = 100)",
       "publisher": "Reserve Bank of India",

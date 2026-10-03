@@ -1,0 +1,94 @@
+{
+ "source": {
+  "equity": {
+   "name": "NIFTY 50 Total Returns Index",
+   "url": "https://www.niftyindices.com/reports/historical-data"
+  },
+  "inflation": {
+   "name": "World Bank, India consumer price inflation (FP.CPI.TOTL.ZG)",
+   "url": "https://data.worldbank.org/indicator/FP.CPI.TOTL.ZG?locations=IN"
+  },
+  "method": "Calendar-year returns, last December level to last December level.",
+  "importedOn": "2026-10-03"
+ },
+ "years": {
+  "2000": {
+   "equity": -0.13364
+  },
+  "2001": {
+   "equity": -0.15049
+  },
+  "2002": {
+   "equity": 0.05336
+  },
+  "2003": {
+   "equity": 0.76611
+  },
+  "2004": {
+   "equity": 0.13035
+  },
+  "2005": {
+   "equity": 0.38633
+  },
+  "2006": {
+   "equity": 0.41901
+  },
+  "2007": {
+   "equity": 0.56805
+  },
+  "2008": {
+   "equity": -0.51271
+  },
+  "2009": {
+   "equity": 0.77591
+  },
+  "2010": {
+   "equity": 0.19224
+  },
+  "2011": {
+   "equity": -0.23808
+  },
+  "2012": {
+   "equity": 0.29435
+  },
+  "2013": {
+   "equity": 0.08072
+  },
+  "2014": {
+   "equity": 0.32899
+  },
+  "2015": {
+   "equity": -0.03013
+  },
+  "2016": {
+   "equity": 0.04395
+  },
+  "2017": {
+   "equity": 0.30266
+  },
+  "2018": {
+   "equity": 0.04638
+  },
+  "2019": {
+   "equity": 0.13477
+  },
+  "2020": {
+   "equity": 0.16139
+  },
+  "2021": {
+   "equity": 0.25591
+  },
+  "2022": {
+   "equity": 0.05691
+  },
+  "2023": {
+   "equity": 0.213
+  },
+  "2024": {
+   "equity": 0.10089
+  },
+  "2025": {
+   "equity": 0.11884
+  }
+ }
+}
